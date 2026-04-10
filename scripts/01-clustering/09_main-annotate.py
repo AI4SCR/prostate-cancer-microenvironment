@@ -4,15 +4,15 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
-from ai4bmr_core.utils.logging import get_logger
-from ai4bmr_core.utils.plotting import legend_from_dict
+from loguru import logger as base_logger
 from jsonargparse import CLI
+from prostate_cancer.plotting import legend_from_dict
 
 from prostate_cancer.utils import prepare_data
 
 
 def main(base_dir: Path | None = None):
-    logger = get_logger("phenotyping", verbose=1)
+    logger = base_logger.bind(task="phenotyping")
 
     # base_dir = base_dir or Path('/work/FAC/FBM/DBC/mrapsoma/prometex/data/datasets/PCa')
     base_dir = base_dir or Path(f"~/data/datasets/PCa/")

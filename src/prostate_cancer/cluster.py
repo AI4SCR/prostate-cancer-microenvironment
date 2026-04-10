@@ -5,10 +5,10 @@ import numpy as np
 import pandas as pd
 import scipy.sparse
 import umap
-from ai4bmr_core.utils.logging import get_logger
+from loguru import logger as base_logger
 from numba import cuda
 
-logger = get_logger("02.0_clustering", verbose=1)
+logger = base_logger.bind(task="02.0_clustering")
 
 from anndata import AnnData
 

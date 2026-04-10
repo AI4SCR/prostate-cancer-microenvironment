@@ -1,6 +1,6 @@
 from ai4bmr_datasets.datasets import PCa
 from ai4bmr_learn.plotting.umap import run_umap
-from ai4bmr_core.utils.sampling import sample_min_per_group_then_uniform
+from ai4bmr_learn.utils.sampling import sample_min_per_group_then_uniform
 import pandas as pd
 from prostate_cancer.utils import normalize
 from pathlib import Path

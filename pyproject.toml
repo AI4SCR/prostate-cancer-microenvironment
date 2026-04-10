@@ -9,9 +9,28 @@ description = "Exploratory analysis for the prostate cancer microenvironment pro
 requires-python = ">=3.10"
 dependencies = [
     "anndata",
+    "athena",
     "ai4bmr-datasets",
+    "colorcet",
+    "igraph",
+    "jsonargparse",
+    "leidenalg",
+    "loguru",
+    "matplotlib",
+    "numba",
+    "numpy",
+    "pandas",
+    "pycirclize",
     "pyarrow",
+    "PyYAML",
     "python-dotenv",
+    "scanpy",
+    "scikit-image",
+    "scikit-learn",
+    "scipy",
+    "seaborn",
+    "tqdm",
+    "umap-learn[plot]",
 ]
 
 [tool.setuptools.packages.find]

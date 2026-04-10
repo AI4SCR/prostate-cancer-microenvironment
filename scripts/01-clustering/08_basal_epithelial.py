@@ -4,17 +4,17 @@ from pathlib import Path
 
 import pandas as pd
 import seaborn as sns
-from ai4bmr_core.utils.logging import get_logger
-from ai4bmr_core.utils.plotting import legend_from_dict
+from loguru import logger as base_logger
 from jsonargparse import CLI
 from matplotlib import pyplot as plt
+from prostate_cancer.plotting import legend_from_dict
 
 from prostate_cancer.cluster import cluster
 from prostate_cancer.utils import prepare_data
 
 
 def main(base_dir: Path | None = None, resolution: float = 0.5):
-    logger = get_logger("phenotyping", verbose=1)
+    logger = base_logger.bind(task="phenotyping")
 
     markers = [
         # epithelial
