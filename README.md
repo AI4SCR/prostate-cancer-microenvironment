@@ -8,8 +8,8 @@ Install the regular Python dependencies from [`pyproject.toml`](/Users/adrianoma
 Some project dependencies are installed manually and are not managed through `pyproject.toml`:
 
 ```bash
-uv pip install -e /Users/adrianomartinelli/projects/ai4bmr-datasets
-uv pip install -e /Users/adrianomartinelli/projects/ai4bmr-learn
+uv pip install -e ~/projects/ai4bmr-datasets
+uv pip install -e ~/projects/ai4bmr-learn
 ```
 
 Install ATHENA manually from its repository as well:
