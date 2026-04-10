@@ -1,0 +1,11 @@
+[project]
+name = "prostate-cancer-microenvironment"
+version = "0.1.0"
+description = "Exploratory analysis for the prostate cancer microenvironment project."
+requires-python = ">=3.10"
+dependencies = [
+    "anndata",
+    "ai4bmr-datasets",
+    "pyarrow",
+    "python-dotenv",
+]
