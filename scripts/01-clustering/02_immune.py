@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pandas as pd
 import seaborn as sns
-from ai4bmr_core.utils.logging import get_logger
+from loguru import logger as base_logger
 from jsonargparse import CLI
 
 from prostate_cancer.cluster import cluster
@@ -12,7 +12,7 @@ from prostate_cancer.utils import prepare_data
 
 
 def main(base_dir: Path | None = None, resolution: float = 1):
-    logger = get_logger("phenotyping", verbose=1)
+    logger = base_logger.bind(task="phenotyping")
 
     # NOTE: we ignore CD45 because it is a marker for immune cells
     markers = ["CD20", "CD3", "CD4", "CD68", "CD8a", "FoxP3", "CD11b", "CD66b"]

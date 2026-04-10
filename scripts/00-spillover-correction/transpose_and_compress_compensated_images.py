@@ -1,13 +1,13 @@
 from pathlib import Path
 
 import numpy as np
-from ai4bmr_core.utils.logging import get_logger
+from loguru import logger as base_logger
 from jsonargparse import CLI
 from skimage.io import imread, imsave
 
 
 def main(data_dir: Path, verbose: int = 0):
-    logger = get_logger("transpose-compress", verbose=verbose)
+    logger = base_logger.bind(task="transpose-compress", verbose=verbose)
     for img_path in Path(data_dir).rglob("*.tif"):
         logger.info(f"processing {img_path}")
         i = imread(img_path)

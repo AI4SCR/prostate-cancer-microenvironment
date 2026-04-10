@@ -2,6 +2,11 @@
 
 ## Set-up
 
+### Python
+Install the project dependencies from [`pyproject.toml`](/Users/adrianomartinelli/projects/prostate-cancer-microenvironment/pyproject.toml), but note that `ai4bmr-learn` is not installed from PyPI in this project and must be installed manually in your environment before running the UMAP scripts under `scripts/02-umaps/`.
+
+The codebase imports `ai4bmr_learn.plotting.umap` in the UMAP scripts, so make sure that package is available locally, for example from a checked out repository or another internal installation source.
+
 ### Git Configuration
 Add task specific ignores in the corresponding `.gitignore` of the relevant sub-folders.
 I recommend to configure your global ignores with this [gist](https://gist.github.com/adrianomartinelli/7471ce6be2b6dd6a93ab9838fa201b3e).
