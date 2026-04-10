@@ -265,3 +265,28 @@ def normalize_row_annotations(row_annotations):
         row_annotations_norm[col] = norm(row_annotations[col])
     return row_annotations_norm
 
+def normalize_img(img, censoring=0.999, cofactor=1, exclude_zeros=True):
+    """Normalizes an image using an arcsin/work/FAC/FBM/DBC/mrapsoma/prometex/data/omics-embed/datasetsh transformation and applies intensity censoring.
+
+    Args:
+        img (np.ndarray): The input image array.
+        censoring (float, optional): The quantile to censor the image intensities. Defaults to 0.999.
+        cofactor (int, optional): The cofactor for the arcsinh transformation. Defaults to 1.
+        exclude_zeros (bool, optional): Whether to exclude zero values when computing the censoring threshold. Defaults to True.
+
+    Returns:
+        np.ndarray: The normalized and censored image array.
+    """
+    img = np.arcsinh(img / cofactor)
+
+    if exclude_zeros:
+        masked_img = np.where(img == 0, np.nan, img)
+        thres = np.nanquantile(masked_img, censoring, axis=(1, 2), keepdims=True)
+        # All-zero channels become all-NaN after masking; use 0 threshold fallback.
+        thres = np.where(np.isnan(thres), 0.0, thres)
+    else:
+        thres = np.quantile(img, q=censoring, axis=(1, 2), keepdims=True)
+
+    img = np.minimum(img, thres)
+
+    return img
