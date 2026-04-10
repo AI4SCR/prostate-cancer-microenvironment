@@ -10,21 +10,12 @@ Some project dependencies are installed manually and are not managed through `py
 ```bash
 uv pip install -e ~/projects/ai4bmr-datasets
 uv pip install -e ~/projects/ai4bmr-learn
+uv pip install -e ~/projects/ATHENA
 ```
-
-Install ATHENA manually from its repository as well:
-
-- [ATHENA](https://github.com/AI4SCR/ATHENA)
-
-The editable installs are required because this codebase imports `ai4bmr_datasets` and `ai4bmr_learn`, and some scripts also depend on `athena`.
 
 ### Git Configuration
 Add task specific ignores in the corresponding `.gitignore` of the relevant sub-folders.
 I recommend to configure your global ignores with this [gist](https://gist.github.com/adrianomartinelli/7471ce6be2b6dd6a93ab9838fa201b3e).
-
-### Branch Management
-Create branches for the specific task prefixed with a personal identifier (`<IDENTIFIER>/<FEATURE>`) like `art/feature-1`. 
-`main` branch is protected, you need to open a PR to merge with `main`.
 
 ### Environment
 Your scripts should access the data in the machine specific folder. Use `.env` in this folder with the following content:
