@@ -36,6 +36,14 @@ import os
 PATH_BOX = os.getenv('PATH_BOX')
 ```
 
+### Slurm
+To start a Slurm job that keeps an allocation alive for 24 hours, run:
+
+```bash
+sbatch -p gpu-l40 --gres=gpu:1 --mem=128G --time=24:00:00 --wrap='sleep 24h'
+
+```
+
 ## Steinbock
 
 ### Setup
