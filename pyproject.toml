@@ -9,8 +9,6 @@ description = "Exploratory analysis for the prostate cancer microenvironment pro
 requires-python = ">=3.10"
 dependencies = [
     "anndata",
-    "athena",
-    "ai4bmr-datasets",
     "colorcet",
     "igraph",
     "jsonargparse",

@@ -3,9 +3,20 @@
 ## Set-up
 
 ### Python
-Install the project dependencies from [`pyproject.toml`](/Users/adrianomartinelli/projects/prostate-cancer-microenvironment/pyproject.toml), but note that `ai4bmr-learn` is not installed from PyPI in this project and must be installed manually in your environment before running the UMAP scripts under `scripts/02-umaps/`.
+Install the regular Python dependencies from [`pyproject.toml`](/Users/adrianomartinelli/projects/prostate-cancer-microenvironment/pyproject.toml).
 
-The codebase imports `ai4bmr_learn.plotting.umap` in the UMAP scripts, so make sure that package is available locally, for example from a checked out repository or another internal installation source.
+Some project dependencies are installed manually and are not managed through `pyproject.toml`:
+
+```bash
+uv pip install -e /Users/adrianomartinelli/projects/ai4bmr-datasets
+uv pip install -e /Users/adrianomartinelli/projects/ai4bmr-learn
+```
+
+Install ATHENA manually from its repository as well:
+
+- [ATHENA](https://github.com/AI4SCR/ATHENA)
+
+The editable installs are required because this codebase imports `ai4bmr_datasets` and `ai4bmr_learn`, and some scripts also depend on `athena`.
 
 ### Git Configuration
 Add task specific ignores in the corresponding `.gitignore` of the relevant sub-folders.
