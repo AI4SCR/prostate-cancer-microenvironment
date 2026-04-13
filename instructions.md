@@ -2,7 +2,9 @@
 
 Spend up to 24 hours exploring and analyzing the prostate cancer microenvironment (PCa) dataset.
 
-Your goal is to understand what has already been done in this project, identify promising biological questions, and follow the most interesting signals in the data with curiosity and initiative. Prioritize genuinely interesting biological observations, hypotheses, and directions for follow-up over reproducing the full historical pipeline.
+Your goal is to understand what has already been done in this project, identify promising biological questions, and 
+follow the most interesting signals in the data with curiosity and initiative. 
+Prioritize genuinely interesting biological observations, hypotheses, and directions for follow-up over reproducing the full historical pipeline.
 
 ## Hard Constraints
 
@@ -33,6 +35,23 @@ Then review what analyses have already been done in this repository and, where u
 - The dataset is accessed through `ai4bmr_datasets.PCa`, typically using `BASE_DIR` from the local `.env`.
 - Some packages are installed manually as described in the README.
 - If you need additional packages, you may install them, but only using `uv`.
+
+## Research Planning
+
+Start by defining the research questions you want to tackle, then prioritize them before writing analysis code. 
+The research questions should be informed by the literature review we already performed and by the insights stored in
+`output/reports`.
+
+Use the reports to identify what is already known, what has already been analyzed, what biological themes recur across
+publications, and where there may be gaps or opportunities for new analysis in this PCa dataset.
+
+For each research question, create a detailed plan with TODOs that explains what must be completed to reach a 
+conclusion in `output/research-questions/`. Include what data to use, how to wrangle the data, what models or 
+statistical tests to try, why those methods are appropriate, and what plots, metrics, or tests are needed to support a 
+scientific statement.
+
+Then complete the research questions one by one, starting with the highest-priority question. Keep the plans up to date
+as work is completed so another researcher or agent can easily pick up from the current state.
 
 ## Suggested Approach
 
