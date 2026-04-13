@@ -1,6 +1,16 @@
 # prostate-cancer-microenvironment
 
-Research workspace for prostate cancer microenvironment literature curation, report generation, and project-specific draft manuscript review.
+Research workspace for prostate cancer microenvironment literature curation, report generation, exploratory spatial biology analysis, and project-specific draft manuscript review.
+
+## Current project context
+
+This project focuses on constructing a spatially resolved single-cell atlas of primary prostate cancer (PCa) by integrating high-dimensional imaging data with computational analysis and machine learning.
+
+The primary biological goal is to characterize the tumor microenvironment, quantify inter- and intra-patient heterogeneity, and identify clinically relevant stromal, immune, epithelial, and niche-like spatial patterns that go beyond traditional pathology metrics such as Gleason grade.
+
+All new exploratory analysis work should be carried out in `scripts/99-exploratory-analysis`. The file `scripts/99-exploratory-analysis/main.py` is intentionally a very short example showing how to access the PCa data and start ATHENA-related analysis; treat it as a starting point, not a complete pipeline.
+
+Shared reusable helpers belong under `src/prostate_cancer`. Do not import reusable logic from one script into another script.
 
 ## Project structure
 
@@ -8,11 +18,18 @@ Current repository layout:
 
 ```text
 prostate-cancer-microenvironment/
+├── src/
+│   └── prostate_cancer/   # Importable project helpers
+├── scripts/
+│   └── 99-exploratory-analysis/
+│       └── main.py        # Minimal data/ATHENA starter example
 ├── resources/              # Source PDFs (papers, preprints, internal drafts)
 ├── output/
 │   └── reports/            # Generated per-paper reports and summary index
 ├── tmp/                    # Temporary working files; safe to clean
-└── CLAUD.md                # Project instructions for coding agents
+├── README.md               # Setup notes
+├── objectives.md           # Project goals and analysis instructions
+└── CLAUDE.md               # Project instructions for coding agents
 ```
 
 If the repository grows into a codebase, prefer evolving toward:
@@ -33,9 +50,7 @@ prostate-cancer-microenvironment/
 
 ## Environment
 
-This repository is not yet set up as a uv-managed Python package.
-
-If Python tooling is added, use [uv](https://github.com/astral-sh/uv) and standardize on:
+Use [uv](https://github.com/astral-sh/uv) for Python tooling:
 
 ```bash
 uv sync
@@ -45,11 +60,17 @@ uv run pytest
 uv run python scripts/my_script.py
 ```
 
-Until then:
+Some dependencies are local/manual installs rather than PyPI dependencies:
 
-- Prefer small, explicit scripts over notebook-only workflows.
-- Keep reusable logic out of ad hoc shell snippets once it starts repeating.
-- Do not assume package metadata or a managed virtualenv already exists.
+```bash
+uv pip install -e ~/projects/ai4bmr-datasets
+uv pip install -e ~/projects/ai4bmr-learn
+uv pip install -e ~/projects/ATHENA
+```
+
+If additional packages are needed for exploratory work, install them with `uv`.
+
+Prefer small, explicit scripts over notebook-only workflows. Keep reusable logic out of ad hoc shell snippets once it starts repeating.
 
 ## Rules
 
@@ -60,6 +81,7 @@ Until then:
 - Treat files under `output/reports/` as generated deliverables. Keep them reproducible and easy to regenerate.
 - Use `tmp/` only for intermediate artifacts and clean it up when the deliverable is complete.
 - Preserve draft-specific inconsistencies when documenting internal manuscripts unless explicitly asked to fix or rewrite them.
+- For open-ended exploratory analysis tasks, modify only `scripts/99-exploratory-analysis` and `src` unless the user explicitly authorizes broader edits.
 
 ## Anti-Patterns
 
@@ -76,6 +98,7 @@ Suggested variables for this project:
 
 ```bash
 PROJECT_ROOT=/absolute/path/to/prostate-cancer-microenvironment
+BASE_DIR=/absolute/path/to/PCa/data
 RESOURCE_DIR=resources
 OUTPUT_DIR=output
 REPORT_DIR=output/reports
@@ -88,6 +111,26 @@ If interactive Python sessions use `.env`, load it explicitly:
 from dotenv import load_dotenv
 
 load_dotenv()
+```
+
+The PCa dataset is typically loaded through `ai4bmr_datasets.PCa`:
+
+```python
+ds = PCa(
+    base_dir=Path(os.environ["BASE_DIR"]),
+    image_version="filtered",
+    mask_version="annotated",
+    load_metadata=True,
+    load_intensity=True,
+    align=True,
+)
+ds.setup(engine="pyarrow")
+```
+
+To start a Slurm job that keeps a 24-hour allocation alive, use:
+
+```bash
+sbatch -p gpu-l40 --gres=gpu:1 --mem=128G --time=24:00:00 --wrap='sleep 24h'
 ```
 
 ## Code philosophy
