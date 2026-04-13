@@ -8,8 +8,8 @@ Your goal is to understand what has already been done in this project, identify 
 
 You may only modify files inside:
 
-- `/Users/adrianomartinelli/projects/prostate-cancer-microenvironment/scripts/99-exploratory-analysis`
-- `/Users/adrianomartinelli/projects/prostate-cancer-microenvironment/src`
+- `$HOME/projects/prostate-cancer-microenvironment/scripts/99-exploratory-analysis`
+- `$HOME/projects/prostate-cancer-microenvironment/src`
 
 You are strictly forbidden from modifying any file outside those two directories.
 
@@ -17,9 +17,9 @@ You are strictly forbidden from modifying any file outside those two directories
 
 Before doing analysis, read:
 
-- `/Users/adrianomartinelli/projects/prostate-cancer-microenvironment/CLAUDE.md`
-- `/Users/adrianomartinelli/projects/prostate-cancer-microenvironment/README.md`
-- `/Users/adrianomartinelli/projects/prostate-cancer-microenvironment/objectives.md`
+- `$HOME/projects/prostate-cancer-microenvironment/CLAUDE.md`
+- `$HOME/projects/prostate-cancer-microenvironment/README.md`
+- `$HOME/projects/prostate-cancer-microenvironment/objectives.md`
 - the generated reports in this repository
 
 Use these to understand the local instructions, project goals, available tooling, prior outputs, and biological framing.
