@@ -29,6 +29,7 @@ dependencies = [
     "seaborn",
     "tqdm",
     "umap-learn[plot]",
+    "lifelines>=0.30.0",
 ]
 
 [tool.setuptools.packages.find]
