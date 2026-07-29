@@ -3,12 +3,25 @@
 ## Set-up
 
 ### Python
-Install the regular Python dependencies from [`pyproject.toml`](/Users/adrianomartinelli/projects/prostate-cancer-microenvironment/pyproject.toml).
+Install the regular Python dependencies from [`pyproject.toml`](pyproject.toml):
 
-Some project dependencies are installed manually and are not managed through `pyproject.toml`:
+```bash
+uv sync
+```
+
+`ai4bmr-datasets` is pinned in `pyproject.toml` to the `pca` branch of
+[AI4SCR/ai4bmr-datasets](https://github.com/AI4SCR/ai4bmr-datasets) — the `PCa` dataset
+class currently lives only on that branch, not on `main`. If you need a local editable
+checkout for development instead, use:
 
 ```bash
 uv pip install -e ~/projects/ai4bmr-datasets
+```
+
+Some project dependencies are still installed manually and are not managed through
+`pyproject.toml`:
+
+```bash
 uv pip install -e ~/projects/ai4bmr-learn
 uv pip install -e ~/projects/ATHENA
 ```

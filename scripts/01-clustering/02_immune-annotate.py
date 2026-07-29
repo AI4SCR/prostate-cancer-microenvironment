@@ -8,15 +8,13 @@ from loguru import logger as base_logger
 from jsonargparse import CLI
 from prostate_cancer.plotting import legend_from_dict
 
-from prostate_cancer.utils import prepare_data
+from prostate_cancer.utils import prepare_data, resolve_base_dir
 
 
 def main(base_dir: Path | None = None):
     logger = base_logger.bind(task="phenotyping")
 
-    # base_dir = base_dir or Path('/work/FAC/FBM/DBC/mrapsoma/prometex/data/datasets/PCa')
-    base_dir = base_dir or Path("~/data/datasets/PCa")
-    # base_dir = base_dir or Path('~/data/pca-v3')
+    base_dir = base_dir or resolve_base_dir()
     base_dir = Path(base_dir).expanduser()
 
     save_dir = base_dir / "02.0_clustering" / "immune" / f"r-{1.0}"
@@ -34,9 +32,9 @@ def main(base_dir: Path | None = None):
     membership = data.reset_index("membership")["membership"]
 
     # %%
-    base_dir = base_dir or Path("~/data/datasets/PCa")
+    base_dir = base_dir or resolve_base_dir()
     base_dir = Path(base_dir).expanduser()
-    data = prepare_data(base_dir)
+    data = prepare_data(base_dir, mask_version="filtered")
 
     data = (
         pd.concat((data, membership), axis=1)

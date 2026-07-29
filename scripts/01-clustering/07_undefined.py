@@ -10,7 +10,7 @@ from matplotlib import pyplot as plt
 from prostate_cancer.plotting import legend_from_dict
 
 from prostate_cancer.cluster import cluster
-from prostate_cancer.utils import prepare_data
+from prostate_cancer.utils import prepare_data, resolve_base_dir
 
 
 def main(base_dir: Path | None = None, resolution: float = 0.75):
@@ -68,9 +68,7 @@ def main(base_dir: Path | None = None, resolution: float = 0.75):
         "stromal": ["Vimentin", "Smooth_muscle_actin", "Collagen1"],
     }
 
-    base_dir = base_dir or Path("/work/FAC/FBM/DBC/mrapsoma/prometex/data/datasets/PCa")
-    # base_dir = base_dir or Path('~/data/datasets/PCa')
-    # base_dir = base_dir or Path('~/data/pca-v3')
+    base_dir = base_dir or resolve_base_dir()
     base_dir = Path(base_dir).expanduser()
 
     save_dir = base_dir / "02.0_clustering" / "undefined" / f"r-{resolution}"
@@ -86,7 +84,7 @@ def main(base_dir: Path | None = None, resolution: float = 0.75):
             data, embedding, result = data["data"], data["embedding"], data["result"]
     else:
         logger.info(f"02.0_clustering")
-        data = prepare_data(base_dir=base_dir)
+        data = prepare_data(base_dir=base_dir, mask_version="filtered")
 
         # FILTER
         # 01_immune

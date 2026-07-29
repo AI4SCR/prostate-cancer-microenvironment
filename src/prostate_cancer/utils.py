@@ -11,9 +11,35 @@ from matplotlib.colors import to_rgba
 from pandas.api.types import is_numeric_dtype
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
+
+def resolve_base_dir() -> Path:
+    """Load `.env` and return `BASE_DIR` as a `Path`.
+
+    Single source of truth for where scripts default to when `--base_dir` is
+    not passed on the CLI, so every script points at the same dataset without
+    a hardcoded machine-specific path. See REPRODUCIBILITY.md.
+    """
+    import os
+    from dotenv import load_dotenv
+
+    load_dotenv()
+    base_dir = os.environ.get("BASE_DIR")
+    assert base_dir, "BASE_DIR is not set; copy .env.example to .env and fill it in"
+    return Path(base_dir).expanduser()
+
+
 def get_colormap_dict(name: str, as_rgb: bool = False):
+    import os
     import yaml
-    with open('/work/FAC/FBM/DBC/mrapsoma/prometex/projects/PCa/colormaps.yaml') as f:
+    from pathlib import Path
+
+    colormaps_path = Path(__file__).resolve().parents[2] / "colormaps.yaml"
+    if not colormaps_path.exists():
+        base_dir = os.environ.get("BASE_DIR")
+        assert base_dir, "colormaps.yaml not found next to the repo; set BASE_DIR or add colormaps.yaml at the repo root"
+        colormaps_path = Path(base_dir) / "colormaps.yaml"
+
+    with open(colormaps_path) as f:
         colormaps = yaml.load(f, Loader=yaml.SafeLoader)
     colormap = colormaps[name]
     return colormap
@@ -75,12 +101,21 @@ def normalize(data: pd.DataFrame, scale: str = 'minmax', exclude_zeros: bool = F
     return pd.DataFrame(x, index=index, columns=columns)
 
 
-def prepare_data(base_dir: Path, scale="minmax"):
+def prepare_data(base_dir: Path, scale="minmax", mask_version: str = "annotated"):
+    """Load and normalize cell intensities from the PCa dataset.
+
+    `mask_version="filtered"` gives every segmented cell (no cell-type labels
+    yet) and is the correct input for the 01-clustering scripts that assign
+    labels for the first time. `mask_version="annotated"` (default) requires
+    `01_raw/annotations/labels.parquet` to already exist and is what every
+    downstream figure script should use once labels have been produced.
+    See REPRODUCIBILITY.md for the full bootstrap order.
+    """
     from ai4bmr_datasets import PCa
 
     dataset = PCa(base_dir=base_dir,
              image_version='filtered',
-             mask_version='annotated',
+             mask_version=mask_version,
              load_intensity=True,
              load_metadata=True,
              align=False)

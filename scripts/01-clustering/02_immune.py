@@ -8,7 +8,7 @@ from loguru import logger as base_logger
 from jsonargparse import CLI
 
 from prostate_cancer.cluster import cluster
-from prostate_cancer.utils import prepare_data
+from prostate_cancer.utils import prepare_data, resolve_base_dir
 
 
 def main(base_dir: Path | None = None, resolution: float = 1):
@@ -18,9 +18,7 @@ def main(base_dir: Path | None = None, resolution: float = 1):
     markers = ["CD20", "CD3", "CD4", "CD68", "CD8a", "FoxP3", "CD11b", "CD66b"]
     marker_groups = [["CD3", "CD4", "CD8a", "FoxP3"], ["CD11b", "CD68", "CD66b"]]
 
-    base_dir = base_dir or Path("/work/FAC/FBM/DBC/mrapsoma/prometex/data/datasets/PCa")
-    # base_dir = base_dir or Path('~/data/datasets/PCa')
-    # base_dir = base_dir or Path('~/data/pca-v3')
+    base_dir = base_dir or resolve_base_dir()
     base_dir = Path(base_dir).expanduser()
 
     save_dir = base_dir / "02.0_clustering" / "immune-only" / f"r-{resolution}"
@@ -36,7 +34,7 @@ def main(base_dir: Path | None = None, resolution: float = 1):
             data, embedding, result = data["data"], data["embedding"], data["result"]
     else:
         logger.info(f"02.0_clustering")
-        data = prepare_data(base_dir=base_dir)
+        data = prepare_data(base_dir=base_dir, mask_version="filtered")
 
         # FILTER
         cells = pd.read_parquet(
