@@ -40,6 +40,11 @@ cells <- intensity |>
   select(sample_id, object_id, all_of(marker_cols)) |>
   inner_join(metadata |> select(sample_id, object_id, label, main_group), by = c("sample_id", "object_id"))
 
+# "undefined" is a 35th label for the ~3% of cells the paper describes as
+# "remained unclassified and was excluded from the analysis" (Results) --
+# not one of the 34 annotated cell types shown in Figure 2a.
+cells <- cells |> filter(label != "undefined")
+
 n_cell_types <- n_distinct(cells$label)
 stopifnot("expected 34 annotated cell types" = n_cell_types == 34)
 
@@ -59,7 +64,7 @@ row_annotation <- rowAnnotation(
   col = list(compartment = main_group_colors)
 )
 
-png(file.path(save_dir, "figure2a_cell_type_heatmap.png"), width = 2400, height = 2600, res = 220)
+png(file.path(save_dir, "figure2a_cell_type_heatmap.png"), width = 2400, height = 2600, res = 220, type = "cairo")
 Heatmap(
   mat,
   name = "mean expr.\n(arcsinh + min-max)",
