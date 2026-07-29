@@ -28,6 +28,8 @@ from prostate_cancer.utils import prepare_data, resolve_base_dir
 EXPECTED_CELL_COUNT = 2_191_967
 EXPECTED_PATIENT_COUNT = 195  # initial TMA cohort
 EXPECTED_TUMOR_PATIENT_COUNT = 190  # final analytical cohort (is_tumor == "yes")
+EXPECTED_ROI_COUNT = 523  # unique physical cores (tma_id), all clinical rows
+EXPECTED_TUMOR_ROI_COUNT = 459  # unique tma_id, restricted to labeled cells + is_tumor == "yes"
 
 
 def main(base_dir: Path | None = None, export_dir: Path | None = None):
@@ -79,13 +81,22 @@ def main(base_dir: Path | None = None, export_dir: Path | None = None):
         f"expected {EXPECTED_TUMOR_PATIENT_COUNT}"
     )
 
-    # ROI counts do NOT fully reconcile even after the restriction above: 534
-    # ROIs have labeled cells (paper: 523 "high-quality" ROIs) and 476 of
-    # those are is_tumor=='yes' (paper: 459 "tumor-containing" ROIs). Logged,
-    # not asserted — see REPRODUCIBILITY.md Known discrepancies.
-    n_rois = len(clinical_with_cells)
-    n_tumor_rois = (clinical_with_cells["is_tumor"] == "yes").sum()
-    logger.info(f"ROIs with labeled cells: {n_rois} (paper: 523); of those is_tumor=='yes': {n_tumor_rois} (paper: 459)")
+    # `sample_id` is per-acquisition, not per physical core: interrupted scans
+    # were re-acquired, producing two `sample_id` rows for the same `tma_id`.
+    # The paper counts physical cores (`tma_id`), not acquisitions — see
+    # REPRODUCIBILITY.md Known discrepancies for how this was confirmed.
+    # The 523 count is over ALL clinical rows (acquired cores, pre-QC); the
+    # 459 count is restricted to cores with labeled cells AND is_tumor=="yes".
+    assert "tma_id" in clinical.columns, "clinical table is missing tma_id"
+    n_rois = clinical["tma_id"].nunique()
+    assert n_rois == EXPECTED_ROI_COUNT, f"{n_rois} unique tma_id, expected {EXPECTED_ROI_COUNT}"
+
+    n_tumor_rois = clinical_with_cells.loc[
+        clinical_with_cells["is_tumor"] == "yes", "tma_id"
+    ].nunique()
+    assert n_tumor_rois == EXPECTED_TUMOR_ROI_COUNT, (
+        f"{n_tumor_rois} unique is_tumor=='yes' tma_id with labeled cells, expected {EXPECTED_TUMOR_ROI_COUNT}"
+    )
 
     # %% normalized intensities (arcsinh + 99.9th pct censor + min-max, same as clustering input)
     intensity_normalized = prepare_data(base_dir=base_dir, mask_version="annotated")

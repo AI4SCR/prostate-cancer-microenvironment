@@ -143,39 +143,38 @@ patient clusters P1–P6 / niches 1–18.
   to exactly **2,191,967** cells across **534** sample files — matches the
   paper exactly. `scripts/00-data-export/export_for_r.py` hard-asserts this
   number against the final exported table.
-- **ROI / patient count — patient counts fully reconcile, ROI counts don't.**
-  The paper reports 523 "high-quality" ROIs (Results) and, after further
-  removing ROIs lacking clinical annotation or tumor content, 459
-  "tumor-containing" ROIs (Methods, "IMC Data Acquisition") — two sequential
-  QC stages, not a contradiction (corrected from an earlier note here that
-  read them as inconsistent).
+- **ROI / patient count — RESOLVED.** The paper reports 523 "high-quality"
+  ROIs (Results) and, after further removing ROIs lacking clinical
+  annotation or tumor content, 459 "tumor-containing" ROIs (Methods, "IMC
+  Data Acquisition") — two sequential QC stages, not a contradiction.
 
-  **Investigated 2026-07-29.** `02_processed/metadata/clinical.parquet` has
-  542 ROI-level rows / 196 unique `pat_id` — more than the paper's numbers.
-  Restricting to the 534 ROIs that actually have processed, labeled cells
-  (i.e. present in `metadata`) resolves the patient counts **exactly**:
-  195 unique patients (matches the paper's initial cohort), and 190 of those
-  with `is_tumor == "yes"` (matches the paper's final analytical cohort —
-  195 − 190 = 5, matching the Methods statement that "five patients were
-  removed due to the absence of tumor content"). The one extra patient
-  (`pat_id` `95.8128`) has a single clinical ROI row (`240219_ivb_x5y2_8_4`,
-  `is_tumor == "yes"`) with **no** corresponding entry in the labeled-cell
-  dataset — i.e. that ROI has clinical annotation but was never
-  processed into cells (failed segmentation or dropped before the cell atlas
-  was built).
+  **Investigated 2026-07-29.** `sample_id` (the ai4bmr-datasets ROI key) is
+  **per acquisition**, not per physical core: some cores had an interrupted
+  IMC scan that was re-acquired, producing two `sample_id` rows for the same
+  physical ROI (e.g. `231209_ibl_x3y19_198_1_13` and
+  `231209_ibl_x3y19_198_12`, both `pat_id` 96.3799, same `tma_id`
+  `IBL_X3Y19` — one annotated `notes = "lot missing"`). `tma_id` is the
+  physical-core identifier the paper actually counts. Deduplicating by
+  `tma_id` reconciles every number **exactly**:
+  - All 542 clinical rows → **523** unique `tma_id` = paper's "523
+    high-quality ROIs", exactly.
+  - The 476 rows with labeled cells AND `is_tumor == "yes"` → **459** unique
+    `tma_id` = paper's "459 tumor-containing ROIs", exactly.
+  - (The 534 rows with labeled cells, pre-tumor-filter → 515 unique
+    `tma_id` — this number was already known but undocumented: it's a stray
+    comment, `# 515 TMA_IDs before filtering for tumor cores only`, in
+    `scripts/03-survival/survival-proportions.r`.)
 
-  The **ROI counts** remain unreconciled even after this restriction: 534
-  ROIs have labeled cells vs. the paper's 523, and 476 of those are
-  `is_tumor == "yes"` vs. the paper's 459 — an 11- and 17-ROI gap
-  respectively. The only ROI-level exclusion found anywhere in the current
-  scripts is a single hardcoded sample (`"240223_012"`, excluded in both
-  `09_main-annotate.py` and `PCa.label_transfer()`), nowhere near enough to
-  account for the gap. Likely explanation: the "regions presenting staining
-  artifacts or obvious segmentation errors were removed" QC step (Methods,
-  "Data Processing") was applied manually/interactively at some point and
-  isn't captured by any flag in the current `clinical.parquet` or by any
-  script in this repo. Not resolved — `export_for_r.py` logs both ROI counts
-  (not asserted) so this stays visible rather than silently passing.
+  Patient counts (previous paragraph) are also explained by the same
+  `sample_id`-vs-`tma_id` distinction plus one ROI that was never processed
+  into cells.
+
+  **Implication for every figure branch**: any ROI/core-level aggregation
+  (cell counts per core, niche abundance per core, KM stratification by
+  core) must group by `tma_id`, not `sample_id`, or interrupted-acquisition
+  duplicates will be double-counted. `export_for_r.py` now asserts the
+  `tma_id`-deduplicated ROI counts (523 / 459) in addition to the patient
+  counts.
 - **`scripts/01-clustering/03_epithelial-non-epithelial-annotate.py`** is an
   empty file (0 bytes) in the current repo. Not reconstructed here — flagged
   for the `figure-2-cell-phenotyping` branch to investigate.
