@@ -18,6 +18,42 @@ from sklearn.preprocessing import MinMaxScaler, StandardScaler
 NON_MARKER_CHANNELS = ["dna1", "dna2", "icsk1", "icsk2", "icsk3", "fap"]
 # Non-marker columns carried alongside intensities by prepare_data()/export_for_r.py.
 INDEX_COLUMNS = ["sample_id", "object_id", "slide_code", "donor_block_id", "pat_id"]
+# Cell-type-label columns present in metadata.parquet (see ai4bmr_datasets.PCa.label_transfer()).
+LABEL_COLUMNS = ["label", "main_group", "label_id", "main_group_id", "meta_label", "meta_label_id"]
+
+
+def load_exported_cells(export_dir: Path, exclude_undefined: bool = False) -> pd.DataFrame:
+    """Load and merge the per-cell tables `export_for_r.py` writes to `EXPORT_DIR`.
+
+    One row per cell, combining `metadata.parquet` (labels) and
+    `intensity_normalized.parquet` (markers), used by every figure script
+    that plots or clusters individual cells.
+
+    `exclude_undefined=True` drops the ~3% of cells the paper's Results
+    describes as "remained unclassified and was excluded from the analysis"
+    -- appropriate for cell-type-level figures (Figure 2a's heatmap), but
+    NOT for whole-dataset figures like Figure 2b's UMAP, whose own caption
+    states it covers all 2,191,967 cells. Decide per figure, don't default
+    to filtering.
+    """
+    metadata = pd.read_parquet(export_dir / "metadata.parquet").reset_index()
+    intensity = pd.read_parquet(export_dir / "intensity_normalized.parquet").reset_index()
+    cells = intensity.merge(metadata, on=["sample_id", "object_id"], validate="one_to_one")
+    if exclude_undefined:
+        cells = cells[cells["label"] != "undefined"]
+    return cells
+
+
+def marker_columns(cells: pd.DataFrame, expected: int | None = 34) -> list[str]:
+    """Return the marker-intensity columns of a `load_exported_cells()` table.
+
+    `expected` asserts the resulting count (34 for the full panel); pass
+    `None` to skip the check, e.g. when a figure restricts to a marker subset.
+    """
+    cols = [c for c in cells.columns if c not in NON_MARKER_CHANNELS + INDEX_COLUMNS + LABEL_COLUMNS]
+    if expected is not None:
+        assert len(cols) == expected, f"expected {expected} markers, got {len(cols)}: {cols}"
+    return cols
 
 
 def resolve_base_dir() -> Path:

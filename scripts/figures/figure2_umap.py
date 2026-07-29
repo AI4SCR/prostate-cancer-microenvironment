@@ -12,60 +12,11 @@ CPU-tractable run with umap-learn; pass `n_cells=-1` for the full dataset
 """
 from pathlib import Path
 
-import matplotlib.pyplot as plt
-import pandas as pd
 from jsonargparse import CLI
 from loguru import logger
 
-from prostate_cancer.utils import NON_MARKER_CHANNELS, INDEX_COLUMNS, create_color_maps, resolve_export_dir
-
-LABEL_COLUMNS = ["label", "main_group", "label_id", "main_group_id", "meta_label", "meta_label_id"]
-
-
-def load_cells(export_dir: Path) -> pd.DataFrame:
-    metadata = pd.read_parquet(export_dir / "metadata.parquet").reset_index()
-    intensity = pd.read_parquet(export_dir / "intensity_normalized.parquet").reset_index()
-    cells = intensity.merge(metadata, on=["sample_id", "object_id"], validate="one_to_one")
-    return cells
-
-
-def plot_categorical(cells: pd.DataFrame, col: str, save_path: Path, point_size: float = 2.0):
-    color_maps = create_color_maps(cells[[col]].astype({col: "category"}))
-    color_map = color_maps[col]
-
-    fig, ax = plt.subplots(figsize=(9, 8))
-    ax.scatter(
-        cells["umap_1"], cells["umap_2"],
-        c=[color_map[v] for v in cells[col]],
-        s=point_size, alpha=0.5, linewidths=0,
-    )
-    ax.set_title(f"Figure 2b -- UMAP colored by {col}")
-    ax.set_xticks([])
-    ax.set_yticks([])
-
-    # too many categories (e.g. 195 patients) to legend legibly -- skip it
-    if len(color_map) <= 40:
-        handles = [
-            plt.Line2D([0], [0], marker="o", linestyle="", color=c, label=str(l))
-            for l, c in color_map.items()
-        ]
-        ax.legend(handles=handles, bbox_to_anchor=(1.02, 1), loc="upper left", fontsize=6, ncols=2 if len(handles) > 15 else 1)
-
-    fig.tight_layout()
-    fig.savefig(save_path, dpi=200)
-    plt.close(fig)
-
-
-def plot_marker(cells: pd.DataFrame, marker: str, save_path: Path, point_size: float = 2.0):
-    fig, ax = plt.subplots(figsize=(8, 7))
-    sca = ax.scatter(cells["umap_1"], cells["umap_2"], c=cells[marker], s=point_size, alpha=0.6, cmap="viridis", linewidths=0)
-    fig.colorbar(sca, ax=ax, label=marker)
-    ax.set_title(f"Figure 2b -- UMAP colored by {marker}")
-    ax.set_xticks([])
-    ax.set_yticks([])
-    fig.tight_layout()
-    fig.savefig(save_path, dpi=200)
-    plt.close(fig)
+from prostate_cancer.plotting import plot_embedding_categorical, plot_embedding_marker
+from prostate_cancer.utils import load_exported_cells, marker_columns, resolve_export_dir
 
 
 def main(
@@ -83,29 +34,29 @@ def main(
     save_dir.mkdir(parents=True, exist_ok=True)
 
     logger.info("loading exported tables")
-    cells = load_cells(export_dir)
-
-    marker_cols = [c for c in cells.columns if c not in NON_MARKER_CHANNELS + INDEX_COLUMNS + LABEL_COLUMNS]
-    assert len(marker_cols) == 34, f"expected 34 markers, got {len(marker_cols)}: {marker_cols}"
-    assert set(markers) <= set(marker_cols), f"{set(markers) - set(marker_cols)} not in marker panel"
+    # Figure 2b's own caption states "n = 2'191'967" -- the full, unfiltered
+    # cell count -- so unlike Figure 2a's heatmap, "undefined" is kept.
+    cells = load_exported_cells(export_dir, exclude_undefined=False)
+    cols = marker_columns(cells)
+    assert set(markers) <= set(cols), f"{set(markers) - set(cols)} not in marker panel"
 
     if 0 < n_cells < len(cells):
         logger.info(f"subsampling {n_cells} of {len(cells)} cells (seed={seed})")
         cells = cells.sample(n=n_cells, random_state=seed).reset_index(drop=True)
 
-    logger.info(f"computing UMAP on {len(cells)} cells x {len(marker_cols)} markers")
+    logger.info(f"computing UMAP on {len(cells)} cells x {len(cols)} markers")
     reducer = umap.UMAP(n_neighbors=n_neighbors, min_dist=min_dist, metric="euclidean", random_state=seed)
-    embedding = reducer.fit_transform(cells[marker_cols].values)
+    embedding = reducer.fit_transform(cells[cols].values)
     cells["umap_1"] = embedding[:, 0]
     cells["umap_2"] = embedding[:, 1]
 
     cells.to_parquet(save_dir / "umap_embedding.parquet")
 
     for col in ["main_group", "label", "pat_id"]:
-        plot_categorical(cells, col, save_dir / f"umap_{col}.png")
+        plot_embedding_categorical(cells, col, save_dir / f"umap_{col}.png", title=f"Figure 2b -- UMAP colored by {col}")
 
     for marker in markers:
-        plot_marker(cells, marker, save_dir / f"umap_marker_{marker}.png")
+        plot_embedding_marker(cells, marker, save_dir / f"umap_marker_{marker}.png", title=f"Figure 2b -- UMAP colored by {marker}")
 
     logger.info(f"saved figure 2b panels to {save_dir}")
 
