@@ -28,6 +28,41 @@ def resolve_base_dir() -> Path:
     return Path(base_dir).expanduser()
 
 
+def resolve_export_dir() -> Path:
+    """Load `.env` and return `EXPORT_DIR` as a `Path`, guaranteed outside `BASE_DIR`.
+
+    `BASE_DIR` (the PCa dataset folder) is read-only for every script in this
+    repo — nothing may ever write there. `EXPORT_DIR` is where generated
+    tables/figures go instead. See REPRODUCIBILITY.md.
+    """
+    import os
+    from dotenv import load_dotenv
+
+    load_dotenv()
+    export_dir = os.environ.get("EXPORT_DIR")
+    assert export_dir, "EXPORT_DIR is not set; copy .env.example to .env and fill it in"
+    return assert_outside_base_dir(Path(export_dir).expanduser())
+
+
+def assert_outside_base_dir(path: Path) -> Path:
+    """Fail loudly if `path` is inside `BASE_DIR` (or a symlink alias of it).
+
+    `BASE_DIR` is the read-only PCa dataset folder on shared storage — no
+    script in this repo may write there, directly or via a symlinked path
+    (e.g. a home-directory shortcut into the same underlying tree).
+    """
+    import os
+
+    base_dir = resolve_base_dir()
+    real_path = os.path.realpath(path)
+    real_base_dir = os.path.realpath(base_dir)
+    assert not (real_path == real_base_dir or real_path.startswith(real_base_dir + os.sep)), (
+        f"refusing to write inside BASE_DIR (the PCa dataset folder): {path} "
+        f"resolves under {real_base_dir}. Use a path outside BASE_DIR."
+    )
+    return path
+
+
 def get_colormap_dict(name: str, as_rgb: bool = False):
     import os
     import yaml
