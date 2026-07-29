@@ -130,7 +130,7 @@ def prepare_data(base_dir: Path, scale="minmax", mask_version: str = "annotated"
     assert metadata[metadata_cols].isna().sum().sum() == 0
 
     data = data.join(metadata[metadata_cols]).set_index(metadata_cols, append=True)
-    data = data.sort_index(level=["sample_name"])
+    data = data.sort_index(level=["sample_id"])
 
     # NORMALIZE
     censoring = 0.999

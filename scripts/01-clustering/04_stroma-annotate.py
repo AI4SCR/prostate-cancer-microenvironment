@@ -30,8 +30,8 @@ def main(base_dir: Path | None = None):
 
     # %%
     index = data.index.to_frame().reset_index(drop=True)
-    index[index.sample_name == "240223_012"].membership.value_counts()
-    index[index.membership == "17"].sample_name.value_counts()
+    index[index.sample_id == "240223_012"].membership.value_counts()
+    index[index.membership == "17"].sample_id.value_counts()
     index.groupby("membership", observed=True).size().loc["17"]
 
     # %%

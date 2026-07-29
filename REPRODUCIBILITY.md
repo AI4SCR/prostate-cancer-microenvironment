@@ -138,15 +138,21 @@ patient clusters P1–P6 / niches 1–18.
   `len(annotations) == 2214046` after merging in the reclustering-v2
   memberships — a different, larger number. The final "annotated" table
   further drops ~3% of cells reported as "unclassified" in Results, which may
-  reconcile the gap, but this hasn't been verified end-to-end.
-  `scripts/00-data-export/export_for_r.py` asserts the paper's number
-  (2,191,967) against the final exported table and will fail loudly if your
-  materialized dataset diverges — if it does, that's this discrepancy
-  surfacing, not a bug in the export script.
-- **ROI count**: the paper states both "523 high-quality ROIs" (Results,
-  first paragraph) and "a final dataset of 459 tumor-containing ROIs" after
-  QC (Methods, "IMC Data Acquisition") — these are inconsistent within the
-  paper itself.
+  reconcile the gap. **Verified 2026-07-29** against the materialized dataset
+  at `$BASE_DIR`: `02_processed/metadata/filtered-annotated/*.parquet` sums
+  to exactly **2,191,967** cells across **534** sample files — matches the
+  paper exactly. `scripts/00-data-export/export_for_r.py` hard-asserts this
+  number against the final exported table.
+- **ROI / patient count**: the paper states both "523 high-quality ROIs"
+  (Results, first paragraph) and "a final dataset of 459 tumor-containing
+  ROIs" after QC (Methods, "IMC Data Acquisition") — these are inconsistent
+  within the paper itself. **Verified 2026-07-29**: the materialized
+  `02_processed/metadata/clinical.parquet` has **542** ROI-level rows and
+  **196** unique `pat_id` values — neither matches 523/459 ROIs or 195/190
+  patients from the paper. The 534 sample files with labeled cells (previous
+  bullet) is a third, distinct number again. `export_for_r.py` logs a warning
+  (not a hard failure) when the patient count isn't 190 or 195, since this is
+  now a confirmed, standing discrepancy rather than a data bug to fix.
 - **`scripts/01-clustering/03_epithelial-non-epithelial-annotate.py`** is an
   empty file (0 bytes) in the current repo. Not reconstructed here — flagged
   for the `figure-2-cell-phenotyping` branch to investigate.

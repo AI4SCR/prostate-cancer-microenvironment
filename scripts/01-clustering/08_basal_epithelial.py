@@ -86,7 +86,7 @@ def main(base_dir: Path | None = None, resolution: float = 0.5):
         logger.info(f"02.0_clustering")
         data = prepare_data(base_dir=base_dir, mask_version="filtered")
 
-        levels = set(data.index.names) - {"sample_name", "object_id"}
+        levels = set(data.index.names) - {"sample_id", "object_id"}
         index = data.index.droplevel(list(levels))
         index = index.drop_duplicates(keep=False)
         assert index.duplicated().any() == False

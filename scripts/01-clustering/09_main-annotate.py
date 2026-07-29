@@ -27,7 +27,7 @@ def main(base_dir: Path | None = None):
     )
     immune = immune[~immune.index.get_level_values("group_name").isin(["undefined"])]
     immune.index = immune.index.droplevel(
-        list(set(immune.index.names) - {"object_id", "sample_name", "group_name"})
+        list(set(immune.index.names) - {"object_id", "sample_id", "group_name"})
     )
 
     # 04_stromal
@@ -37,7 +37,7 @@ def main(base_dir: Path | None = None):
     filter_ = stromal.index.get_level_values("group_name").str.startswith("stromal")
     stromal = stromal[filter_]
     stromal.index = stromal.index.droplevel(
-        list(set(stromal.index.names) - {"object_id", "sample_name", "group_name"})
+        list(set(stromal.index.names) - {"object_id", "sample_id", "group_name"})
     )
 
     # 05_epithelial
@@ -51,7 +51,7 @@ def main(base_dir: Path | None = None):
     filter_ = epithelial.index.get_level_values("group_name").str.contains("epithelial")
     epithelial = epithelial[filter_]
     epithelial.index = epithelial.index.droplevel(
-        list(set(epithelial.index.names) - {"object_id", "sample_name", "group_name"})
+        list(set(epithelial.index.names) - {"object_id", "sample_id", "group_name"})
     )
 
     # note: remove all epithelial-basal cells, those were re-clustered
@@ -63,7 +63,7 @@ def main(base_dir: Path | None = None):
     epithelial_basal.index = epithelial_basal.index.droplevel(
         list(
             set(epithelial_basal.index.names)
-            - {"object_id", "sample_name", "group_name"}
+            - {"object_id", "sample_id", "group_name"}
         )
     )
 
@@ -76,7 +76,7 @@ def main(base_dir: Path | None = None):
     )
     endothelial = endothelial[filter_]
     endothelial.index = endothelial.index.droplevel(
-        list(set(endothelial.index.names) - {"object_id", "sample_name", "group_name"})
+        list(set(endothelial.index.names) - {"object_id", "sample_id", "group_name"})
     )
 
     # combine annotations
@@ -96,17 +96,17 @@ def main(base_dir: Path | None = None):
         base_dir / "02.0_clustering" / "undefined" / f"r-{0.75}" / "data.parquet"
     )
     undefined.index = undefined.index.droplevel(
-        list(set(undefined.index.names) - {"object_id", "sample_name", "group_name"})
+        list(set(undefined.index.names) - {"object_id", "sample_id", "group_name"})
     )
     undefined = (
         undefined.index.to_frame()
         .reset_index(drop=True)
-        .set_index(list({"object_id", "sample_name"}))
+        .set_index(list({"object_id", "sample_id"}))
     )
 
     annotations = pd.concat([annotations, undefined])
     # note: sample has been removed after initial 02.0_clustering, we need to remove it from previous annotations
-    filter_ = annotations.index.get_level_values("sample_name") == "240223_012"
+    filter_ = annotations.index.get_level_values("sample_id") == "240223_012"
     annotations = annotations[~filter_]
 
     data = prepare_data(base_dir=base_dir, mask_version="filtered")
@@ -117,7 +117,7 @@ def main(base_dir: Path | None = None):
     annotations = annotations.assign(parent_group_name=parent_group_name)
     assert annotations.isna().any().any() == False
     annotations.index = annotations.index.reorder_levels(
-        ["sample_name", "object_id", "donor_block_id", "slide_code", "pat_id"]
+        ["sample_id", "object_id", "donor_block_id", "slide_code", "pat_id"]
     )
 
     # %%
