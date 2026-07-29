@@ -11,9 +11,19 @@ silently patched, per this project's conventions (see `CLAUDE.md`).
 ## Setup
 
 ```bash
-cp .env.example .env   # fill in BASE_DIR (and EXPORT_DIR if not colocated with BASE_DIR)
+cp .env.example .env   # fill in BASE_DIR and EXPORT_DIR
 uv sync
 ```
+
+`BASE_DIR` (the `ai4bmr_datasets.PCa` staging root) is **read-only** — no
+script in this repo may ever write there, and `assert_outside_base_dir()` /
+`resolve_export_dir()` in `src/prostate_cancer/utils.py` enforce that at
+runtime (checked via `os.path.realpath`, so a symlinked alias into the same
+tree is caught too — not just the literal `BASE_DIR` path). `EXPORT_DIR` is
+where every generated table and figure goes instead; point it somewhere
+inside this repo (e.g. `data/0-export`, the `.env.example` default) so
+everything produced by these scripts lives together and is easy to inspect
+or delete.
 
 R scripts load the same `.env` via `dotenv::load_dot_env()` and
 `Sys.getenv("BASE_DIR")` / `Sys.getenv("EXPORT_DIR")`. Required R packages:
@@ -26,7 +36,9 @@ package versions aren't pinned on the R side.
 `ai4bmr-datasets`'s `main` branch (it was removed from `main` in a later
 commit). Revisit the pin once/if `pca` merges upstream.
 
-## Data layout (`ai4bmr_datasets.PCa`, staged under `$BASE_DIR`)
+## Data layout
+
+`ai4bmr_datasets.PCa` stages the read-only dataset under `$BASE_DIR`:
 
 ```
 $BASE_DIR/
@@ -37,12 +49,20 @@ $BASE_DIR/
 │   ├── clustering/annotations.parquet   # produced by scripts/01-clustering/09_main-annotate.py
 │   ├── reclustering/, reclustering-v2/  # manual re-clustering memberships (external/manual)
 │   └── metadata/                 # label-names.xlsx, ROI_matching_blockID.xlsx, tma-annotations-v3.xlsx
-├── 02_processed/
-│   ├── images/{raw,filtered}/
-│   ├── masks/{deepcell,filtered,annotated}/
-│   ├── metadata/{clinical.parquet, filtered-annotated/*.parquet}
-│   └── features/{intensity,spatial}/{image_version}-{mask_version}/*.parquet
-└── 0-export/                     # EXPORT_DIR: R-facing parquet exports (see below)
+└── 02_processed/
+    ├── images/{raw,filtered}/
+    ├── masks/{deepcell,filtered,annotated}/
+    ├── metadata/{clinical.parquet, filtered-annotated/*.parquet}
+    └── features/{intensity,spatial}/{image_version}-{mask_version}/*.parquet
+```
+
+Everything this repo generates goes to `$EXPORT_DIR` instead (outside
+`$BASE_DIR`):
+
+```
+$EXPORT_DIR/
+├── metadata.parquet, clinical.parquet, intensity_normalized.parquet   # export_for_r.py
+└── figures/figureN/*.png                                             # scripts/figures/figureN_*.py
 ```
 
 ## Pipeline: raw acquisitions → labeled cells (run once, in order)

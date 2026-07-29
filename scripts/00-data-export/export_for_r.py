@@ -13,13 +13,12 @@ branch's own scripts, not here.
 Requires the full labeling pipeline to have already run (see
 REPRODUCIBILITY.md) so that `01_raw/annotations/labels.parquet` exists.
 """
-import os
 from pathlib import Path
 
 from jsonargparse import CLI
 from loguru import logger
 
-from prostate_cancer.utils import prepare_data, resolve_base_dir
+from prostate_cancer.utils import assert_outside_base_dir, prepare_data, resolve_base_dir, resolve_export_dir
 
 # Reported 3x consistently in the paper (Abstract, Results, Methods). If your
 # materialized dataset diverges, that's worth investigating before trusting
@@ -36,9 +35,7 @@ def main(base_dir: Path | None = None, export_dir: Path | None = None):
     from ai4bmr_datasets import PCa
 
     base_dir = Path(base_dir).expanduser() if base_dir else resolve_base_dir()
-    export_dir = Path(export_dir).expanduser() if export_dir else Path(
-        os.environ.get("EXPORT_DIR", base_dir / "0-export")
-    )
+    export_dir = assert_outside_base_dir(Path(export_dir).expanduser()) if export_dir else resolve_export_dir()
     export_dir.mkdir(parents=True, exist_ok=True)
 
     # %% per-cell labels + per-ROI clinical annotations
