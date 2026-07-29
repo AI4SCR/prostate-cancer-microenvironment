@@ -8,14 +8,13 @@ import seaborn as sns
 from loguru import logger as base_logger
 from jsonargparse import CLI
 from prostate_cancer.plotting import legend_from_dict
+from prostate_cancer.utils import resolve_base_dir
 
 
 def main(base_dir: Path | None = None):
     logger = base_logger.bind(task="phenotyping")
 
-    # base_dir = base_dir or Path('/work/FAC/FBM/DBC/mrapsoma/prometex/data/datasets/PCa')
-    base_dir = base_dir or Path(f"~/data/datasets/PCa/")
-    # base_dir = base_dir or Path('~/data/pca-v3')
+    base_dir = base_dir or resolve_base_dir()
     base_dir = Path(base_dir).expanduser()
 
     save_dir = base_dir / "02.0_clustering" / "epithelial-functional" / f"r-{0.75}"

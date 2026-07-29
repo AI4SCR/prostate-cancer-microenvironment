@@ -8,6 +8,7 @@ version = "0.1.0"
 description = "Exploratory analysis for the prostate cancer microenvironment project."
 requires-python = ">=3.10"
 dependencies = [
+    "ai4bmr-datasets @ git+https://github.com/AI4SCR/ai4bmr-datasets.git@pca",
     "anndata",
     "colorcet",
     "igraph",

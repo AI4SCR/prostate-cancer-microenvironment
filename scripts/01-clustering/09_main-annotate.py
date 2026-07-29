@@ -8,14 +8,13 @@ from loguru import logger as base_logger
 from jsonargparse import CLI
 from prostate_cancer.plotting import legend_from_dict
 
-from prostate_cancer.utils import prepare_data
+from prostate_cancer.utils import prepare_data, resolve_base_dir
 
 
 def main(base_dir: Path | None = None):
     logger = base_logger.bind(task="phenotyping")
 
-    # base_dir = base_dir or Path('/work/FAC/FBM/DBC/mrapsoma/prometex/data/datasets/PCa')
-    base_dir = base_dir or Path(f"~/data/datasets/PCa/")
+    base_dir = base_dir or resolve_base_dir()
     base_dir = Path(base_dir).expanduser()
 
     save_dir = base_dir / "02.0_clustering" / "main"
@@ -110,7 +109,7 @@ def main(base_dir: Path | None = None):
     filter_ = annotations.index.get_level_values("sample_name") == "240223_012"
     annotations = annotations[~filter_]
 
-    data = prepare_data(base_dir=base_dir)
+    data = prepare_data(base_dir=base_dir, mask_version="filtered")
     assert len(data) == len(annotations)
     data, annotations = data.align(annotations, join="outer", axis=0)
 
@@ -122,7 +121,10 @@ def main(base_dir: Path | None = None):
     )
 
     # %%
-    fname = save_dir.parent / "annotations.parquet"
+    # NOTE: this is the exact path `ai4bmr_datasets.PCa.label_transfer()` reads from
+    # (`self.raw_dir / "clustering" / "annotations.parquet"`). Keep them in sync.
+    fname = base_dir / "01_raw" / "clustering" / "annotations.parquet"
+    fname.parent.mkdir(parents=True, exist_ok=True)
     annotations.to_parquet(fname)
     logger.info(f"Saved annotations to {fname}")
 
