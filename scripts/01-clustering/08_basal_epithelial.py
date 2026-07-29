@@ -68,8 +68,7 @@ def main(base_dir: Path | None = None, resolution: float = 0.5):
         # "stromal": ["Vimentin", "Smooth_muscle_actin", "Collagen1"],
     }
 
-    base_dir = base_dir or resolve_base_dir()
-    base_dir = Path(base_dir).expanduser()
+    base_dir = Path(base_dir).expanduser() if base_dir else resolve_base_dir()
 
     save_dir = base_dir / "02.0_clustering" / "epithelial-basal" / f"r-{resolution}"
     save_dir.mkdir(exist_ok=True, parents=True)

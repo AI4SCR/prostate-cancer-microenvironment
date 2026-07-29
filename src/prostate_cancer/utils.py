@@ -11,6 +11,14 @@ from matplotlib.colors import to_rgba
 from pandas.api.types import is_numeric_dtype
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
+# Non-biological channels present in intensity tables: DNA intercalator +
+# cell-segmentation-kit channels, plus FAP (excluded by the paper's Methods
+# due to non-specific staining after in-house conjugation). Everything else
+# in the panel is one of the 34 analysis markers.
+NON_MARKER_CHANNELS = ["dna1", "dna2", "icsk1", "icsk2", "icsk3", "fap"]
+# Non-marker columns carried alongside intensities by prepare_data()/export_for_r.py.
+INDEX_COLUMNS = ["sample_id", "object_id", "slide_code", "donor_block_id", "pat_id"]
+
 
 def resolve_base_dir() -> Path:
     """Load `.env` and return `BASE_DIR` as a `Path`.
@@ -152,7 +160,7 @@ def prepare_data(base_dir: Path, scale="minmax", mask_version: str = "annotated"
              image_version='filtered',
              mask_version=mask_version,
              load_intensity=True,
-             load_metadata=True,
+             load_metadata=False,  # only .intensity and .clinical are used below
              align=False)
 
     dataset.setup()

@@ -17,13 +17,8 @@ import pandas as pd
 from jsonargparse import CLI
 from loguru import logger
 
-from prostate_cancer.utils import create_color_maps, resolve_export_dir
+from prostate_cancer.utils import NON_MARKER_CHANNELS, INDEX_COLUMNS, create_color_maps, resolve_export_dir
 
-# Non-biological channels present in intensity_normalized.parquet: DNA
-# intercalator + cell-segmentation-kit channels, plus FAP (excluded by the
-# paper's Methods due to non-specific staining after in-house conjugation).
-NON_MARKER_COLUMNS = ["dna1", "dna2", "icsk1", "icsk2", "icsk3", "fap"]
-INDEX_COLUMNS = ["sample_id", "object_id", "slide_code", "donor_block_id", "pat_id"]
 LABEL_COLUMNS = ["label", "main_group", "label_id", "main_group_id", "meta_label", "meta_label_id"]
 
 
@@ -90,7 +85,7 @@ def main(
     logger.info("loading exported tables")
     cells = load_cells(export_dir)
 
-    marker_cols = [c for c in cells.columns if c not in NON_MARKER_COLUMNS + INDEX_COLUMNS + LABEL_COLUMNS]
+    marker_cols = [c for c in cells.columns if c not in NON_MARKER_CHANNELS + INDEX_COLUMNS + LABEL_COLUMNS]
     assert len(marker_cols) == 34, f"expected 34 markers, got {len(marker_cols)}: {marker_cols}"
     assert set(markers) <= set(marker_cols), f"{set(markers) - set(marker_cols)} not in marker panel"
 

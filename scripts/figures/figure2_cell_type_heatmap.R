@@ -24,10 +24,10 @@ stopifnot(
 save_dir <- file.path(export_dir, "figures", "figure2")
 dir.create(save_dir, recursive = TRUE, showWarnings = FALSE)
 
-# non-biological channels present in intensity_normalized.parquet: DNA
-# intercalator + segmentation-kit channels, plus FAP (excluded by the paper's
-# Methods due to non-specific staining after in-house conjugation).
-non_marker_cols <- c("dna1", "dna2", "icsk1", "icsk2", "icsk3", "fap")
+# Non-biological channels (DNA intercalator, segmentation-kit channels, FAP)
+# -- written by export_for_r.py from the single Python source of truth
+# (prostate_cancer.utils.NON_MARKER_CHANNELS) so this list isn't duplicated.
+non_marker_cols <- readLines(file.path(export_dir, "non_marker_channels.txt"))
 index_cols <- c("sample_id", "object_id", "slide_code", "donor_block_id", "pat_id")
 
 metadata <- read_parquet(file.path(export_dir, "metadata.parquet"))

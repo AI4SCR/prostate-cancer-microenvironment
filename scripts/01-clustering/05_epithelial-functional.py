@@ -65,8 +65,7 @@ def main(base_dir: Path | None = None, resolution: float = 0.75):
         "functional": ["Ki-67", "cCasp3", "p53", "beta-Catenin", "YAP1"],
     }
 
-    base_dir = base_dir or resolve_base_dir()
-    base_dir = Path(base_dir).expanduser()
+    base_dir = Path(base_dir).expanduser() if base_dir else resolve_base_dir()
 
     save_dir = (
         base_dir / "02.0_clustering" / "epithelial-functional" / f"r-{resolution}"

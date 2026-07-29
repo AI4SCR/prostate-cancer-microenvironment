@@ -14,8 +14,7 @@ from prostate_cancer.utils import resolve_base_dir
 def main(base_dir: Path | None = None, resolution: float = 1.5):
     logger = base_logger.bind(task="phenotyping")
 
-    base_dir = base_dir or resolve_base_dir()
-    base_dir = Path(base_dir).expanduser()
+    base_dir = Path(base_dir).expanduser() if base_dir else resolve_base_dir()
 
     save_dir = base_dir / "02.0_clustering" / "immune-non-immune" / f"r-{resolution}"
     assert save_dir.exists()
