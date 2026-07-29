@@ -14,8 +14,7 @@ from prostate_cancer.utils import prepare_data, resolve_base_dir
 def main(base_dir: Path | None = None):
     logger = base_logger.bind(task="phenotyping")
 
-    base_dir = base_dir or resolve_base_dir()
-    base_dir = Path(base_dir).expanduser()
+    base_dir = Path(base_dir).expanduser() if base_dir else resolve_base_dir()
 
     save_dir = base_dir / "02.0_clustering" / "immune" / f"r-{1.0}"
     assert save_dir.exists()
@@ -32,8 +31,7 @@ def main(base_dir: Path | None = None):
     membership = data.reset_index("membership")["membership"]
 
     # %%
-    base_dir = base_dir or resolve_base_dir()
-    base_dir = Path(base_dir).expanduser()
+    base_dir = Path(base_dir).expanduser() if base_dir else resolve_base_dir()
     data = prepare_data(base_dir, mask_version="filtered")
 
     data = (

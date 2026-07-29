@@ -18,8 +18,7 @@ def main(base_dir: Path | None = None, resolution: float = 1):
     markers = ["CD20", "CD3", "CD4", "CD68", "CD8a", "FoxP3", "CD11b", "CD66b"]
     marker_groups = [["CD3", "CD4", "CD8a", "FoxP3"], ["CD11b", "CD68", "CD66b"]]
 
-    base_dir = base_dir or resolve_base_dir()
-    base_dir = Path(base_dir).expanduser()
+    base_dir = Path(base_dir).expanduser() if base_dir else resolve_base_dir()
 
     save_dir = base_dir / "02.0_clustering" / "immune-only" / f"r-{resolution}"
     save_dir.mkdir(exist_ok=True, parents=True)

@@ -18,12 +18,22 @@ from pathlib import Path
 from jsonargparse import CLI
 from loguru import logger
 
-from prostate_cancer.utils import assert_outside_base_dir, prepare_data, resolve_base_dir, resolve_export_dir
+from prostate_cancer.utils import (
+    NON_MARKER_CHANNELS,
+    assert_outside_base_dir,
+    prepare_data,
+    resolve_base_dir,
+    resolve_export_dir,
+)
 
-# Reported 3x consistently in the paper (Abstract, Results, Methods). If your
-# materialized dataset diverges, that's worth investigating before trusting
-# downstream figures — see the "Known discrepancies" section of
-# REPRODUCIBILITY.md for a related count found in ai4bmr-datasets' own code.
+# The counts below are fixed properties of the specific, already-published
+# dataset snapshot this pipeline reproduces (Zenodo 10.5281/zenodo.19552665) —
+# not a moving target a growing cohort would outrun. Asserted (not logged) so
+# a stale/different BASE_DIR fails loudly instead of silently producing
+# figures that don't match the paper. Reported 3x consistently in the paper
+# (Abstract, Results, Methods). See REPRODUCIBILITY.md Known discrepancies
+# for how each was confirmed against the real data, and for a related count
+# found in ai4bmr-datasets' own code.
 EXPECTED_CELL_COUNT = 2_191_967
 EXPECTED_PATIENT_COUNT = 195  # initial TMA cohort
 EXPECTED_TUMOR_PATIENT_COUNT = 190  # final analytical cohort (is_tumor == "yes")
@@ -105,6 +115,12 @@ def main(base_dir: Path | None = None, export_dir: Path | None = None):
     metadata.to_parquet(export_dir / "metadata.parquet")
     clinical.to_parquet(export_dir / "clinical.parquet")
     intensity_normalized.to_parquet(export_dir / "intensity_normalized.parquet")
+
+    # R has no equivalent of `prostate_cancer.utils.NON_MARKER_CHANNELS` to
+    # import, so hand it the same list as a plain-text sidecar (one per line)
+    # instead of letting each R figure script hardcode its own copy.
+    (export_dir / "non_marker_channels.txt").write_text("\n".join(NON_MARKER_CHANNELS) + "\n")
+
     logger.info(f"Exported metadata/clinical/intensity_normalized to {export_dir}")
 
 
