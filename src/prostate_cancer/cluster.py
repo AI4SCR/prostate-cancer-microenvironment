@@ -31,7 +31,7 @@ def cluster(
 
     # %% create AnnData
     obs = data.index.to_frame()
-    tmp_ = ["-".join(i) for i in zip(obs["sample_name"], obs["object_id"].astype(str))]
+    tmp_ = ["-".join(i) for i in zip(obs["sample_id"], obs["object_id"].astype(str))]
     obs = obs.assign(id=tmp_).set_index("id")
     x = data.reset_index(drop=True).assign(id=tmp_).set_index("id")
     ad = AnnData(X=x, obs=obs)
