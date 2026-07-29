@@ -26,6 +26,8 @@ from prostate_cancer.utils import prepare_data, resolve_base_dir
 # downstream figures — see the "Known discrepancies" section of
 # REPRODUCIBILITY.md for a related count found in ai4bmr-datasets' own code.
 EXPECTED_CELL_COUNT = 2_191_967
+EXPECTED_PATIENT_COUNT = 195  # initial TMA cohort
+EXPECTED_TUMOR_PATIENT_COUNT = 190  # final analytical cohort (is_tumor == "yes")
 
 
 def main(base_dir: Path | None = None, export_dir: Path | None = None):
@@ -56,16 +58,34 @@ def main(base_dir: Path | None = None, export_dir: Path | None = None):
         "see REPRODUCIBILITY.md Known discrepancies before trusting downstream figures"
     )
     assert "pat_id" in clinical.columns, "clinical table is missing pat_id"
-    n_patients = clinical["pat_id"].nunique()
-    if n_patients not in (190, 195):
-        # Confirmed drift, not a bug: the materialized clinical table currently has
-        # 196 unique patients, vs. the paper's reported 195 (initial) / 190 (final
-        # analytical cohort). Logged loudly rather than blocking export — see
-        # REPRODUCIBILITY.md Known discrepancies for the exact numbers on record.
-        logger.warning(
-            f"clinical.parquet has {n_patients} unique pat_id, expected 190 or 195 "
-            "per the paper — see REPRODUCIBILITY.md Known discrepancies"
-        )
+
+    # `clinical` (from ds.clinical) can contain ROIs with no processed/labeled
+    # cells at all (e.g. failed segmentation) — restrict to ROIs actually
+    # present in `metadata` before counting patients, which is what the paper's
+    # 195 / 190 figures describe. See REPRODUCIBILITY.md Known discrepancies.
+    roi_ids_with_cells = metadata.index.get_level_values("sample_id").unique()
+    clinical_with_cells = clinical.loc[clinical.index.isin(roi_ids_with_cells)]
+
+    n_patients = clinical_with_cells["pat_id"].nunique()
+    assert n_patients == EXPECTED_PATIENT_COUNT, (
+        f"{n_patients} unique patients among ROIs with labeled cells, "
+        f"expected {EXPECTED_PATIENT_COUNT}"
+    )
+    n_tumor_patients = clinical_with_cells.loc[
+        clinical_with_cells["is_tumor"] == "yes", "pat_id"
+    ].nunique()
+    assert n_tumor_patients == EXPECTED_TUMOR_PATIENT_COUNT, (
+        f"{n_tumor_patients} unique is_tumor=='yes' patients, "
+        f"expected {EXPECTED_TUMOR_PATIENT_COUNT}"
+    )
+
+    # ROI counts do NOT fully reconcile even after the restriction above: 534
+    # ROIs have labeled cells (paper: 523 "high-quality" ROIs) and 476 of
+    # those are is_tumor=='yes' (paper: 459 "tumor-containing" ROIs). Logged,
+    # not asserted — see REPRODUCIBILITY.md Known discrepancies.
+    n_rois = len(clinical_with_cells)
+    n_tumor_rois = (clinical_with_cells["is_tumor"] == "yes").sum()
+    logger.info(f"ROIs with labeled cells: {n_rois} (paper: 523); of those is_tumor=='yes': {n_tumor_rois} (paper: 459)")
 
     # %% normalized intensities (arcsinh + 99.9th pct censor + min-max, same as clustering input)
     intensity_normalized = prepare_data(base_dir=base_dir, mask_version="annotated")
