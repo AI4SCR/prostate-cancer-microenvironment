@@ -143,16 +143,39 @@ patient clusters P1–P6 / niches 1–18.
   to exactly **2,191,967** cells across **534** sample files — matches the
   paper exactly. `scripts/00-data-export/export_for_r.py` hard-asserts this
   number against the final exported table.
-- **ROI / patient count**: the paper states both "523 high-quality ROIs"
-  (Results, first paragraph) and "a final dataset of 459 tumor-containing
-  ROIs" after QC (Methods, "IMC Data Acquisition") — these are inconsistent
-  within the paper itself. **Verified 2026-07-29**: the materialized
-  `02_processed/metadata/clinical.parquet` has **542** ROI-level rows and
-  **196** unique `pat_id` values — neither matches 523/459 ROIs or 195/190
-  patients from the paper. The 534 sample files with labeled cells (previous
-  bullet) is a third, distinct number again. `export_for_r.py` logs a warning
-  (not a hard failure) when the patient count isn't 190 or 195, since this is
-  now a confirmed, standing discrepancy rather than a data bug to fix.
+- **ROI / patient count — patient counts fully reconcile, ROI counts don't.**
+  The paper reports 523 "high-quality" ROIs (Results) and, after further
+  removing ROIs lacking clinical annotation or tumor content, 459
+  "tumor-containing" ROIs (Methods, "IMC Data Acquisition") — two sequential
+  QC stages, not a contradiction (corrected from an earlier note here that
+  read them as inconsistent).
+
+  **Investigated 2026-07-29.** `02_processed/metadata/clinical.parquet` has
+  542 ROI-level rows / 196 unique `pat_id` — more than the paper's numbers.
+  Restricting to the 534 ROIs that actually have processed, labeled cells
+  (i.e. present in `metadata`) resolves the patient counts **exactly**:
+  195 unique patients (matches the paper's initial cohort), and 190 of those
+  with `is_tumor == "yes"` (matches the paper's final analytical cohort —
+  195 − 190 = 5, matching the Methods statement that "five patients were
+  removed due to the absence of tumor content"). The one extra patient
+  (`pat_id` `95.8128`) has a single clinical ROI row (`240219_ivb_x5y2_8_4`,
+  `is_tumor == "yes"`) with **no** corresponding entry in the labeled-cell
+  dataset — i.e. that ROI has clinical annotation but was never
+  processed into cells (failed segmentation or dropped before the cell atlas
+  was built).
+
+  The **ROI counts** remain unreconciled even after this restriction: 534
+  ROIs have labeled cells vs. the paper's 523, and 476 of those are
+  `is_tumor == "yes"` vs. the paper's 459 — an 11- and 17-ROI gap
+  respectively. The only ROI-level exclusion found anywhere in the current
+  scripts is a single hardcoded sample (`"240223_012"`, excluded in both
+  `09_main-annotate.py` and `PCa.label_transfer()`), nowhere near enough to
+  account for the gap. Likely explanation: the "regions presenting staining
+  artifacts or obvious segmentation errors were removed" QC step (Methods,
+  "Data Processing") was applied manually/interactively at some point and
+  isn't captured by any flag in the current `clinical.parquet` or by any
+  script in this repo. Not resolved — `export_for_r.py` logs both ROI counts
+  (not asserted) so this stays visible rather than silently passing.
 - **`scripts/01-clustering/03_epithelial-non-epithelial-annotate.py`** is an
   empty file (0 bytes) in the current repo. Not reconstructed here — flagged
   for the `figure-2-cell-phenotyping` branch to investigate.
