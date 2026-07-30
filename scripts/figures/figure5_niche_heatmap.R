@@ -134,8 +134,13 @@ medians <- medians[rownames(matrix)]
 presence <- df_stats$num_samples
 names(presence) <- df_stats$niche
 presence <- presence[rownames(matrix)]
-col_fun_presence <- colorRamp2(range(presence), c("lightyellow", "darkred"))
-my_colors <- col_fun_presence(presence)
+# Legacy uses TWO separate color functions here, not one: `col_fun` (no
+# na.rm) feeds the annotation fill (my_colors) below; `col_fun_presence`
+# (with na.rm=TRUE) is defined later and used only for the legend. An
+# earlier version of this port incorrectly merged them into one variable
+# with na.rm applied to both uses -- restored as two, matching legacy.
+col_fun <- colorRamp2(range(presence), c("lightyellow", "darkred"))
+my_colors <- col_fun(presence)
 
 ha <- rowAnnotation(
   frequency = anno_numeric(
@@ -172,6 +177,7 @@ h <- Heatmap(
   show_column_names = TRUE
 )
 
+col_fun_presence <- colorRamp2(range(presence, na.rm = TRUE), c("lightyellow", "darkred"))
 lgd_presence <- Legend(
   title = "N samples",
   col_fun = col_fun_presence,
