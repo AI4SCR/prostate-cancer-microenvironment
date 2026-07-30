@@ -131,10 +131,10 @@ def get_colormap_dict(name: str, as_rgb: bool = False):
     import yaml
     from pathlib import Path
 
-    colormaps_path = Path(__file__).resolve().parents[2] / "colormaps.yaml"
+    colormaps_path = Path(__file__).resolve().parents[2] / "resources" / "colormaps.yaml"
     if not colormaps_path.exists():
         base_dir = os.environ.get("BASE_DIR")
-        assert base_dir, "colormaps.yaml not found next to the repo; set BASE_DIR or add colormaps.yaml at the repo root"
+        assert base_dir, "colormaps.yaml not found at resources/colormaps.yaml; set BASE_DIR or add it there"
         colormaps_path = Path(base_dir) / "colormaps.yaml"
 
     with open(colormaps_path) as f:
