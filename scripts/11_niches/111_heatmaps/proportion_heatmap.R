@@ -1,15 +1,7 @@
-library(dotenv)
-load_dot_env()
-
 library(arrow)
-export_dir <- Sys.getenv("EXPORT_DIR")
-legacy_dir <- Sys.getenv("LEGACY_DATA_DIR")
-stopifnot("EXPORT_DIR is not set; copy .env.example to .env and fill it in" = nzchar(export_dir))
-stopifnot("LEGACY_DATA_DIR is not set; copy .env.example to .env and fill it in" = nzchar(legacy_dir))
+result_dir = "/Users/me3312/Documents/Paper_PCa/5-niches"
 
-result_dir = file.path(legacy_dir, '5-niches')
-
-base_dir = file.path(legacy_dir, '5-niches', 'frequencies')
+base_dir = "/Users/me3312/Documents/Paper_PCa/5-niches/frequencies"
 df_props = read_parquet(file.path(base_dir, "stacked_barplots/props_niche_tma_id.parquet"))
 # metadata = read_parquet(file.path(base_dir, "metadata_aligned_niche_frequencies.parquet"))
 # df_props = read_parquet(file.path(result_dir, "frequencies/stacked_barplots/props_tma.parquet"))
@@ -25,14 +17,11 @@ library(tidyr)
 library(ggpubr)
 library(entropy)
 
-clinical.path = file.path(export_dir, 'clinical.parquet')
+clinical.path = file.path('/Users/me3312/Documents/Paper_PCa/0-paper/0-export/clinical.parquet')
 clinical = read_parquet(clinical.path)
 num.patients = clinical$pat_id |> n_distinct()
 
-# GENUINELY MISSING (see REPRODUCIBILITY.md / missing_files.md): no copy of
-# this ad hoc CSV export found anywhere accessible. This overwrites `clinical`
-# above entirely, so this script cannot run past this point without it.
-clinical.new.path = file.path(legacy_dir, '0-paper', '0-export', 'clinical.csv')
+clinical.new.path = file.path("/Users/me3312/Downloads/clinical.csv")
 clinical = read.csv(clinical.new.path)
 
 tma_ids.valid = intersect(df_props$tma_id, clinical$tma_id)
@@ -40,7 +29,7 @@ not_valid = setdiff(clinical$tma_id, tma_ids.valid)
 clinical_not_valid = clinical %>%
   filter(tma_id %in% not_valid)
 
-cells <- read_parquet(file.path(export_dir, "metadata.parquet"))
+cells <- read_parquet("/Users/me3312/Documents/Paper_PCa/0-paper/0-export/metadata.parquet")
 sample_id_valid <- unique(cells$sample_id)
 clinical <- clinical %>%
   filter(sample_id %in% sample_id_valid) %>%
@@ -269,11 +258,8 @@ niche_anno <- HeatmapAnnotation(
 # dend <- as.dendrogram(hc)
 # dend = color_branches(dend, k = 12)
 ########### -------- create inflammation and stromogenic bottom annotations --------##############
-# GENUINELY MISSING (see REPRODUCIBILITY.md / missing_files.md): these
-# statistical-test outputs aren't produced by any script in this repo and
-# weren't found anywhere accessible.
-anno_inflammation <- read.csv(file.path(legacy_dir, "5-niches", "frequencies", "frequency_boxplots", "inflammation", "pairwise_wilcoxon_results.csv"))
-anno_stromogenic <- read.csv(file.path(legacy_dir, "5-niches", "frequencies", "frequency_boxplots", "stromogenic_smc_loss_reactive_stroma_present", "pairwise_wilcoxon_results.csv"))
+anno_inflammation <- read.csv("/Users/me3312/Documents/Paper_PCa/5-niches/frequencies/frequency_boxplots/inflammation/pairwise_wilcoxon_results.csv")
+anno_stromogenic <- read.csv("/Users/me3312/Documents/Paper_PCa/5-niches/frequencies/frequency_boxplots/stromogenic_smc_loss_reactive_stroma_present/pairwise_wilcoxon_results.csv")
 
 anno_inflammation = anno_inflammation %>%
   select(niche, significance, direction)
