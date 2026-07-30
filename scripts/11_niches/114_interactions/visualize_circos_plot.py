@@ -1,11 +1,16 @@
 #%%
+import os
 import sys
 from pathlib import Path
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
+from dotenv import load_dotenv
 
-sys.path.append("/users/mensmeng/workspace/nhoods/PCa/05_nhoods/PCA_NHOODs_clean/05_niche_identification/visualization")
+load_dotenv()
+legacy_dir = os.environ.get("LEGACY_DATA_DIR")
+assert legacy_dir, "LEGACY_DATA_DIR is not set; copy .env.example to .env and fill it in"
+sys.path.append(str(Path(legacy_dir) / "PCA_NHOODs_clean" / "05_niche_identification" / "visualization"))
 from utils_colors import color_dict_label, color_dict_niche
 from circos_plots import plot_circos_plot
 

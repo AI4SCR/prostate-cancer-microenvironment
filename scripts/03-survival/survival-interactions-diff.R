@@ -1,4 +1,7 @@
 
+library(dotenv)
+load_dot_env()
+
 library(arrow)
 library(tidyverse)
 library(survival)
@@ -9,8 +12,13 @@ library(ggsurvfit)
 library(gtsummary)
 library(compositions)
 
-scores.path = file.path('/Users/adrianomartinelli/Library/CloudStorage/OneDrive-ETHZurich/oneDrive-documents/data/publications/PCa/0-export/scores-v2.parquet')
-clinical.path = file.path('/Users/adrianomartinelli/Library/CloudStorage/OneDrive-ETHZurich/oneDrive-documents/data/publications/PCa/0-export/clinical.parquet')
+export_dir <- Sys.getenv("EXPORT_DIR")
+legacy_dir <- Sys.getenv("LEGACY_DATA_DIR")
+stopifnot("EXPORT_DIR is not set; copy .env.example to .env and fill it in" = nzchar(export_dir))
+stopifnot("LEGACY_DATA_DIR is not set; copy .env.example to .env and fill it in" = nzchar(legacy_dir))
+
+scores.path = file.path(legacy_dir, '0-paper', '0-export', 'scores-v2.parquet')
+clinical.path = file.path(export_dir, 'clinical.parquet')
 
 scores = read_parquet(scores.path)
 clinical = read_parquet(clinical.path)
@@ -37,7 +45,7 @@ clr_transform = FALSE
 
 score_type = paste0(score_type.parent, '_', graph_key)
 
-save.dir = file.path('/Users/adrianomartinelli/Library/CloudStorage/OneDrive-ETHZurich/oneDrive-documents/data/publications/PCa/outputs/7-survival/', score_type.parent, graph_key, event.name)
+save.dir = file.path(export_dir, 'legacy-outputs', '7-survival', score_type.parent, graph_key, event.name)
 dir.create(save.dir, recursive = TRUE, showWarnings = FALSE)
 
 data = scores[scores$score_type == score_type, ]

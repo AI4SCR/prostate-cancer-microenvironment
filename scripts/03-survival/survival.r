@@ -1,4 +1,7 @@
 
+library(dotenv)
+load_dot_env()
+
 library(arrow)
 library(tidyverse)
 library(survival)
@@ -7,9 +10,14 @@ library(gtsummary)
 library(compositions)
 library(coxme)
 
-scores.path = file.path('/Users/adrianomartinelli/Library/CloudStorage/OneDrive-ETHZurich/oneDrive-documents/data/publications/PCa/0-export/scores.parquet')
-metadata.path = file.path('/Users/adrianomartinelli/Library/CloudStorage/OneDrive-ETHZurich/oneDrive-documents/data/publications/PCa/0-export/metadata.parquet')
-clinical.path = file.path('/Users/adrianomartinelli/Library/CloudStorage/OneDrive-ETHZurich/oneDrive-documents/data/publications/PCa/0-export/clinical.parquet')
+export_dir <- Sys.getenv("EXPORT_DIR")
+legacy_dir <- Sys.getenv("LEGACY_DATA_DIR")
+stopifnot("EXPORT_DIR is not set; copy .env.example to .env and fill it in" = nzchar(export_dir))
+stopifnot("LEGACY_DATA_DIR is not set; copy .env.example to .env and fill it in" = nzchar(legacy_dir))
+
+scores.path = file.path(legacy_dir, '0-paper', '0-export', 'scores.parquet')
+metadata.path = file.path(export_dir, 'metadata.parquet')
+clinical.path = file.path(export_dir, 'clinical.parquet')
 
 scores = read_parquet(scores.path) |> select(-all_of('__index_level_0__'))
 metadata = read_parquet(metadata.path)
@@ -170,7 +178,7 @@ set_events = function(data, event_name){
 for(event_name in event_names){
   
   # event_name = event_names[1]
-  save.dir = file.path('/Users/adrianomartinelli/Library/CloudStorage/OneDrive-ETHZurich/oneDrive-documents/data/publications/PCa/outputs/7-survival/', 'without-proportions', event_name)
+  save.dir = file.path(export_dir, 'legacy-outputs', '7-survival', 'without-proportions', event_name)
   dir.create(save.dir, recursive = TRUE, showWarnings = FALSE)
   
   cols.surv = c('pat_id', 'last_fu', event_name) # 'age_at_surgery'

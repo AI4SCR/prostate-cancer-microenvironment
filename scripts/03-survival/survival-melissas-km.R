@@ -1,10 +1,16 @@
+library(dotenv)
+load_dot_env()
+
 library(arrow)
 # result_dir = "/Users/me3312/Documents/Paper_PCa/5-niches"
 
-save_dir = "/Users/adrianomartinelli/Downloads/me3312"
-dir.create(save_dir, showWarnings = FALSE)
+export_dir <- Sys.getenv("EXPORT_DIR")
+stopifnot("EXPORT_DIR is not set; copy .env.example to .env and fill it in" = nzchar(export_dir))
 
-base_dir = "/Users/adrianomartinelli/Library/CloudStorage/OneDrive-ETHZurich/oneDrive-documents/data/publications/PCa/0-export"
+save_dir = file.path(export_dir, 'legacy-outputs', 'melissas-km')
+dir.create(save_dir, showWarnings = FALSE, recursive = TRUE)
+
+base_dir = export_dir
 # df_props = read_parquet(file.path(base_dir, "stacked_barplots/props_niche_tma_id.parquet"))
 # metadata = read_parquet(file.path(base_dir, "metadata_aligned_niche_frequencies.parquet"))
 # df_props = read_parquet(file.path(result_dir, "frequencies/stacked_barplots/props_tma.parquet"))

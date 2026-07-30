@@ -1,12 +1,21 @@
 #%%
+import os
+import sys
+from pathlib import Path
+
 import pandas as pd
 import numpy as np
 import scanpy as sc
 import anndata as ad
-from pathlib import Path
+from dotenv import load_dotenv
 
-import sys
-sys.path.append("/users/mensmeng/workspace/nhoods/PCa/05_nhoods/PCA_NHOODs_clean/robustness")
+load_dotenv()
+legacy_dir = os.environ.get("LEGACY_DATA_DIR")
+assert legacy_dir, "LEGACY_DATA_DIR is not set; copy .env.example to .env and fill it in"
+# utils.clustering / utils.visualization: this module's own inaccessible
+# /users/mensmeng/... copy is unreadable; the same code is staged under
+# LEGACY_DATA_DIR/PCA_NHOODs_clean -- see REPRODUCIBILITY.md.
+sys.path.append(str(Path(legacy_dir) / "PCA_NHOODs_clean" / "robustness"))
 
 
 

@@ -1,5 +1,13 @@
+library(dotenv)
+load_dot_env()
+
 library(arrow)
-result_dir = "/Users/me3312/Documents/Paper_PCa/5-niches"
+export_dir <- Sys.getenv("EXPORT_DIR")
+legacy_dir <- Sys.getenv("LEGACY_DATA_DIR")
+stopifnot("EXPORT_DIR is not set; copy .env.example to .env and fill it in" = nzchar(export_dir))
+stopifnot("LEGACY_DATA_DIR is not set; copy .env.example to .env and fill it in" = nzchar(legacy_dir))
+
+result_dir = file.path(legacy_dir, '5-niches')
 
 df_annotated = read_parquet(file.path(result_dir, "/annotation/clusters_annotated_v2.parquet"))
 df_zscore = read_parquet(file.path(result_dir, "/visualization/composition/niche_heatmap_data.parquet"))
@@ -222,7 +230,8 @@ draw(
   annotation_legend_side = "right",
   heatmap_legend_side = "right"
 )
-plot_dir = "/Users/me3312/Documents/Paper_PCa/5-niches/visualization/composition"
+plot_dir = file.path(export_dir, 'legacy-outputs', '5-niches-visualization-composition')
+dir.create(plot_dir, recursive = TRUE, showWarnings = FALSE)
 plot_name = file.path(plot_dir, "niche_composition_zscore_annotated_final_clustered_legend_new_color.pdf")
 
 pdf(plot_name, width = 18, height = 14)

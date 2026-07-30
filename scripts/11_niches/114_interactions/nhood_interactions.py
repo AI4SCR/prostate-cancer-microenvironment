@@ -15,7 +15,15 @@ import athena as ath
 
 #%%
 import sys
-sys.path.append('/users/mensmeng/workspace/PCA_NHOODs_clean/workflow')
+from dotenv import load_dotenv
+
+load_dotenv()
+legacy_dir = os.environ.get("LEGACY_DATA_DIR")
+assert legacy_dir, "LEGACY_DATA_DIR is not set; copy .env.example to .env and fill it in"
+# The original .../PCA_NHOODs_clean/workflow no longer exists under that name;
+# the functions this imports (nhood_filtering, prepare_info_for_filtering,
+# leiden_clustering_scanpy) are in .../PCA_NHOODs_clean/old_workflow/utils/tools.py.
+sys.path.append(str(Path(legacy_dir) / "PCA_NHOODs_clean" / "old_workflow"))
 from utils.tools import nhood_filtering, prepare_info_for_filtering, leiden_clustering_scanpy
 #################### DATA SETUP ####################
 
@@ -80,7 +88,9 @@ ath.pl.spatial(ad=adata_sub, attr='nhood', edges=True, graph_key='radius_32', ax
 ath.pl.spatial(ad=adata_sub, attr='label', edges=True, graph_key='radius_32', ax=axs[1], cbar=True)
 # %%
 
-save_dir = Path("/users/mensmeng/workspace/nhoods/PCa_NHood/interaction") / "nhood_annotated"
+export_dir = os.environ.get("EXPORT_DIR")
+assert export_dir, "EXPORT_DIR is not set; copy .env.example to .env and fill it in"
+save_dir = Path(export_dir) / "legacy-outputs" / "nhood_annotated"
 save_dir.mkdir(parents=True, exist_ok=True)
 nhood_type = 'tumorERG+_peritumoralCAF1(CD105+)'
 
