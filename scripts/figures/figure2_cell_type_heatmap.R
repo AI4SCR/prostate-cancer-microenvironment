@@ -1,8 +1,27 @@
-# Reproduce Figure 2a: clustered heatmap of normalized mean marker expression
-# across the 34 annotated cell types.
+# Reproduce Figure 2a: clustered heatmap of mean marker expression per cell type.
+#
+# 1:1 port of the old repo's 000_paper/04_heatmaps/2-cell-types-heatmap.R
+# (see figure_script_mapping.md) -- specifically its `heatmap.agg()`
+# function, called as its "heatmap-cluster=true-agg=true" invocation
+# (aggregate_by='label', cluster_rows=TRUE, column_split=TRUE). That legacy
+# file actually defines FIVE different heatmap variants
+# (heatmap/heatmap.agg/group_heatmap/heatmap.caf, several call sites each);
+# heatmap.agg's aggregated, clustered, column-split-by-compartment output is
+# the one matching the paper's "34-cell-type heatmap" (one row per cell
+# type). Not yet independently confirmed against the published figure --
+# flagging this determination since the legacy script itself doesn't label
+# any single call site as "this is Figure 2a."
+#
+# Correction vs. an earlier, non-faithful version of this script: legacy
+# excludes the row where label == 'mix-vessels-PMN-MDSCs', NOT 'undefined'
+# -- these are two different labels (both exist in the data, 35 total
+# labels; excluding either alone leaves 34, so the count check alone
+# doesn't distinguish them -- only reading the actual legacy code does).
+# 'undefined' cells remain included here, matching legacy exactly.
 #
 # Reads the tables scripts/00-data-export/export_for_r.py produces in
-# EXPORT_DIR (never BASE_DIR -- see REPRODUCIBILITY.md). Writes to
+# EXPORT_DIR (never BASE_DIR -- see REPRODUCIBILITY.md), plus
+# resources/colormaps.yaml (ported from a personal-machine path). Writes to
 # EXPORT_DIR/figures/figure2/.
 
 library(dotenv)
@@ -10,9 +29,11 @@ load_dot_env()
 
 library(arrow)
 library(dplyr)
-library(tidyr)
+library(tibble)
 library(ComplexHeatmap)
 library(circlize)
+library(yaml)
+library(viridis)
 
 base_dir <- Sys.getenv("BASE_DIR")
 export_dir <- Sys.getenv("EXPORT_DIR")
@@ -24,60 +45,103 @@ stopifnot(
 save_dir <- file.path(export_dir, "figures", "figure2")
 dir.create(save_dir, recursive = TRUE, showWarnings = FALSE)
 
-# Non-biological channels (DNA intercalator, segmentation-kit channels, FAP)
-# -- written by export_for_r.py from the single Python source of truth
-# (prostate_cancer.utils.NON_MARKER_CHANNELS) so this list isn't duplicated.
-non_marker_cols <- readLines(file.path(export_dir, "non_marker_channels.txt"))
-index_cols <- c("sample_id", "object_id", "slide_code", "donor_block_id", "pat_id")
+data_path <- file.path(export_dir, "intensity_normalized.parquet")
+metadata_path <- file.path(export_dir, "metadata.parquet")
+colormap_path <- file.path(dirname(dirname(export_dir)), "resources", "colormaps.yaml")
+index_names <- c("sample_id", "object_id")
+exclude_channels <- c("fap", "dna1", "dna2", "icsk1", "icsk2", "icsk3")
 
-metadata <- read_parquet(file.path(export_dir, "metadata.parquet"))
-intensity <- read_parquet(file.path(export_dir, "intensity_normalized.parquet"))
+heatmap.agg <- function(data_path, metadata_path, colormap_path,
+                         index_names = c("sample_id", "object_id"),
+                         cluster_rows = FALSE, aggregate_by = NULL, column_split = TRUE) {
+  # LOAD DATA
+  data <- read_parquet(data_path)
+  data <- data |> select(-all_of(exclude_channels))
+  meta <- read_parquet(metadata_path)
+  colormaps <- yaml::read_yaml(colormap_path)
 
-marker_cols <- setdiff(colnames(intensity), c(non_marker_cols, index_cols))
-stopifnot("expected 34 markers" = length(marker_cols) == 34)
+  # SORT
+  ord <- order(meta$label)
+  data <- data[ord, ]
+  meta <- meta[ord, ]
 
-cells <- intensity |>
-  select(sample_id, object_id, all_of(marker_cols)) |>
-  inner_join(metadata |> select(sample_id, object_id, label, main_group), by = c("sample_id", "object_id"))
+  # INDEX
+  data.index <- data[, index_names]
+  data <- data[, !(names(data) %in% index_names)]
+  meta.index <- meta[, index_names]
+  meta <- meta[, !(names(meta) %in% index_names)]
+  stopifnot(all(meta.index == data.index))
+  index <- do.call(paste0, meta.index[index_names])
 
-# "undefined" is a 35th label for the ~3% of cells the paper describes as
-# "remained unclassified and was excluded from the analysis" (Results) --
-# not one of the 34 annotated cell types shown in Figure 2a.
-cells <- cells |> filter(label != "undefined")
+  mat <- as.matrix(data)
+  rownames(mat) <- index
 
-n_cell_types <- n_distinct(cells$label)
-stopifnot("expected 34 annotated cell types" = n_cell_types == 34)
+  # FILTER
+  remove <- meta$label == "mix-vessels-PMN-MDSCs"
+  mat <- mat[!remove, ]
+  meta <- meta[!remove, ]
 
-mean_expression <- cells |>
-  group_by(label) |>
-  summarise(across(all_of(marker_cols), mean), main_group = first(main_group), .groups = "drop")
+  # AGGREGATION (mean per group)
+  if (!is.null(aggregate_by)) {
+    group <- meta[[aggregate_by]]
+    mat <- rowsum(mat, group) / as.vector(table(group))
+    meta <- meta[!duplicated(group), , drop = FALSE]
+    stopifnot(all(meta[[aggregate_by]] == rownames(mat)))
+  }
 
-mat <- as.matrix(mean_expression[, marker_cols])
-rownames(mat) <- mean_expression$label
+  label_colors <- unlist(colormaps$label)
+  main_group_colors <- unlist(colormaps$main_group)
 
-main_group_colors <- structure(
-  circlize::rand_color(n_distinct(mean_expression$main_group), luminosity = "bright"),
-  names = sort(unique(mean_expression$main_group))
-)
-row_annotation <- rowAnnotation(
-  compartment = mean_expression$main_group,
-  col = list(compartment = main_group_colors)
-)
+  col_anno <- HeatmapAnnotation(
+    label = meta$label,
+    main_group = meta$main_group,
+    col = list(label = label_colors, main_group = main_group_colors),
+    na_col = "#F0F0F0",
+    show_legend = c(label = TRUE, main_group = TRUE)
+  )
 
-png(file.path(save_dir, "figure2a_cell_type_heatmap.png"), width = 2400, height = 2600, res = 220, type = "cairo")
-Heatmap(
-  mat,
-  name = "mean expr.\n(arcsinh + min-max)",
-  right_annotation = row_annotation,
+  if (column_split) {
+    heatmap_obj <- Heatmap(
+      t(mat),
+      name = "Protein intensity",
+      col = inferno(256),
+      cluster_rows = TRUE,
+      cluster_columns = cluster_rows,
+      show_row_names = TRUE,
+      show_column_names = FALSE,
+      column_split = meta$main_group,
+      column_title = NULL,
+      top_annotation = col_anno,
+      heatmap_legend_param = list(title = "Intensity")
+    )
+  } else {
+    heatmap_obj <- Heatmap(
+      t(mat),
+      name = "Protein intensity",
+      col = inferno(256),
+      cluster_rows = TRUE,
+      cluster_columns = cluster_rows,
+      show_row_names = TRUE,
+      show_column_names = FALSE,
+      column_title = NULL,
+      top_annotation = col_anno,
+      heatmap_legend_param = list(title = "Intensity")
+    )
+  }
+
+  draw(heatmap_obj, heatmap_legend_side = "right", annotation_legend_side = "right")
+}
+
+save_path <- file.path(save_dir, "figure2a_cell_type_heatmap.pdf")
+pdf(save_path, width = 15, height = 10)
+heatmap.agg(
+  data_path = data_path,
+  metadata_path = metadata_path,
+  colormap_path = colormap_path,
+  index_names = index_names,
   cluster_rows = TRUE,
-  cluster_columns = TRUE,
-  clustering_method_rows = "average",
-  clustering_distance_rows = "euclidean",
-  row_names_gp = grid::gpar(fontsize = 8),
-  column_names_gp = grid::gpar(fontsize = 8),
-  column_title = "Figure 2a -- mean marker expression per cell type (n=34)"
+  aggregate_by = "label",
+  column_split = TRUE
 )
 dev.off()
-
-write_parquet(mean_expression, file.path(save_dir, "figure2a_mean_expression.parquet"))
-cat("Saved figure 2a heatmap to", save_dir, "\n")
+cat("Saved Figure 2a heatmap to", save_path, "\n")
