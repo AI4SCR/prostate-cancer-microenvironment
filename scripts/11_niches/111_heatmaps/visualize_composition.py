@@ -6,12 +6,7 @@ import seaborn as sns
 import os
 import pandas as pd
 import numpy as np
-from dotenv import load_dotenv
-
-load_dotenv()
-legacy_dir = os.environ.get("LEGACY_DATA_DIR")
-assert legacy_dir, "LEGACY_DATA_DIR is not set; copy .env.example to .env and fill it in"
-sys.path.append(str(Path(legacy_dir) / "PCA_NHOODs_clean" / "robustness"))
+sys.path.append("/users/mensmeng/workspace/PCA_NHOODs_clean/robustness")
 
 
 #%%

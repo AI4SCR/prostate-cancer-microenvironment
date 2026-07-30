@@ -1,16 +1,9 @@
 #%%
-import os
-from pathlib import Path
-
 import pandas as pd
 import numpy as np
 import scanpy as sc
 import anndata as ad
-from dotenv import load_dotenv
-
-load_dotenv()
-legacy_dir = os.environ.get("LEGACY_DATA_DIR")
-assert legacy_dir, "LEGACY_DATA_DIR is not set; copy .env.example to .env and fill it in"
+from pathlib import Path
 
 #%%
 output_dir = Path("/work/FAC/FBM/DBC/mrapsoma/prometex/data/PCa/5-niches/annotation")
@@ -51,11 +44,7 @@ df_clusters = pd.read_parquet(cluster_path, engine='fastparquet')
 print(f"Clusters shape: {df_clusters.shape}")
 
 #%% read dicts from excel table
-# GENUINELY MISSING (not permission-denied) -- see REPRODUCIBILITY.md: no
-# copy of this file was found anywhere accessible, including the consolidated
-# LEGACY_DATA_DIR/PCA_NHOODs_clean/ staged from the pre-migration repo. Drop
-# it at this path if/when a collaborator supplies it.
-annot_excel = Path(legacy_dir) / "PCA_NHOODs_clean" / "niche_annotations_revised.xlsx"
+annot_excel = Path("/users/mensmeng/workspace/nhoods/PCa/05_nhoods/PCA_NHOODs_clean/niche_annotations_revised.xlsx")
 df_anno = pd.read_excel(annot_excel)
 
 annotation_dict_niche = dict(zip(df_anno['cluster'].astype(str), df_anno['niche']))

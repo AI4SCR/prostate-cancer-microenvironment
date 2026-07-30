@@ -1,6 +1,3 @@
-library(dotenv)
-load_dot_env()
-
 library(arrow)
 library(tidyverse)
 library(survival)
@@ -10,10 +7,7 @@ library(ggplot2)
 library(ggsurvfit)
 library(gtsummary)
 
-export_dir <- Sys.getenv("EXPORT_DIR")
-stopifnot("EXPORT_DIR is not set; copy .env.example to .env and fill it in" = nzchar(export_dir))
-
-surv.dir = file.path(export_dir, 'legacy-outputs', '7-survival')
+surv.dir = file.path('/Users/adrianomartinelli/Library/CloudStorage/OneDrive-ETHZurich/oneDrive-documents/data/publications/PCa/outputs/7-survival')
 model_name = 'without-proportions'
 # event_name = 'os_status'
 # event_name = 'disease_progr'

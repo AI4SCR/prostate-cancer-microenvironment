@@ -1,7 +1,4 @@
 
-library(dotenv)
-load_dot_env()
-
 library(arrow)
 library(tidyverse)
 library(survival)
@@ -13,13 +10,8 @@ library(survival)
 library(survminer)
 library(dplyr)
 
-export_dir <- Sys.getenv("EXPORT_DIR")
-legacy_dir <- Sys.getenv("LEGACY_DATA_DIR")
-stopifnot("EXPORT_DIR is not set; copy .env.example to .env and fill it in" = nzchar(export_dir))
-stopifnot("LEGACY_DATA_DIR is not set; copy .env.example to .env and fill it in" = nzchar(legacy_dir))
-
-save_dir = file.path(export_dir, 'legacy-outputs', '7-survival')
-clinical.path = file.path(legacy_dir, '0-paper', '0-export', 'survival-cell-freq-groups.parquet')
+save_dir = file.path('/Users/adrianomartinelli/Library/CloudStorage/OneDrive-ETHZurich/oneDrive-documents/data/publications/PCa/outputs/7-survival')
+clinical.path = file.path('/Users/adrianomartinelli/Library/CloudStorage/OneDrive-ETHZurich/oneDrive-documents/data/publications/PCa/0-export/survival-cell-freq-groups.parquet')
 clinical = read_parquet(clinical.path)
 num.patients = clinical$pat_id |> n_distinct()
 

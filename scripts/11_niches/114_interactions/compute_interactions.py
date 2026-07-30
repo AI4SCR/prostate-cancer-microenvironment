@@ -10,12 +10,7 @@ import numpy as np
 import anndata as ad
 import athena as ath
 import pickle
-from dotenv import load_dotenv
-
-load_dotenv()
-legacy_dir = os.environ.get("LEGACY_DATA_DIR")
-assert legacy_dir, "LEGACY_DATA_DIR is not set; copy .env.example to .env and fill it in"
-sys.path.append(str(Path(legacy_dir) / "PCA_NHOODs_clean" / "robustness"))
+sys.path.append("/users/mensmeng/workspace/PCA_NHOODs_clean/robustness")
 
 #%% 
 import argparse
@@ -40,7 +35,7 @@ print(f"Clusters shape: {df_clusters.shape}")
 
 
 # %%
-anndata_dir = Path(legacy_dir) / "PCa_NHood" / "final_analysis" / "evaluation" / "proportion" / "CellCellNeighborhoods" / "anndatas"
+anndata_dir = Path('/users/mensmeng/workspace/nhoods/PCa_NHood/final_analysis/evaluation/proportion/CellCellNeighborhoods/anndatas')
 
 attr_list = ['label', 'niche', 'meta_niche']
 sample_list = df_clusters.index.get_level_values('sample_id').unique().tolist()
