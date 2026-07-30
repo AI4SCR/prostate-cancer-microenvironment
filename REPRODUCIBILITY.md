@@ -31,6 +31,17 @@ R scripts load the same `.env` via `dotenv::load_dot_env()` and
 `compositions`, `coxme`, `ComplexHeatmap`. No `renv.lock` is maintained —
 package versions aren't pinned on the R side.
 
+No project-local R install exists (no `renv`, no repo-local library). On
+this cluster, `Rscript` isn't on `PATH` by default and needs the module
+system: `module load r-light/4.4.1` (matches the personal package library
+at `~/R/x86_64-pc-linux-gnu-library/4.4`, where `arrow`, `ComplexHeatmap`,
+`circlize`, `dplyr`, `tibble`, `dotenv`, `tidyverse`/`tidyr`, `survival`,
+`ggsurvfit`, `gtsummary`, `compositions`, `yaml` are confirmed installed).
+Confirmed **not** installed there: `coxme`, `viridis`, `stringr` (standalone,
+though `tidyverse` pulls it in transitively), `survminer`, `entropy`,
+`ggpubr` — install into that library before running a script that needs one
+of these.
+
 `ai4bmr-datasets` is pinned in `pyproject.toml` to its `pca` git branch: the
 `PCa` dataset class this repo depends on currently only exists there, not on
 `ai4bmr-datasets`'s `main` branch (it was removed from `main` in a later
