@@ -100,8 +100,11 @@ before step 2 below.
    and `02_processed/metadata/filtered-annotated/`) that every figure script
    consumes.
 7. `python scripts/00-data-export/export_for_r.py` — writes
-   `metadata.parquet`, `clinical.parquet`, `intensity_normalized.parquet` to
-   `$EXPORT_DIR` for the R scripts (see below).
+   `metadata.parquet`, `clinical.parquet`, `intensity.parquet`,
+   `intensity_normalized.parquet` to `$EXPORT_DIR` for the R scripts (see
+   below). This is a 1:1 port of the original publication's own export
+   script (see "Normalization: `prepare_data()` vs `normalize()`" below) —
+   verified byte-identical against the legacy exports.
 8. Figure branches (Fig 2–7) consume the outputs of steps 6–7.
 
 ### The bootstrap loop, and why `mask_version` matters
@@ -192,9 +195,69 @@ patient clusters P1–P6 / niches 1–18.
   **Implication for every figure branch**: any ROI/core-level aggregation
   (cell counts per core, niche abundance per core, KM stratification by
   core) must group by `tma_id`, not `sample_id`, or interrupted-acquisition
-  duplicates will be double-counted. `export_for_r.py` now asserts the
-  `tma_id`-deduplicated ROI counts (523 / 459) in addition to the patient
-  counts.
+  duplicates will be double-counted. `export_for_r.py`'s exported
+  `clinical.parquet` is restricted to ROIs present in both `metadata` and
+  `clinical` (534 rows, matching the original publication export script) —
+  so it asserts **515** unique `tma_id` (the "534 rows, pre-tumor-filter"
+  case above), not the paper's headline 523, which describes the full
+  unrestricted 542-row clinical table this repo never exports on its own.
+  459 (tumor-containing ROIs among labeled cells) is still asserted as before.
+
+  **Authoritative reference**, confirming 515/523/459 are three different
+  cohort splits, not competing values for the same thing — from the old
+  repo's own `000_paper/0-export/readme.md`:
+
+  | Split | #patients | #acquisitions | #ROIs | #tumor | #no_tumor | #N/A |
+  |---|:-:|:-:|:-:|:-:|:-:|:-:|
+  | Clinical (full, unrestricted) | 196 | 542 | **523** | 481 | 40 | 21 |
+  | Clinical annotated (restricted to sample_ids with labeled cells) | 195 | 534 | **515** | 476 | 39 | 19 |
+  | Clinical tumor-only | 190 | 476 | **459** | 476 | 0 | 0 |
+
+  `export_for_r.py`'s exported `clinical.parquet` is exactly the "Clinical
+  annotated" row (534 rows / 515 ROIs / 195 patients) — hence
+  `EXPECTED_ROI_COUNT = 515`, `EXPECTED_PATIENT_COUNT = 195`. The paper's
+  headline 523/196 describes the row above it (unrestricted); 459/190 the
+  row below (tumor-only, computed separately from `clinical_with_cells` in
+  this script). All three are internally consistent — filtering down through
+  the same three stages the paper itself describes (patient-level: 196 → 195
+  → 190; acquisition/ROI-level: 542→523 → 534→515 → 476→459, each split
+  losing 19 ROIs to interrupted-and-restarted acquisitions).
+- **Normalization: `prepare_data()` vs `normalize()` — RESOLVED, was a
+  wrong-function port, not a data or formula discrepancy.**
+  `export_for_r.py` used to build `intensity_normalized.parquet` by calling
+  `prepare_data()`. That produced values differing from the legacy
+  publication export on ~79% of cells (max abs diff 0.063 on a min-max-scaled
+  [0,1] range) -- small, but real and systematic, not floating-point noise.
+
+  **Investigated 2026-07-30.** Traced to the pre-migration repo's own
+  `000_paper/0-export/data.py` (the actual script that produced the
+  published `0-paper/0-export/` tables): it loads `PCa(mask_version=
+  'annotated', ...)` -- same as this repo -- then calls the *separate*
+  `utils.normalize(intensity, exclude_zeros=True)`, never `prepare_data()`.
+  The old repo had three near-duplicate normalization implementations
+  (`normalize_data()`, `normalize()`, and `prepare_data()`'s own inline
+  copy); `prepare_data()`'s inline copy was itself dead code in that repo,
+  never used to produce any published output, and never excludes zeros when
+  computing the 99.9th-percentile censoring threshold. This repo's
+  `prepare_data()` was a faithful, unmodified copy of that dead code,
+  carried over since this repo's very first commit -- a name-collision bug,
+  not a strategy that changed over time (confirmed: `git log -p` on the old
+  repo's `utils.py` shows `prepare_data()`'s normalization block and the
+  `mask_version="cleaned"`→`"annotated"` question were red herrings; neither
+  the formula nor these dataset parameters ever changed there).
+
+  **Fix**: `export_for_r.py` now ports `000_paper/0-export/data.py` itself
+  (paths only changed) and calls `utils.normalize(intensity,
+  exclude_zeros=True)` directly, matching `mask_version='annotated'`,
+  `load_intensity=True`, `align=False`, and the `sample_ids = set(metadata...)
+  & set(clinical...)` restriction exactly. **Verified**: regenerated
+  `clinical.parquet` (534 rows), `metadata.parquet` (2,191,967 rows),
+  `intensity.parquet`, and `intensity_normalized.parquet` (both
+  2,191,967×40) are now byte-identical to the legacy exports -- 0 cells
+  differing out of 87,678,680, at `atol=1e-9`. `prepare_data()` remains in
+  `src/prostate_cancer/utils.py` only for the 01-clustering bootstrap
+  scripts (`mask_version="filtered"`), which is a different, still-valid use
+  case -- it is no longer called anywhere in the export path.
 - **`scripts/01-clustering/03_epithelial-non-epithelial-annotate.py`** is an
   empty file (0 bytes) in the current repo. Not reconstructed here — flagged
   for the `figure-2-cell-phenotyping` branch to investigate.
