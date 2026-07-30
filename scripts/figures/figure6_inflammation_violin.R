@@ -87,6 +87,7 @@ pd <- position_dodge(width = 0.9)
 p_up <- ggplot(df_long, aes(x = niche, y = clr_proportion, fill = inflammation)) +
   geom_violin(position = pd, alpha = 0.4, trim = FALSE) +
   geom_boxplot(position = pd, width = 0.2, alpha = 0.6, outlier.shape = NA, show.legend = FALSE) +
+  stat_summary(fun.data = "mean_se", geom = "pointrange", show.legend = FALSE, position = position_dodge(0.175)) +
   scale_fill_manual(values = my_cols, name = "Reactive stroma") +
   facet_wrap(~direction, scales = "free_y") +
   labs(title = "inflammation niches upregulated in reactive stroma", x = "Niche", y = "CLR-transformed Proportion") +
@@ -99,6 +100,7 @@ df_long_full <- df %>%
 p_split <- ggplot(df_long_full, aes(x = niche, y = clr_proportion, fill = inflammation)) +
   geom_violin(position = pd, alpha = 0.4, trim = FALSE) +
   geom_boxplot(position = pd, width = 0.2, alpha = 0.6, outlier.shape = NA, show.legend = FALSE) +
+  stat_summary(fun.data = "mean_se", geom = "pointrange", show.legend = FALSE, position = position_dodge(0.175)) +
   scale_fill_manual(values = my_cols, name = "Reactive stroma") +
   labs(title = "All niches", x = "Niche", y = "CLR-transformed Proportion") +
   theme_minimal() +
