@@ -4,11 +4,21 @@
 R has no ai4bmr-datasets binding, so every R script in this repo reads Parquet
 files from `EXPORT_DIR` instead. This script produces the tables shared across
 figure branches: `metadata.parquet` (per-cell labels), `clinical.parquet`
-(per-ROI/patient clinical annotations), and `intensity_normalized.parquet`
-(arcsinh + min-max normalized marker intensities, same transform used for
-clustering). Figure-specific score tables (e.g. `scores.parquet`,
-`survival-*.parquet`, niche abundance tables) are produced by each figure
-branch's own scripts, not here.
+(per-ROI/patient clinical annotations), `intensity.parquet` (raw marker
+intensities), and `intensity_normalized.parquet` (arcsinh + 99.9th-percentile
+censor, zeros excluded from the censoring threshold, + min-max). Figure-
+specific score tables (e.g. `scores.parquet`, `survival-*.parquet`, niche
+abundance tables) are produced by each figure branch's own scripts, not here.
+
+This is a 1:1 port (paths only changed) of the original publication's export
+script, `000_paper/0-export/data.py` in the pre-migration repo -- see
+REPRODUCIBILITY.md for why: `src/prostate_cancer/utils.py:prepare_data()`
+looked like the right helper to call (same name as this repo's own dead-code
+duplicate in the old repo) but is NOT what produced the published
+`intensity_normalized.parquet` -- that came from `utils.normalize(...,
+exclude_zeros=True)`, called directly from the export script, never from
+`prepare_data()`. Confirmed byte-identical against the legacy export; see
+REPRODUCIBILITY.md Known discrepancies.
 
 Requires the full labeling pipeline to have already run (see
 REPRODUCIBILITY.md) so that `01_raw/annotations/labels.parquet` exists.
@@ -21,7 +31,7 @@ from loguru import logger
 from prostate_cancer.utils import (
     NON_MARKER_CHANNELS,
     assert_outside_base_dir,
-    prepare_data,
+    normalize,
     resolve_base_dir,
     resolve_export_dir,
 )
@@ -37,7 +47,11 @@ from prostate_cancer.utils import (
 EXPECTED_CELL_COUNT = 2_191_967
 EXPECTED_PATIENT_COUNT = 195  # initial TMA cohort
 EXPECTED_TUMOR_PATIENT_COUNT = 190  # final analytical cohort (is_tumor == "yes")
-EXPECTED_ROI_COUNT = 523  # unique physical cores (tma_id), all clinical rows
+EXPECTED_ROI_COUNT = 515  # unique physical cores (tma_id), clinical restricted to
+# sample_ids present in both metadata and clinical (matching the original
+# 000_paper/0-export/data.py's `sample_ids = ... & ...` restriction) --
+# confirmed against the legacy clinical.parquet. The previous 523 counted
+# clinical rows before that restriction, a different (and never-produced) universe.
 EXPECTED_TUMOR_ROI_COUNT = 459  # unique tma_id, restricted to labeled cells + is_tumor == "yes"
 
 
@@ -48,19 +62,29 @@ def main(base_dir: Path | None = None, export_dir: Path | None = None):
     export_dir = assert_outside_base_dir(Path(export_dir).expanduser()) if export_dir else resolve_export_dir()
     export_dir.mkdir(parents=True, exist_ok=True)
 
-    # %% per-cell labels + per-ROI clinical annotations
+    # %% per-cell labels + per-ROI clinical annotations + intensities, exactly
+    # as the original 000_paper/0-export/data.py loaded them (paths only changed)
     ds = PCa(
         base_dir=base_dir,
         image_version="filtered",
         mask_version="annotated",
+        load_intensity=True,
         load_metadata=True,
-        load_intensity=False,
-        load_spatial=False,
+        align=False,
     )
     ds.setup()
 
-    metadata = ds.metadata.copy()
     clinical = ds.clinical.copy()
+    metadata = ds.metadata.copy()
+    intensity = ds.intensity.copy()
+
+    # restrict to ROIs present in both tables, exactly as the original script did
+    sample_ids = sorted(set(metadata.index.get_level_values("sample_id")) & set(clinical.index))
+    clinical = clinical.loc[sample_ids]
+    metadata = metadata.loc[sample_ids]
+    intensity = intensity.loc[sample_ids]
+    assert len(metadata) == len(intensity)
+    metadata, intensity = metadata.align(intensity, axis=0, join="inner")
 
     assert len(metadata) == EXPECTED_CELL_COUNT, (
         f"cell count {len(metadata)} != paper-reported {EXPECTED_CELL_COUNT}; "
@@ -105,15 +129,16 @@ def main(base_dir: Path | None = None, export_dir: Path | None = None):
         f"{n_tumor_rois} unique is_tumor=='yes' tma_id with labeled cells, expected {EXPECTED_TUMOR_ROI_COUNT}"
     )
 
-    # %% normalized intensities (arcsinh + 99.9th pct censor + min-max, same as clustering input)
-    intensity_normalized = prepare_data(base_dir=base_dir, mask_version="annotated")
-    assert len(intensity_normalized) == len(metadata), (
-        f"intensity rows ({len(intensity_normalized)}) != metadata rows ({len(metadata)})"
-    )
+    # %% normalized intensities: arcsinh + 99.9th-pct censor (zeros excluded
+    # from the censoring threshold) + min-max -- exactly what
+    # 000_paper/0-export/data.py called, confirmed byte-identical against the
+    # legacy export. NOT prepare_data(), which never produced this table.
+    intensity_normalized = normalize(intensity, exclude_zeros=True)
 
     # %%
     metadata.to_parquet(export_dir / "metadata.parquet")
     clinical.to_parquet(export_dir / "clinical.parquet")
+    intensity.to_parquet(export_dir / "intensity.parquet")
     intensity_normalized.to_parquet(export_dir / "intensity_normalized.parquet")
 
     # R has no equivalent of `prostate_cancer.utils.NON_MARKER_CHANNELS` to
@@ -121,7 +146,7 @@ def main(base_dir: Path | None = None, export_dir: Path | None = None):
     # instead of letting each R figure script hardcode its own copy.
     (export_dir / "non_marker_channels.txt").write_text("\n".join(NON_MARKER_CHANNELS) + "\n")
 
-    logger.info(f"Exported metadata/clinical/intensity_normalized to {export_dir}")
+    logger.info(f"Exported metadata/clinical/intensity/intensity_normalized to {export_dir}")
 
 
 if __name__ == "__main__":
