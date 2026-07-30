@@ -134,7 +134,7 @@ medians <- medians[rownames(matrix)]
 presence <- df_stats$num_samples
 names(presence) <- df_stats$niche
 presence <- presence[rownames(matrix)]
-col_fun_presence <- colorRamp2(range(presence, na.rm = TRUE), c("lightyellow", "darkred"))
+col_fun_presence <- colorRamp2(range(presence), c("lightyellow", "darkred"))
 my_colors <- col_fun_presence(presence)
 
 ha <- rowAnnotation(
@@ -181,6 +181,10 @@ lgd_presence <- Legend(
 
 plot_path <- file.path(save_dir, "figure5a_niche_zscore_heatmap.pdf")
 pdf(plot_path, width = 18, height = 14)
-draw(h, heatmap_legend_side = "right", annotation_legend_list = list(lgd_presence), annotation_legend_side = "right")
+# Legacy's actual saved-to-pdf draw() call omits annotation_legend_list
+# (its two earlier, unused debug draw() calls before opening the pdf device
+# DID include it -- likely an authoring slip in the original, but matched
+# here literally rather than "corrected").
+draw(h, heatmap_legend_side = "right", annotation_legend_side = "right")
 dev.off()
 cat("Saved Figure 5a to", plot_path, "\n")
