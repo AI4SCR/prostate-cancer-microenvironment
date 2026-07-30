@@ -12,6 +12,13 @@
 # (see figure6_km_niche6.R's docstring for the exact error). `ggsurvfit` is
 # already this repo's established KM-plotting convention (figure4_survival.R).
 #
+# Legacy's pdf()/dev.off() calls around the main heatmap are commented out
+# (`#pdf(...)`), so as literally written, that script never saves this
+# panel to disk -- almost certainly a leftover edit-in-progress state, not
+# intentional suppression, since producing the figure is the entire point.
+# Enabled here (this falls under the disclosed "export mechanics" changes,
+# not a computation change).
+#
 # Writes to $EXPORT_DIR/figures/figure6/.
 
 library(dotenv)
@@ -179,7 +186,11 @@ metadata_filtered$clinical_progr <- as.numeric(metadata_filtered$clinical_progr)
 fit_prog <- survfit2(Surv(clinical_progr_time, clinical_progr) ~ risk_group, data = metadata_filtered)
 p_prog <- fit_prog |>
   ggsurvfit() +
-  labs(x = "Time", y = "Progression-free survival probability") +
+  # Legacy's ylab for this progression-model plot literally says "Survival
+  # probability" too (same text as the OS panel below) -- looks like a
+  # copy-paste label bug in the original given it plots clinical_progr, not
+  # os_status, but matched here literally rather than "corrected".
+  labs(x = "Time", y = "Survival probability") +
   add_risktable() +
   add_pvalue()
 pdf(file.path(save_dir, "figure6a_progression_km_by_dendrogram_split.pdf"), width = 9, height = 8)
