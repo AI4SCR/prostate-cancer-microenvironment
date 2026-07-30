@@ -1,14 +1,27 @@
 # Reproduce Figure 4c-e: survival analysis on patient-level cell-type composition.
 #
-# 4c: Kaplan-Meier overall survival stratified by the 6 patient clusters
-#     (P1-P6) from figure4_patient_clustering.py, two-sided log-rank test.
+# 4c: Kaplan-Meier overall survival stratified by patient cluster, two-sided
+#     log-rank test.
 # 4d-e: univariate Cox PH regression per cell type (CLR-transformed
 #     max-pooled patient-level proportions) for overall survival and disease
 #     progression, BH-adjusted p-values, plotted as a hazard-ratio forest plot.
 #
-# Reads scripts/00-data-export/export_for_r.py's clinical.parquet plus
-# figure4_patient_clustering.py's outputs, all from EXPORT_DIR (never
-# BASE_DIR -- see REPRODUCIBILITY.md). Writes to EXPORT_DIR/figures/figure4/.
+# Figure 4c's cluster labels come from LEGACY_DATA_DIR's precomputed
+# metadata_with_dendrogram_colors_label_pat_id.parquet, NOT from
+# figure4_patient_clustering.py's own output. That script's reconstruction
+# (JSD linkage + scipy fcluster(criterion="distance")) is now confirmed
+# correct in its core computation -- its 4 largest clusters (93/63/11/9
+# patients) are byte-identical in size to this precomputed file -- but
+# fcluster's flat-clustering heuristic assigns the smallest, near-singleton
+# leaves differently than matplotlib's dendrogram(color_threshold=...)
+# leaf-coloring (the actual algorithm that produced this file) does. Rather
+# than accept that residual mismatch, this reads the real precomputed
+# partition directly. See REPRODUCIBILITY.md's Figure 4a/c note.
+#
+# Reads scripts/00-data-export/export_for_r.py's clinical.parquet,
+# figure4_patient_clustering.py's composition output (for 4d-e, unaffected
+# by the clustering question), and the precomputed cluster file above.
+# Writes to EXPORT_DIR/figures/figure4/.
 
 library(dotenv)
 load_dot_env()
@@ -23,7 +36,9 @@ library(ggplot2)
 
 base_dir <- Sys.getenv("BASE_DIR")
 export_dir <- Sys.getenv("EXPORT_DIR")
+legacy_dir <- Sys.getenv("LEGACY_DATA_DIR")
 stopifnot("EXPORT_DIR is not set; copy .env.example to .env and fill it in" = nzchar(export_dir))
+stopifnot("LEGACY_DATA_DIR is not set; copy .env.example to .env and fill it in" = nzchar(legacy_dir))
 stopifnot(
   "refusing to treat BASE_DIR as writable" = !startsWith(normalizePath(export_dir, mustWork = FALSE), normalizePath(base_dir, mustWork = FALSE))
 )
@@ -32,7 +47,10 @@ save_dir <- file.path(export_dir, "figures", "figure4")
 dir.create(save_dir, recursive = TRUE, showWarnings = FALSE)
 
 composition <- read_parquet(file.path(save_dir, "figure4a_patient_composition.parquet"))
-patient_clusters <- read_parquet(file.path(save_dir, "figure4a_patient_clusters.parquet"))
+patient_clusters <- read_parquet(file.path(
+  legacy_dir, "5-niches", "barplot_data", "metadata_with_dendrogram_colors_label_pat_id.parquet"
+)) |>
+  transmute(pat_id, patient_cluster = leaf_color_group)
 clinical <- read_parquet(file.path(export_dir, "clinical.parquet"))
 
 patient_clinical <- clinical |>

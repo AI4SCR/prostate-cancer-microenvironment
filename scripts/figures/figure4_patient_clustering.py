@@ -1,71 +1,74 @@
 # %%
-"""Reproduce Figure 4a-b: patient-level cell-type composition clustering.
+"""Reproduce Figure 4a-c: patient-level cell-type composition clustering (P1-P6).
 
-No prior script in this repo computed this -- reconstructed from the paper's
-Methods ("Cell Type Proportion Quantification"):
+REPLACES an earlier Methods-text reconstruction of this panel (average-
+linkage JSD clustering cut to a fixed k=6 via `scipy.fcluster(...,
+criterion="maxclust")`) that was flagged as producing a confirmed mismatch
+against the paper's reported (non-significant) KM result -- see
+REPRODUCIBILITY.md's "CORRECTION" note on Figure 4a/c.
 
-1. Cell-type proportions per physical core (`tma_id`, not `sample_id` --
-   interrupted-acquisition duplicates must be pooled first, see
-   REPRODUCIBILITY.md), over the 34 annotated cell types (excluding
-   "undefined"), with a pseudocount of 1 added to every type before
-   normalizing (avoids zeros for the log-ratio/JSD steps).
-2. Patient-level composition vector via max-pooling: for each cell type, the
-   maximum proportion observed across that patient's cores.
-3. Hierarchical clustering (average linkage) of patient compositions using
-   Jensen-Shannon divergence as the distance metric, cut to 6 clusters
-   (P1-P6, matching the paper's reported "six patient groups").
+The actual generating script was since found: the old repo's
+`000_paper/100_other_visualization/plot_stacked_frequencies.py`, run with
+`var_name='label', group_var='pat_id'` (confirmed by the output filename it
+produces, `metadata_with_dendrogram_colors_label_pat_id.parquet`, which
+matches a file that's existed on shared storage all along -- see
+missing_files.md). This is a 1:1 port of that script's `var_name='label'`
+branch (paths only changed; see figure_script_mapping.md), and it is a
+different, simpler algorithm than the Methods-text reconstruction:
 
-Reads from `$EXPORT_DIR` (never `$BASE_DIR` -- see REPRODUCIBILITY.md).
-Writes the patient x cell-type composition matrix, cluster assignments, and
-the clustered heatmap to `$EXPORT_DIR/figures/figure4/`.
+1. Filter to cells from ROIs where `is_tumor == "yes"` only (not all ROIs).
+2. Per-patient cell-type composition: pool ALL of a patient's cells
+   directly (not per-core proportions max-pooled across cores) -- categorical
+   value_counts with pseudocount 1, normalized, over all 35 labels
+   (including "undefined" -- NOT excluded, unlike the earlier reconstruction).
+3. Pairwise Jensen-Shannon distance via `scipy.spatial.distance.pdist(...,
+   metric='jensenshannon')` -- natural-log JSD (scipy's default base), NOT
+   base-2 like the earlier reconstruction used.
+4. Average-linkage hierarchical clustering, cut by a HEIGHT threshold
+   (`fcluster(Z, t=0.4, criterion="distance")`), not a fixed cluster count.
 
-CONFIRMED MISMATCH, unresolved: against the real dataset this produces P1-P6
-cluster sizes 3/101/23/2/65/1 -- three near-singleton clusters. The paper
-reports the resulting KM analysis (Fig 4c) as NOT significant; this
-reconstruction's clusters give log-rank p=6.65e-09, driven by those tiny
-clusters' volatile survival curves. The Methods text doesn't specify how the
-dendrogram was cut into exactly 6 groups (a fixed height threshold, not used
-here, would plausibly give a more balanced split than forcing k=6). See
-REPRODUCIBILITY.md Known discrepancies. Figure 4d-e (Cox PH on the same
-underlying composition, independent of this clustering step) DO reproduce
-the paper's result exactly, so the composition/CLR computation itself is
-validated -- only the P1-P6 cut point is in question.
+`compute_label_frequency`/`get_label_frequency_table` are ported inline from
+the old repo's `datamodules/utils.py` (a small, self-contained utility, not
+staged under LEGACY_DATA_DIR since it's two functions, not a whole module
+worth importing).
+
+Reads from `$EXPORT_DIR` (never `$BASE_DIR`). Writes the patient x cell-type
+composition matrix, cluster assignments, and the clustered heatmap to
+`$EXPORT_DIR/figures/figure4/`.
 """
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 import seaborn as sns
 from jsonargparse import CLI
 from loguru import logger
 from scipy.cluster.hierarchy import fcluster, linkage
-from scipy.spatial.distance import jensenshannon, squareform
+from scipy.spatial.distance import pdist, squareform
 
-from prostate_cancer.utils import load_exported_cells, resolve_export_dir
+from prostate_cancer.utils import resolve_export_dir
 
-N_PATIENT_CLUSTERS = 6
-
-
-def core_level_proportions(cells: pd.DataFrame) -> pd.DataFrame:
-    """Cell-type proportions per tma_id, pseudocount 1 before normalizing."""
-    counts = cells.groupby(["tma_id", "label"], observed=True).size().unstack(fill_value=0)
-    counts = counts + 1  # pseudocount, per the paper's Methods
-    return counts.div(counts.sum(axis=1), axis=0)
+DISTANCE_THRESHOLD = 0.4  # height cut, per plot_stacked_frequencies.py
 
 
-def patient_level_composition(core_proportions: pd.DataFrame, core_to_patient: pd.Series) -> pd.DataFrame:
-    """Max-pool core-level proportions to one composition vector per patient."""
-    return core_proportions.groupby(core_to_patient).max()
+def compute_label_frequency(data: pd.DataFrame, level: str, pseudocount: int = 1, group_vars: list[str] = ["sample_id"]) -> pd.Series:
+    """1:1 port of datamodules/utils.py:compute_label_frequency()."""
+    data[level] = data[level].astype("category")
+    if pseudocount > 0:
+        pdat = data.groupby(group_vars, observed=False)[level].value_counts()
+        pdat += 1
+        pdat /= pdat.groupby(group_vars, observed=False).sum()
+        pdat.name = "proportion"
+    else:
+        pdat = data.groupby(group_vars, observed=False)[level].value_counts(normalize=True)
+    return pdat
 
 
-def jsd_linkage(composition: pd.DataFrame) -> np.ndarray:
-    n = len(composition)
-    dist = np.zeros((n, n))
-    values = composition.values
-    for i in range(n):
-        for j in range(i + 1, n):
-            dist[i, j] = dist[j, i] = jensenshannon(values[i], values[j], base=2)
-    return linkage(squareform(dist, checks=False), method="average")
+def get_label_frequency_table(data: pd.DataFrame, level: str, group_vars: list[str] = ["sample_id"]) -> pd.DataFrame:
+    """1:1 port of datamodules/utils.py:get_label_frequency_table()."""
+    props = compute_label_frequency(data=data, level=level, pseudocount=1, group_vars=group_vars)
+    props = props.reset_index().pivot(index=group_vars, columns=level, values="proportion")
+    props.columns = props.columns.astype(str)
+    return props.astype(float)
 
 
 def main(export_dir: Path | None = None):
@@ -74,40 +77,48 @@ def main(export_dir: Path | None = None):
     save_dir.mkdir(parents=True, exist_ok=True)
 
     logger.info("loading exported tables")
-    cells = load_exported_cells(export_dir, exclude_undefined=True)
+    df_labels = pd.read_parquet(export_dir / "metadata.parquet").reset_index()
     clinical = pd.read_parquet(export_dir / "clinical.parquet")
-    assert {"tma_id", "pat_id"} <= set(clinical.columns)
 
-    # sample_id (acquisition) -> tma_id (physical core) -> pat_id: see
-    # REPRODUCIBILITY.md for why this de-duplication step is required.
-    roi_to_core = clinical["tma_id"]
-    roi_to_patient = clinical["pat_id"]
-    cells = cells.assign(tma_id=cells["sample_id"].map(roi_to_core))
-    assert cells["tma_id"].notna().all(), "some cells' sample_id is missing a clinical/tma_id mapping"
+    # %% FILTER TMAS TO INCLUDE: is_tumor == "yes" ROIs only
+    df_sample_id = clinical.reset_index()
+    df_sample_id = df_sample_id[~df_sample_id["is_tumor"].isna()]
+    df_sample_id = df_sample_id[df_sample_id["is_tumor"] == "yes"]
+    df_labels = df_labels.merge(df_sample_id, on="sample_id", how="inner")
+    df_labels = df_labels.set_index(["sample_id", "object_id"])
+    df_clusters = df_labels.copy()
+    logger.info(f"{len(df_clusters)} cells from is_tumor=='yes' ROIs")
 
-    core_proportions = core_level_proportions(cells)
-    assert core_proportions.shape[1] == 34, f"expected 34 cell types, got {core_proportions.shape[1]}"
+    # %% restrict clinical metadata to patients with at least one included ROI
+    group_var = "pat_id"
+    pat_cols = ["pat_id", "gs_grp", "os_status", "cause_of_death", "clinical_progr", "psa_progr", "disease_progr"]
+    valid_tma_ids = df_clusters["tma_id"].unique().tolist()
+    metadata = clinical[clinical["tma_id"].isin(valid_tma_ids)]
+    metadata = metadata.set_index("tma_id")
+    metadata = metadata[pat_cols]
+    metadata = metadata.reset_index()
+    metadata = metadata.drop_duplicates(subset=[group_var])
+    metadata = metadata.set_index(group_var)
 
-    core_to_patient = clinical.drop_duplicates("tma_id").set_index("tma_id")["pat_id"]
-    core_to_patient = core_to_patient.loc[core_proportions.index]
-    composition = patient_level_composition(core_proportions, core_to_patient)
-    logger.info(f"patient-level composition matrix: {composition.shape[0]} patients x {composition.shape[1]} cell types")
+    # %% per-patient cell-type composition (pool all of a patient's cells directly)
+    df_freqs = get_label_frequency_table(data=df_clusters, level="label", group_vars=[group_var])
+    df_freqs, metadata = df_freqs.align(metadata, join="inner", axis=0)
+    logger.info(f"patient-level composition matrix: {df_freqs.shape[0]} patients x {df_freqs.shape[1]} labels")
 
-    Z = jsd_linkage(composition)
-    clusters = fcluster(Z, t=N_PATIENT_CLUSTERS, criterion="maxclust")
-    patient_clusters = pd.Series(
-        [f"P{c}" for c in clusters], index=composition.index, name="patient_cluster"
-    )
-    logger.info(f"cluster sizes:\n{patient_clusters.value_counts().sort_index()}")
+    # %% JSD hierarchical clustering, height cut (not a fixed k)
+    dcond = pdist(df_freqs.values, metric="jensenshannon")
+    Z = linkage(dcond, method="average")
+    fixed_clusters = fcluster(Z, t=DISTANCE_THRESHOLD, criterion="distance")
+    patient_clusters = pd.Series([f"P{c}" for c in fixed_clusters], index=df_freqs.index, name="patient_cluster")
+    logger.info(f"cluster sizes (distance threshold {DISTANCE_THRESHOLD}):\n{patient_clusters.value_counts().sort_index()}")
 
-    # reset_index() so `pat_id` is an unambiguous plain column for the R
-    # survival script to read, rather than relying on pandas' index metadata
-    # round-tripping the same way through arrow's R reader.
+    composition = df_freqs
     composition.reset_index().to_parquet(save_dir / "figure4a_patient_composition.parquet")
     patient_clusters.reset_index().to_parquet(save_dir / "figure4a_patient_clusters.parquet")
 
-    # %% Figure 4a: clustered heatmap, rows ordered/colored by the 6 patient clusters
-    cluster_colors = dict(zip(sorted(patient_clusters.unique()), sns.color_palette("tab10", N_PATIENT_CLUSTERS)))
+    # %% Figure 4a: clustered heatmap, rows ordered/colored by patient cluster
+    n_clusters = patient_clusters.nunique()
+    cluster_colors = dict(zip(sorted(patient_clusters.unique()), sns.color_palette("tab10", n_clusters)))
     row_colors = patient_clusters.map(cluster_colors)
     cg = sns.clustermap(
         composition,
@@ -118,7 +129,7 @@ def main(export_dir: Path | None = None):
         cmap="viridis",
         yticklabels=False,
     )
-    cg.ax_heatmap.set_title("Figure 4a -- patient-level cell-type composition (P1-P6)")
+    cg.ax_heatmap.set_title(f"Figure 4a -- patient-level cell-type composition ({n_clusters} clusters)")
     cg.figure.savefig(save_dir / "figure4a_composition_heatmap.png", dpi=200)
 
     logger.info(f"saved figure 4a panels to {save_dir}")

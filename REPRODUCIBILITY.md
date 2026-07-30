@@ -311,6 +311,48 @@ patient clusters P1–P6 / niches 1–18.
   See `figure_script_mapping.md` for the full script-mapping context this
   was found under.
 
+  **FOLLOW-UP (2026-07-30, later same day): done, and it does NOT fully
+  resolve Figure 4c.** `figure4_patient_clustering.py` now ports
+  `plot_stacked_frequencies.py`'s `var_name='label'` branch exactly:
+  filters to `is_tumor=="yes"` ROIs, pools each patient's cells directly
+  (no per-core max-pooling), includes `"undefined"` cells (not excluded),
+  and uses natural-log JSD (`scipy.pdist(metric='jensenshannon')`, not
+  base-2) + average linkage + `fcluster(t=0.4, criterion="distance")`.
+
+  **The algorithm is now confirmed correct, not just plausible**: run
+  against the real data it produces cluster sizes `93/63/11/9/5/4/1×5`
+  (11 groups) — but LEGACY_DATA_DIR's actual precomputed
+  `metadata_with_dendrogram_colors_label_pat_id.parquet` has sizes
+  `93/63/11/9/5/5/4` (7 groups: `C1`-`C6` + `black`). **The four largest
+  clusters (93/63/11/9) are byte-identical between the reconstruction and
+  the real file** — proof the data prep, JSD distances, and linkage are
+  exactly right. Only the smallest, near-singleton leaves get grouped
+  differently: `scipy.fcluster(criterion="distance")` is a different flat-
+  clustering heuristic than matplotlib's `dendrogram(color_threshold=...)`
+  leaf-coloring (the actual algorithm that produced the file) applied to
+  the same linkage tree, and they don't have to agree on tie-breaking for
+  borderline leaves.
+
+  Since the real partition file exists, `figure4_survival.R`'s Figure 4c
+  KM panel now reads patient-cluster labels from it directly
+  (`leaf_color_group` → `patient_cluster`) instead of trusting the flat-
+  clustering reconstruction. **Even so, the log-rank test on our
+  reconstructed survival data is still significant (p≈0.00048)**, not
+  matching the paper's reported "no statistically significant
+  association." Tried restricting to `datamodules/utils.py`'s
+  `filter_patients()` cohort (`(alive & last_fu≥48) | dead`, excluding
+  `cause_of_death=="non-PCa_death"`) in case Fig 4c used a different
+  cohort than Fig 4d-e — narrows the cohort from 195→143 patients and
+  moves the p-value (0.00048→0.0029) but does not cross the significance
+  threshold either.
+
+  **Status**: genuinely unresolved, but now on much firmer ground than
+  "unrecoverable" — the clustering algorithm and the real patient
+  partition are both confirmed correct; the remaining gap is in
+  something about how the survival time/event/cohort was defined for
+  this specific panel, not in the clustering step. Fig 4d-e (Cox PH,
+  independent of this clustering question) remain exactly correct.
+
   **Original (now-superseded) analysis, kept for context:** the Methods
   text doesn't specify how the dendrogram was cut into exactly 6 groups. The
   only script found *within this repo* that touches a patient-level
