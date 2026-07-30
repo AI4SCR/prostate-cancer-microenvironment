@@ -94,7 +94,7 @@ def plot_points(
     return ax
 
 
-def main(export_dir: Path | None = None, seed: int = 0):
+def main(export_dir: Path | None = None):
     import umap
 
     export_dir = export_dir or resolve_export_dir()
@@ -121,7 +121,12 @@ def main(export_dir: Path | None = None, seed: int = 0):
         embedding = embedding_df[["umap_1", "umap_2"]].values
     else:
         logger.info(f"computing UMAP for {len(fit_data)} cells, n_neighbors={N_NEIGHBORS}, min_dist={MIN_DIST}, excluding {exclude_markers}")
-        reducer = umap.UMAP(n_neighbors=N_NEIGHBORS, min_dist=MIN_DIST, metric="euclidean", random_state=seed)
+        # No random_state here -- legacy's compute_umap()/run_umap() never
+        # passes one to UMAP() for the fit itself (only the later
+        # subsampling-for-plotting step is seeded). Matches legacy exactly;
+        # also lets UMAP run multi-threaded instead of the single-threaded
+        # path a fixed random_state forces.
+        reducer = umap.UMAP(n_neighbors=N_NEIGHBORS, min_dist=MIN_DIST, metric="euclidean")
         reducer.fit(fit_data.values)
         index = fit_data.index
         embedding = reducer.embedding_
