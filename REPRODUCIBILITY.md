@@ -202,6 +202,26 @@ patient clusters P1–P6 / niches 1–18.
   case above), not the paper's headline 523, which describes the full
   unrestricted 542-row clinical table this repo never exports on its own.
   459 (tumor-containing ROIs among labeled cells) is still asserted as before.
+
+  **Authoritative reference**, confirming 515/523/459 are three different
+  cohort splits, not competing values for the same thing — from the old
+  repo's own `000_paper/0-export/readme.md`:
+
+  | Split | #patients | #acquisitions | #ROIs | #tumor | #no_tumor | #N/A |
+  |---|:-:|:-:|:-:|:-:|:-:|:-:|
+  | Clinical (full, unrestricted) | 196 | 542 | **523** | 481 | 40 | 21 |
+  | Clinical annotated (restricted to sample_ids with labeled cells) | 195 | 534 | **515** | 476 | 39 | 19 |
+  | Clinical tumor-only | 190 | 476 | **459** | 476 | 0 | 0 |
+
+  `export_for_r.py`'s exported `clinical.parquet` is exactly the "Clinical
+  annotated" row (534 rows / 515 ROIs / 195 patients) — hence
+  `EXPECTED_ROI_COUNT = 515`, `EXPECTED_PATIENT_COUNT = 195`. The paper's
+  headline 523/196 describes the row above it (unrestricted); 459/190 the
+  row below (tumor-only, computed separately from `clinical_with_cells` in
+  this script). All three are internally consistent — filtering down through
+  the same three stages the paper itself describes (patient-level: 196 → 195
+  → 190; acquisition/ROI-level: 542→523 → 534→515 → 476→459, each split
+  losing 19 ROIs to interrupted-and-restarted acquisitions).
 - **Normalization: `prepare_data()` vs `normalize()` — RESOLVED, was a
   wrong-function port, not a data or formula discrepancy.**
   `export_for_r.py` used to build `intensity_normalized.parquet` by calling
