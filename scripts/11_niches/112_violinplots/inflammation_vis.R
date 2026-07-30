@@ -1,7 +1,15 @@
-library(arrow)
-result_dir = "/Users/me3312/Documents/Paper_PCa/5-niches/frequencies/frequency_boxplots/"
+library(dotenv)
+load_dot_env()
 
-base_dir = "/Users/me3312/Documents/Paper_PCa/5-niches/frequencies"
+library(arrow)
+export_dir <- Sys.getenv("EXPORT_DIR")
+legacy_dir <- Sys.getenv("LEGACY_DATA_DIR")
+stopifnot("EXPORT_DIR is not set; copy .env.example to .env and fill it in" = nzchar(export_dir))
+stopifnot("LEGACY_DATA_DIR is not set; copy .env.example to .env and fill it in" = nzchar(legacy_dir))
+
+result_dir = file.path(legacy_dir, '5-niches', 'frequencies', 'frequency_boxplots')
+
+base_dir = file.path(legacy_dir, '5-niches', 'frequencies')
 library(ComplexHeatmap)
 library(circlize)
 library(dplyr)
@@ -12,7 +20,7 @@ library(ggpubr)
 library(entropy)
 library(compositions)
 
-clinical.path = file.path('/Users/me3312/Documents/Paper_PCa/0-paper/0-export/clinical.parquet')
+clinical.path = file.path(export_dir, 'clinical.parquet')
 clinical = read_parquet(clinical.path)
 num.patients = clinical$pat_id |> n_distinct()
 
@@ -41,7 +49,7 @@ compute_label_frequency <- function(data, level, pseudocount = 0) {
   return(df_freqs)
 }
 
-df_clusters <- read_parquet("/Users/me3312/Documents/Paper_PCa/5-niches/annotation/clusters_annotated_v2.parquet")
+df_clusters <- read_parquet(file.path(legacy_dir, "5-niches", "annotation", "clusters_annotated_v2.parquet"))
 df_clusters[['sample_name']] <- df_clusters[['tma_id']]
 
 
@@ -160,7 +168,7 @@ p_up <- ggplot(
 
 p_up
 
-result_dir = "/Users/me3312/Documents/Paper_PCa/5-niches/frequencies/frequency_boxplots/violin_inflammation/"
+result_dir = file.path(export_dir, "legacy-outputs", "violin_inflammation")
 dir.create(result_dir, showWarnings = FALSE)
 
 df_long_full <- df %>%

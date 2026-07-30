@@ -5,6 +5,9 @@
 # }
 # BiocManager::install("ComplexHeatmap")
 
+library(dotenv)
+load_dot_env()
+
 library(arrow)
 library(dplyr)
 library(tibble)
@@ -14,15 +17,14 @@ library(yaml)
 library(viridis)
 library(stringr)
 
-save_dir = file.path('/Users/adrianomartinelli/Library/CloudStorage/OneDrive-ETHZurich/oneDrive-documents/data/publications/PCa/outputs/3-heatmaps')
+export_dir <- Sys.getenv("EXPORT_DIR")
+stopifnot("EXPORT_DIR is not set; copy .env.example to .env and fill it in" = nzchar(export_dir))
+
+save_dir = file.path(export_dir, 'legacy-outputs', '3-heatmaps')
 dir.create(save_dir, recursive = TRUE, showWarnings = FALSE)
-data_path = file.path(
-  "/Users/adrianomartinelli/Library/CloudStorage/OneDrive-ETHZurich/oneDrive-documents/data/publications/PCa/0-export/intensity_normalized.parquet"
-)
-metadata_path = file.path(
-  "/Users/adrianomartinelli/Library/CloudStorage/OneDrive-ETHZurich/oneDrive-documents/data/publications/PCa/0-export/metadata.parquet"
-)
-colormap_path = file.path("/Users/adrianomartinelli/projects/PCa/colormaps.yaml")
+data_path = file.path(export_dir, "intensity_normalized.parquet")
+metadata_path = file.path(export_dir, "metadata.parquet")
+colormap_path = file.path(dirname(dirname(export_dir)), "resources", "colormaps.yaml")
 index_names = c('sample_id', 'object_id')
 
 main_group = 'immune'

@@ -1,7 +1,15 @@
-library(arrow)
-result_dir = "/Users/me3312/Documents/Paper_PCa/5-niches"
+library(dotenv)
+load_dot_env()
 
-base_dir = "/Users/me3312/Documents/Paper_PCa/5-niches/frequencies"
+library(arrow)
+export_dir <- Sys.getenv("EXPORT_DIR")
+legacy_dir <- Sys.getenv("LEGACY_DATA_DIR")
+stopifnot("EXPORT_DIR is not set; copy .env.example to .env and fill it in" = nzchar(export_dir))
+stopifnot("LEGACY_DATA_DIR is not set; copy .env.example to .env and fill it in" = nzchar(legacy_dir))
+
+result_dir = file.path(legacy_dir, '5-niches')
+
+base_dir = file.path(legacy_dir, '5-niches', 'frequencies')
 df_props = read_parquet(file.path(base_dir, "stacked_barplots/props_niche_pat_id.parquet"))
 # metadata = read_parquet(file.path(base_dir, "metadata_aligned_niche_frequencies.parquet"))
 # df_props = read_parquet(file.path(result_dir, "frequencies/stacked_barplots/props_tma.parquet"))
@@ -17,7 +25,7 @@ library(tidyr)
 library(ggpubr)
 library(entropy)
 
-clinical.path = file.path('/Users/me3312/Documents/Paper_PCa/0-paper/0-export/clinical.parquet')
+clinical.path = file.path(export_dir, 'clinical.parquet')
 clinical = read_parquet(clinical.path)
 num.patients = clinical$pat_id |> n_distinct()
 

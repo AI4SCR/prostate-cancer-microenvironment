@@ -1,7 +1,19 @@
+library(dotenv)
+load_dot_env()
+library(arrow)
+library(dplyr)
 
-clinical.path = file.path('/Users/me3312/Documents/Paper_PCa/0-paper/0-export/clinical.parquet')
+export_dir <- Sys.getenv("EXPORT_DIR")
+legacy_dir <- Sys.getenv("LEGACY_DATA_DIR")
+stopifnot("EXPORT_DIR is not set; copy .env.example to .env and fill it in" = nzchar(export_dir))
+stopifnot("LEGACY_DATA_DIR is not set; copy .env.example to .env and fill it in" = nzchar(legacy_dir))
+
+clinical.path = file.path(export_dir, 'clinical.parquet')
 old_clinical = read_parquet(clinical.path)
-new_clinical_path <- "/Users/me3312/Desktop/check_clinical/0-export/clinical.parquet"
+# GENUINELY MISSING (see REPRODUCIBILITY.md / missing_files.md): no copy of
+# this ad hoc sanity-check export found anywhere accessible. Non-load-bearing
+# -- only used for the all.equal() comparison below, not downstream.
+new_clinical_path <- file.path(legacy_dir, "check_clinical", "0-export", "clinical.parquet")
 new_clinical <- read_parquet(new_clinical_path)
 
 ## check if equal
@@ -10,16 +22,16 @@ table(new_clinical$disease_progr, new_clinical$clinical_progr)
 
 clinical = read_parquet(clinical.path)
 
-result_dir = "/Users/me3312/Documents/Paper_PCa/5-niches/barplot_data/"
-path_patient <- "/Users/me3312/Documents/Paper_PCa/5-niches/barplot_data/metadata_clustered_pat_id_label.csv"
-path_tma <- "/Users/me3312/Documents/Paper_PCa/5-niches/barplot_data/metadata_clustered_tma_id_label.csv"
+result_dir = file.path(legacy_dir, '5-niches', 'barplot_data')
+path_patient <- file.path(legacy_dir, '5-niches', 'barplot_data', 'metadata_clustered_pat_id_label.csv')
+path_tma <- file.path(legacy_dir, '5-niches', 'barplot_data', 'metadata_clustered_tma_id_label.csv')
 
 df_patient <- read.csv(path_patient)
 df_tma <- read.csv(path_tma)
 
-path_groups <- "/Users/me3312/Desktop/check_clinical/0-export/survival-cell-freq-groups.parquet"
-path_gleason <- "/Users/me3312/Desktop/check_clinical/0-export/survival-gleason.parquet"
-path_histo <- "/Users/me3312/Desktop/check_clinical/0-export/survival-stromogenic-inflammation.parquet"
+path_groups <- file.path(legacy_dir, '0-paper', '0-export', 'survival-cell-freq-groups.parquet')
+path_gleason <- file.path(legacy_dir, '0-paper', '0-export', 'survival-gleason.parquet')
+path_histo <- file.path(legacy_dir, '0-paper', '0-export', 'survival-stromogenic-inflammation.parquet')
 
 groups <- read_parquet(path_groups)
 gleason <- read_parquet(path_gleason)
@@ -27,16 +39,17 @@ histo <- read_parquet(path_histo)
 
 df_check <- df_patient %>%
   select(pat_id, cluster_group) %>%
-  filter(cluster_group == "C4") 
+  filter(cluster_group == "C4")
 df_check_2 <- groups %>%
   select(pat_id, cluster_id) %>%
   filter(cluster_id == "5")
 
-
-final_path <- "/Users/me3312/Documents/Paper_PCa/5-niches/barplot_data/metadata_with_dendrogram_colors_label_pat_id.parquet"
+# RESOLVED -- this file was previously reported unrecoverable (see
+# REPRODUCIBILITY.md, commit 0604c1ba); it's since been found and staged
+# here from the shared cluster copy, /work/.../prometex/data/PCa/5-niches/
+# barplot_data/. This is the manually-labeled P1-P6 dendrogram assignment.
+final_path <- file.path(legacy_dir, '5-niches', 'barplot_data', 'metadata_with_dendrogram_colors_label_pat_id.parquet')
 df_patient <- read_parquet(final_path)
-
-library(dplyr)
 
 df <- df_patient %>%
   filter(leaf_color_group != "black")# %>%
@@ -114,7 +127,7 @@ p_survival$plot
 
 ########################## INFLAMMATION #############
 library(dplyr)
-dir_inflam <- "/Users/me3312/Documents/Paper_PCa/5-niches/kaplan_meier/inflammation"
+dir_inflam <- file.path(export_dir, "legacy-outputs", "kaplan_meier", "inflammation")
 df_inflam <- clinical %>%
   select(pat_id, inflammation) %>%
   filter(!is.na(inflammation)) %>%
@@ -177,7 +190,7 @@ p_survival_inflam$plot
 
 ################## STROMOGENIC #############
 
-dir_stromo <- "/Users/me3312/Documents/Paper_PCa/5-niches/kaplan_meier/stromogenic"
+dir_stromo <- file.path(export_dir, "legacy-outputs", "kaplan_meier", "stromogenic")
 df_stromo <- clinical %>%
   select(pat_id, stromogenic_smc_loss_reactive_stroma_present) %>%
   filter(!is.na(stromogenic_smc_loss_reactive_stroma_present)) %>%
@@ -239,7 +252,7 @@ p_survival_stromo$plot
 
 
 ################### GLEASON #############
-dir_gleason <- "/Users/me3312/Documents/Paper_PCa/5-niches/kaplan_meier/gleason"
+dir_gleason <- file.path(export_dir, "legacy-outputs", "kaplan_meier", "gleason")
 dir.create(dir_gleason, showWarnings = FALSE)
 
 
@@ -290,7 +303,7 @@ p_survival_gleason$plot
 
 
 
-dir_gleason <- "/Users/me3312/Documents/Paper_PCa/5-niches/kaplan_meier/gleason"
+dir_gleason <- file.path(export_dir, "legacy-outputs", "kaplan_meier", "gleason")
 dir.create(dir_gleason, showWarnings = FALSE)
 
 
