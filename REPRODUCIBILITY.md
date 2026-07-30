@@ -285,29 +285,42 @@ patient clusters P1–P6 / niches 1–18.
   almost entirely by the three tiny clusters' wild early-event swings (a
   3-patient and a 1-patient cluster each show a near-vertical survival drop).
   This is very unlikely to be the same partition the paper reports.
-  **Not resolved, and now confirmed unrecoverable from code.** The Methods
-  text doesn't specify how the dendrogram was cut into exactly 6 groups (a
-  fixed height threshold would very plausibly give a more balanced partition
-  than forcing `k=6` via `scipy`'s `maxclust`, which was the choice made
-  here) — but this is not just an underspecified Methods section. The only
-  other script in this repo that touches a patient-level cluster/group
-  assignment, `scripts/11_niches/113_survival/risk_groups_label.R`, reads a
-  manually-produced `leaf_color_group` column (`risk_groups_label.R:66`)
-  from `metadata_with_dendrogram_colors_label_pat_id.parquet`
-  (`risk_groups_label.R:36`) and a `cluster_group` column from
-  `metadata_clustered_pat_id_label.csv` (`risk_groups_label.R:14,17,29`) —
-  both under a hardcoded local path,
-  `/Users/me3312/Documents/Paper_PCa/5-niches/barplot_data/`, that exists on
-  neither this repo, its full `git log --all` history (the script entered in
-  the initial `init` commit already referencing these paths), nor the
-  published Zenodo archive. No script anywhere in this repo's history writes
-  either file. The "dendrogram colors label" naming strongly suggests the
-  real cluster assignment was produced by manually coloring/labeling
-  dendrogram leaves (by eye, likely in a GUI or notebook), not by any single
-  reproducible height/k threshold — so no choice of `scipy` cut parameter in
-  `figure4_patient_clustering.py` is expected to recover the paper's exact
-  P1-P6 partition. This is a genuine gap in what the paper's code release
-  preserved, not a bug in this reconstruction.
+  **CORRECTION (2026-07-30): the "unrecoverable from code" conclusion above
+  was wrong — retracted.** That conclusion was reached by searching only
+  *this* repo's history and the currently-staged `BASE_DIR`/legacy exports;
+  it never checked the pre-migration repo's own `100_other_visualization/`
+  directory, which turns out to contain the actual generating script:
+  `plot_stacked_frequencies.py` (with `var_name='label'`, `group_var='pat_id'`).
+  It produces `metadata_with_dendrogram_colors_label_pat_id.parquet`
+  programmatically, not manually:
+  ```python
+  order, Z = get_order(df_freqs, method='average')   # JSD-distance, average linkage
+  fixed_clusters = fcluster(Z, t=0.4, criterion='distance')   # HEIGHT cut, not maxclust(k=6)
+  dendro = dendrogram(Z, ..., color_threshold=0.4, ...)
+  df_tree = pd.DataFrame({"leaf_color_group": dendro["leaves_color_list"]})
+  ```
+  This confirms what was already speculated below (a height-threshold cut,
+  not `scipy.fcluster(..., criterion="maxclust", t=6)`) — but as a concrete,
+  reproducible algorithm, not a guess. The "dendrogram colors label" naming
+  that previously read as "probably manual" is just how matplotlib's
+  `dendrogram(..., color_threshold=...)` names its branch-coloring output.
+  `figure4_patient_clustering.py` needs to be redone using this exact
+  algorithm (JSD linkage + `fcluster(t=0.4, criterion="distance")`) instead
+  of the `maxclust(t=6)` approach — not yet done as of this note; tracked
+  as follow-up work on the Figure 5/6 branch that surfaced this script.
+  See `figure_script_mapping.md` for the full script-mapping context this
+  was found under.
+
+  **Original (now-superseded) analysis, kept for context:** the Methods
+  text doesn't specify how the dendrogram was cut into exactly 6 groups. The
+  only script found *within this repo* that touches a patient-level
+  cluster/group assignment, `scripts/11_niches/113_survival/risk_groups_label.R`,
+  reads a `leaf_color_group` column (`risk_groups_label.R:66`) from
+  `metadata_with_dendrogram_colors_label_pat_id.parquet`
+  (`risk_groups_label.R:36`) under a hardcoded local path that doesn't exist
+  in this repo, its git history, or the published Zenodo archive — which is
+  still true, but the missing piece was a script location, not a missing
+  algorithm.
   **However**: Figure 4d-e (Cox PH per cell type on the same underlying
   CLR-transformed composition vectors, independent of the P1-P6 clustering)
   reproduce the paper's headline finding exactly — `epithelial-luminal(ERG+p53+)`
