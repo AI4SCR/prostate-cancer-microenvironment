@@ -88,6 +88,25 @@ def resolve_export_dir() -> Path:
     return assert_outside_base_dir(Path(export_dir).expanduser())
 
 
+def resolve_legacy_dir() -> Path:
+    """Load `.env` and return `LEGACY_DATA_DIR` as a `Path`.
+
+    Read-only, consolidated copy of pre-migration data with no reproducing
+    script in this repo (niche-neighborhood raw data, the PCA_NHOODs_clean
+    code some figure scripts import, colormaps.yaml). Never use this for
+    metadata/clinical/intensity(_normalized).parquet -- those come from
+    `resolve_export_dir()` instead. See REPRODUCIBILITY.md and
+    figure_script_mapping.md.
+    """
+    import os
+    from dotenv import load_dotenv
+
+    load_dotenv()
+    legacy_dir = os.environ.get("LEGACY_DATA_DIR")
+    assert legacy_dir, "LEGACY_DATA_DIR is not set; copy .env.example to .env and fill it in"
+    return Path(legacy_dir).expanduser()
+
+
 def assert_outside_base_dir(path: Path) -> Path:
     """Fail loudly if `path` is inside `BASE_DIR` (or a symlink alias of it).
 
