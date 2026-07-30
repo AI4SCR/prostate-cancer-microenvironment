@@ -117,4 +117,16 @@ p_sep <- ggplot(df_long_full, aes(x = inflammation, y = clr_proportion, fill = i
   theme_minimal()
 ggsave(file.path(save_dir, "figure6d_inflammation_all_niches_sep.pdf"), p_sep, width = 12, height = 18, dpi = 300)
 
+# Legacy has a 4th plot block (its own "violin_boxplot_inflammation.pdf"),
+# near-identical to p_split above but with different violin/boxplot widths
+# and no stat_summary layer -- missed on the first port pass, added here.
+p_full <- ggplot(df_long_full, aes(x = niche, y = clr_proportion, fill = inflammation)) +
+  geom_violin(position = pd, alpha = 0.4, trim = FALSE, width = 1.2) +
+  geom_boxplot(position = pd, width = 0.25, alpha = 0.6, outlier.shape = NA, show.legend = FALSE) +
+  scale_fill_manual(values = my_cols, name = "Reactive stroma") +
+  labs(title = "All niches", x = "Niche", y = "CLR-transformed Proportion") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+ggsave(file.path(save_dir, "figure6d_inflammation_all_niches.pdf"), p_full, width = 12, height = 6, dpi = 300)
+
 cat("Saved Figure 6d panels to", save_dir, "\n")
