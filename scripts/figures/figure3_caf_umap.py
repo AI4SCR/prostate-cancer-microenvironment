@@ -23,8 +23,16 @@ repo's `intensity_normalized.parquet` (which normalizes ALL cells x ALL
 markers together), so that cache can't be reused here -- this script loads
 `intensity.parquet` (raw) instead and normalizes it itself, matching legacy.
 
-Reads from `$EXPORT_DIR` (never `$BASE_DIR`). Writes to
-`$EXPORT_DIR/figures/figure3/`.
+Both UMAP fits (data-loading/export mechanics only, not logic) now live in
+`scripts/data/figure3_caf_umap_embedding.py`. This script only reads those
+cached embeddings and plots -- it still loads and normalizes the raw
+CAF-filtered intensity table itself, since the intensity panels need it for
+coloring (a cheap, non-UMAP step) independent of the cached embeddings.
+
+Reads from `$EXPORT_DIR`, requires
+`scripts/data/figure3_caf_umap_embedding.py` to have already produced
+`$EXPORT_DIR/figures/figure3/{config_name}/umap_embedding.parquet` for both
+configs. Writes all plot panels to `$EXPORT_DIR/figures/figure3/`.
 """
 from pathlib import Path
 
@@ -51,8 +59,6 @@ CONFIGS = {
     "excl_markers": sorted(NON_MARKER_CHANNELS),
     "caf_markers_only": sorted(set(ALL_MARKERS) - CAF_MARKERS),
 }
-N_NEIGHBORS = 50
-MIN_DIST = 0.1
 NUM_SAMPLES_PER_PLOT = 100_000
 
 
@@ -100,8 +106,6 @@ def plot_points(
 
 
 def main(export_dir: Path | None = None):
-    import umap
-
     export_dir = export_dir or resolve_export_dir()
     save_dir = export_dir / "figures" / "figure3"
     save_dir.mkdir(parents=True, exist_ok=True)
@@ -118,27 +122,15 @@ def main(export_dir: Path | None = None):
     caf_metadata = metadata.loc[caf_filter, :]
     logger.info(f"{len(data)} CAF cells (label contains 'CAF')")
 
-    for config_name, exclude_markers in CONFIGS.items():
+    for config_name in CONFIGS:
         config_dir = save_dir / config_name
         config_dir.mkdir(parents=True, exist_ok=True)
 
-        df = data.loc[:, ~data.columns.isin(exclude_markers)].copy()
-        df = normalize(df, exclude_zeros=True)
-
         embedding_path = config_dir / "umap_embedding.parquet"
-        if embedding_path.exists():
-            logger.info(f"[{config_name}] reusing existing embedding at {embedding_path}")
-            embedding_df = pd.read_parquet(embedding_path)
-            index = embedding_df.index
-            embedding = embedding_df[["umap_1", "umap_2"]].values
-        else:
-            logger.info(f"[{config_name}] computing UMAP on {len(df)} CAF cells x {df.shape[1]} markers")
-            reducer = umap.UMAP(n_neighbors=N_NEIGHBORS, min_dist=MIN_DIST, metric="euclidean")
-            reducer.fit(df.values)
-            index = df.index
-            embedding = reducer.embedding_
-            embedding_df = pd.DataFrame(embedding, index=index, columns=["umap_1", "umap_2"])
-            embedding_df.to_parquet(embedding_path)
+        assert embedding_path.exists(), f"{embedding_path} missing -- run scripts/data/figure3_caf_umap_embedding.py first"
+        embedding_df = pd.read_parquet(embedding_path)
+        index = embedding_df.index
+        embedding = embedding_df[["umap_1", "umap_2"]].values
 
         # %% label/main_group/pat_id panels
         for label in ["main_group", "label", "pat_id"]:
