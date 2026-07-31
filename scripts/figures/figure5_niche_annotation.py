@@ -38,7 +38,7 @@ def main(export_dir: Path | None = None, legacy_dir: Path | None = None):
     save_dir.mkdir(parents=True, exist_ok=True)
 
     # %% figure5_niche_clustering.py's output
-    df_clusters = pd.read_parquet(save_dir / "clusters.parquet")
+    df_clusters = pd.read_parquet(save_dir / "clusters.parquet", engine="fastparquet")
     logger.info(f"clusters shape: {df_clusters.shape}")
 
     # %% GENUINELY MISSING -- see module docstring and missing_files.md
@@ -63,11 +63,17 @@ def main(export_dir: Path | None = None, legacy_dir: Path | None = None):
     df_annotation_niche["meta_niche_color"] = df_annotation_niche["meta_niche"].map(color_dict_meta_niche).fillna("#7f7f7f")
     df_annotation_niche.to_csv(save_dir / "niche_annotations_v2.csv", index=False)
 
-    # %%
+    # %% legacy repeats this exact assignment a second time (its lines 134-136,
+    # byte-identical to the one above) before the final save -- reproduced
+    # here even though idempotent, for strict fidelity to the original script.
+    cluster_name = df_clusters.columns[0]
+    df_clusters[cluster_name] = df_clusters[cluster_name].astype(str)
+    df_clusters["niche"] = df_clusters[cluster_name].map(annotation_dict_niche).fillna("unassigned")
+
     df_clusters["meta_niche"] = df_clusters["niche"].map(annotation_dict_meta_niche).fillna("unassigned")
     df_clusters["niche"] = df_clusters["niche"].astype("category")
     df_clusters["meta_niche"] = df_clusters["meta_niche"].astype("category")
-    df_clusters.to_parquet(save_dir / "clusters_annotated_v2.parquet", index=True)
+    df_clusters.to_parquet(save_dir / "clusters_annotated_v2.parquet", engine="fastparquet", index=True)
     logger.info(f"saved annotated clusters to {save_dir}")
 
 
