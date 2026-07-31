@@ -19,13 +19,17 @@ Differences from the legacy script, all disclosed:
   to the legacy export (see REPRODUCIBILITY.md) -- so this is the same
   values, not a different computation, just reading a cache of it that
   already exists instead of recomputing it.
-- Legacy computes the UMAP fit on the FULL dataset (no subsampling before
-  `reducer.fit()`) and only subsamples for the scatter plots afterward, via
-  `sample_min_per_group_then_uniform`. Preserved here exactly -- this is a
-  slow, full-dataset UMAP.fit() on ~2.19M cells, not a quick 50k-cell demo.
+- The UMAP fit itself (data-loading/export mechanics only, not logic) now
+  lives in `scripts/data/figure2_umap_embedding.py`, which computes it on
+  the FULL dataset (no subsampling before `reducer.fit()`), matching legacy
+  exactly -- a slow, full-dataset UMAP.fit() on ~2.19M cells, not a quick
+  50k-cell demo. This script only reads that cached embedding and subsamples
+  for the scatter plots via `sample_min_per_group_then_uniform`, exactly as
+  legacy does after its own (inline) fit.
 
-Reads from `$EXPORT_DIR` (never `$BASE_DIR`). Writes the fitted embedding
-and all plot panels to `$EXPORT_DIR/figures/figure2/`.
+Reads from `$EXPORT_DIR`, requires `scripts/data/figure2_umap_embedding.py`
+to have already produced `$EXPORT_DIR/figures/figure2/reducer_embedding.parquet`.
+Writes all plot panels to `$EXPORT_DIR/figures/figure2/`.
 """
 from pathlib import Path
 
@@ -39,10 +43,8 @@ from matplotlib import pyplot as plt
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import Normalize, to_rgba
 
-from prostate_cancer.utils import NON_MARKER_CHANNELS, get_colormap_dict, resolve_export_dir
+from prostate_cancer.utils import get_colormap_dict, resolve_export_dir
 
-N_NEIGHBORS = 50
-MIN_DIST = 0.1
 NUM_SAMPLES_PER_PLOT = 100_000  # legacy's num_samples for sample_min_per_group_then_uniform
 
 
@@ -95,11 +97,15 @@ def plot_points(
 
 
 def main(export_dir: Path | None = None):
-    import umap
-
     export_dir = export_dir or resolve_export_dir()
     save_dir = export_dir / "figures" / "figure2"
     save_dir.mkdir(parents=True, exist_ok=True)
+
+    reducer_path = save_dir / "reducer_embedding.parquet"
+    assert reducer_path.exists(), f"{reducer_path} missing -- run scripts/data/figure2_umap_embedding.py first"
+    embedding_df = pd.read_parquet(reducer_path)
+    index = embedding_df.index
+    embedding = embedding_df[["umap_1", "umap_2"]].values
 
     # %% load exported cells (== ds.intensity/ds.metadata + normalize(exclude_zeros=True), see docstring)
     logger.info("loading exported tables")
@@ -108,31 +114,6 @@ def main(export_dir: Path | None = None):
     metadata, data = metadata.align(data, axis=0, join="inner")
     clinical = pd.read_parquet(export_dir / "clinical.parquet")
     sid_to_pid = clinical["pat_id"].to_dict()
-
-    exclude_markers = NON_MARKER_CHANNELS
-    fit_data = data.loc[:, ~data.columns.isin(exclude_markers)].copy()
-
-    # %% COMPUTE UMAP on the full dataset (no subsampling for the fit itself)
-    reducer_path = save_dir / "reducer_embedding.parquet"
-    if reducer_path.exists():
-        logger.info(f"reusing existing embedding at {reducer_path}")
-        embedding_df = pd.read_parquet(reducer_path)
-        index = embedding_df.index
-        embedding = embedding_df[["umap_1", "umap_2"]].values
-    else:
-        logger.info(f"computing UMAP for {len(fit_data)} cells, n_neighbors={N_NEIGHBORS}, min_dist={MIN_DIST}, excluding {exclude_markers}")
-        # No random_state here -- legacy's compute_umap()/run_umap() never
-        # passes one to UMAP() for the fit itself (only the later
-        # subsampling-for-plotting step is seeded). Matches legacy exactly;
-        # also lets UMAP run multi-threaded instead of the single-threaded
-        # path a fixed random_state forces.
-        reducer = umap.UMAP(n_neighbors=N_NEIGHBORS, min_dist=MIN_DIST, metric="euclidean")
-        reducer.fit(fit_data.values)
-        index = fit_data.index
-        embedding = reducer.embedding_
-        embedding_df = pd.DataFrame(embedding, index=index, columns=["umap_1", "umap_2"])
-        embedding_df.to_parquet(reducer_path)
-        logger.info(f"saved embedding to {reducer_path}")
 
     # %% label/main_group/pat_id panels
     for label in ["main_group", "label", "pat_id"]:
