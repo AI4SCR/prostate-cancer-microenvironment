@@ -7,20 +7,23 @@ raw k-means cluster IDs (`figure5_niche_clustering.py`'s output) to a
 human-readable niche name and a meta-niche grouping, via a manually-curated
 lookup table.
 
-BLOCKED: that lookup table, `niche_annotations_revised.xlsx`, is genuinely
-missing -- not just permission-denied like the rest of this figure's
-dependencies. Confirmed absent from every location checked (the live but
+That lookup table, `niche_annotations_revised.xlsx`, was genuinely missing
+for a long time -- absent from every location checked (the live but
 inaccessible `/users/mensmeng/...` path, the consolidated `LEGACY_DATA_DIR`
 copy, the pre-migration repo, and the shared `/work/.../prometex/data/PCa/`
-tree). See `missing_files.md`. This script will raise `FileNotFoundError`
-at the `pd.read_excel()` call below until that file is supplied.
+tree). RESOLVED 2026-07-31: supplied directly by the user and staged at
+`$LEGACY_DATA_DIR/PCA_NHOODs_clean/niche_annotations_revised.xlsx`. Verified
+against the precomputed reference this script's output was already staged
+under (`$LEGACY_DATA_DIR/5-niches/annotation/{niche_annotations_v2.csv,
+clusters_annotated_v2.parquet}`, presumably produced by whoever originally
+had access to the xlsx): zero mismatches across all 2,051,915 cells' `niche`
+and `meta_niche` assignments, and the CSV is byte-identical after sorting --
+confirms this is the correct file.
 
-Its OWN output, however, was already computed once (presumably by whoever
-had access to the xlsx) and is staged, precomputed, at
-`$LEGACY_DATA_DIR/5-niches/annotation/{niche_annotations_v2.csv,
-clusters_annotated_v2.parquet}` -- downstream figure scripts (heatmap,
-correlation, Figure 6/7) read that precomputed file directly rather than
-depending on this script completing.
+Downstream figure scripts (heatmap, correlation, Figure 6/7) still read the
+precomputed `LEGACY_DATA_DIR` copy directly rather than this script's own
+output, since that dependency predates this fix and there's no reason to
+churn it now that both are confirmed identical.
 """
 from pathlib import Path
 
