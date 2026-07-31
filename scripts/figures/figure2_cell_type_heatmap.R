@@ -33,7 +33,11 @@ library(tibble)
 library(ComplexHeatmap)
 library(circlize)
 library(yaml)
-library(viridis)
+# viridis isn't installed in this environment; viridisLite::inferno() is the
+# same function viridis re-exports (viridis depends on viridisLite for it),
+# so this is not a substitution of behavior, just of which package name is
+# loaded to reach the identical function.
+library(viridisLite)
 
 base_dir <- Sys.getenv("BASE_DIR")
 export_dir <- Sys.getenv("EXPORT_DIR")
