@@ -96,11 +96,11 @@ def main(export_dir: Path | None = None, legacy_dir: Path | None = None):
         cluster_celltypes=False,
         cluster_neighborhoods=True,
     )
-    p.savefig(save_dir / "figure5_niche_kmeans_raw_heatmap.png", dpi=300, bbox_inches="tight")
+    p.savefig(save_dir / f"{nhood}_heatmap.png", dpi=300, bbox_inches="tight")
 
     # %%
     df_clusters.set_index(["sample_id", "object_id"], inplace=True)
-    df_clusters.to_parquet(save_dir / "clusters.parquet")
+    df_clusters.to_parquet(save_dir / "clusters.parquet", engine="fastparquet")
     logger.info(f"saved clustering results to {save_dir}")
 
 
