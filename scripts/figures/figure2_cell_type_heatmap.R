@@ -2,15 +2,17 @@
 #
 # 1:1 port of the old repo's 000_paper/04_heatmaps/2-cell-types-heatmap.R
 # (see figure_script_mapping.md) -- specifically its `heatmap.agg()`
-# function, called as its "heatmap-cluster=true-agg=true" invocation
-# (aggregate_by='label', cluster_rows=TRUE, column_split=TRUE). That legacy
-# file actually defines FIVE different heatmap variants
-# (heatmap/heatmap.agg/group_heatmap/heatmap.caf, several call sites each);
-# heatmap.agg's aggregated, clustered, column-split-by-compartment output is
-# the one matching the paper's "34-cell-type heatmap" (one row per cell
-# type). Not yet independently confirmed against the published figure --
-# flagging this determination since the legacy script itself doesn't label
-# any single call site as "this is Figure 2a."
+# function, called as its "heatmap-cluster=true-agg=true-split-false"
+# invocation (aggregate_by='label', cluster_rows=TRUE, column_split=FALSE).
+# That legacy file actually defines FIVE different heatmap variants
+# (heatmap/heatmap.agg/group_heatmap/heatmap.caf, several call sites each),
+# including TWO heatmap.agg() calls differing only in column_split
+# ("heatmap-cluster=true-agg=true" with column_split=TRUE, and
+# "...-split-false" with column_split=FALSE). The published Figure 2a
+# heatmap is NOT column-split by compartment -- confirmed against the
+# actual figure -- so this uses the split-false call site. An earlier
+# version of this script used column_split=TRUE, an unconfirmed guess that
+# turned out wrong.
 #
 # Correction vs. an earlier, non-faithful version of this script: legacy
 # excludes the row where label == 'mix-vessels-PMN-MDSCs', NOT 'undefined'
@@ -147,7 +149,7 @@ heatmap.agg(
   index_names = index_names,
   cluster_rows = TRUE,
   aggregate_by = "label",
-  column_split = TRUE
+  column_split = FALSE
 )
 dev.off()
 cat("Saved Figure 2a heatmap to", save_path, "\n")
