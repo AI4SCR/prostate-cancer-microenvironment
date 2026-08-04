@@ -43,7 +43,7 @@ from matplotlib import pyplot as plt
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import Normalize, to_rgba
 
-from prostate_cancer.utils import get_colormap_dict, resolve_export_dir
+from prostate_cancer.utils import get_colormap_dict, resolve_export_dir, resolve_output_figures_dir
 
 NUM_SAMPLES_PER_PLOT = 100_000  # legacy's num_samples for sample_min_per_group_then_uniform
 
@@ -98,7 +98,7 @@ def plot_points(
 
 def main(export_dir: Path | None = None):
     export_dir = export_dir or resolve_export_dir()
-    save_dir = export_dir / "figures" / "figure2"
+    save_dir = resolve_output_figures_dir() / "figure2"
     save_dir.mkdir(parents=True, exist_ok=True)
 
     reducer_path = save_dir / "reducer_embedding.parquet"

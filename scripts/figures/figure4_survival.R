@@ -37,13 +37,15 @@ library(ggplot2)
 base_dir <- Sys.getenv("BASE_DIR")
 export_dir <- Sys.getenv("EXPORT_DIR")
 legacy_dir <- Sys.getenv("LEGACY_DATA_DIR")
+output_figures_dir <- Sys.getenv("OUTPUT_FIGURES_DIR")
 stopifnot("EXPORT_DIR is not set; copy .env.example to .env and fill it in" = nzchar(export_dir))
+stopifnot("OUTPUT_FIGURES_DIR is not set; copy .env.example to .env and fill it in" = nzchar(output_figures_dir))
 stopifnot("LEGACY_DATA_DIR is not set; copy .env.example to .env and fill it in" = nzchar(legacy_dir))
 stopifnot(
   "refusing to treat BASE_DIR as writable" = !startsWith(normalizePath(export_dir, mustWork = FALSE), normalizePath(base_dir, mustWork = FALSE))
 )
 
-save_dir <- file.path(export_dir, "figures", "figure4")
+save_dir <- file.path(output_figures_dir, "figure4")
 dir.create(save_dir, recursive = TRUE, showWarnings = FALSE)
 
 composition <- read_parquet(file.path(save_dir, "figure4a_patient_composition.parquet"))

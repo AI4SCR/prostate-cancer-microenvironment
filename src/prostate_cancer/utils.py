@@ -88,6 +88,22 @@ def resolve_export_dir() -> Path:
     return assert_outside_base_dir(Path(export_dir).expanduser())
 
 
+def resolve_output_figures_dir() -> Path:
+    """Load `.env` and return `OUTPUT_FIGURES_DIR` as a `Path`.
+
+    Where figure scripts write generated plots, separate from `EXPORT_DIR`
+    (which holds intermediate data tables/caches, not deliverables). See
+    REPRODUCIBILITY.md.
+    """
+    import os
+    from dotenv import load_dotenv
+
+    load_dotenv()
+    output_dir = os.environ.get("OUTPUT_FIGURES_DIR")
+    assert output_dir, "OUTPUT_FIGURES_DIR is not set; copy .env.example to .env and fill it in"
+    return Path(output_dir).expanduser()
+
+
 def resolve_legacy_dir() -> Path:
     """Load `.env` and return `LEGACY_DATA_DIR` as a `Path`.
 

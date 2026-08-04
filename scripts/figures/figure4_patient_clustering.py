@@ -45,7 +45,7 @@ from loguru import logger
 from scipy.cluster.hierarchy import fcluster, linkage
 from scipy.spatial.distance import pdist, squareform
 
-from prostate_cancer.utils import resolve_export_dir
+from prostate_cancer.utils import resolve_export_dir, resolve_output_figures_dir
 
 DISTANCE_THRESHOLD = 0.4  # height cut, per plot_stacked_frequencies.py
 
@@ -73,7 +73,7 @@ def get_label_frequency_table(data: pd.DataFrame, level: str, group_vars: list[s
 
 def main(export_dir: Path | None = None):
     export_dir = export_dir or resolve_export_dir()
-    save_dir = export_dir / "figures" / "figure4"
+    save_dir = resolve_output_figures_dir() / "figure4"
     save_dir.mkdir(parents=True, exist_ok=True)
 
     logger.info("loading exported tables")
