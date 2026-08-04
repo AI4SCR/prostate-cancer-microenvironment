@@ -3,6 +3,7 @@ data/*
 results/*
 figures/*
 !data/.gitkeep
+!data/assets.md
 !results/.gitkeep
 !figures/.gitkeep
 
