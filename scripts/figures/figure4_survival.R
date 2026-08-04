@@ -18,7 +18,7 @@
 # than accept that residual mismatch, this reads the real precomputed
 # partition directly. See REPRODUCIBILITY.md's Figure 4a/c note.
 #
-# Reads scripts/00-data-export/export_for_r.py's clinical.parquet,
+# Reads scripts/data/export.py's clinical.parquet,
 # figure4_patient_clustering.py's composition output (for 4d-e, unaffected
 # by the clustering question), and the precomputed cluster file above.
 # Writes to EXPORT_DIR/figures/figure4/.

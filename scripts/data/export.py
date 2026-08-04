@@ -143,8 +143,11 @@ def main(base_dir: Path | None = None, export_dir: Path | None = None):
 
     # R has no equivalent of `prostate_cancer.utils.NON_MARKER_CHANNELS` to
     # import, so hand it the same list as a plain-text sidecar (one per line)
-    # instead of letting each R figure script hardcode its own copy.
-    (export_dir / "non_marker_channels.txt").write_text("\n".join(NON_MARKER_CHANNELS) + "\n")
+    # instead of letting each R figure script hardcode its own copy. This is
+    # a fixed constant, not data derived from a dataset, so it's written to
+    # resources/ rather than EXPORT_DIR.
+    resources_dir = Path(__file__).resolve().parents[2] / "resources"
+    (resources_dir / "non_marker_channels.txt").write_text("\n".join(NON_MARKER_CHANNELS) + "\n")
 
     logger.info(f"Exported metadata/clinical/intensity/intensity_normalized to {export_dir}")
 

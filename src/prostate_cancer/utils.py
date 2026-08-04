@@ -16,14 +16,14 @@ from sklearn.preprocessing import MinMaxScaler, StandardScaler
 # due to non-specific staining after in-house conjugation). Everything else
 # in the panel is one of the 34 analysis markers.
 NON_MARKER_CHANNELS = ["dna1", "dna2", "icsk1", "icsk2", "icsk3", "fap"]
-# Non-marker columns carried alongside intensities by prepare_data()/export_for_r.py.
+# Non-marker columns carried alongside intensities by prepare_data()/export.py.
 INDEX_COLUMNS = ["sample_id", "object_id", "slide_code", "donor_block_id", "pat_id"]
 # Cell-type-label columns present in metadata.parquet (see ai4bmr_datasets.PCa.label_transfer()).
 LABEL_COLUMNS = ["label", "main_group", "label_id", "main_group_id", "meta_label", "meta_label_id"]
 
 
 def load_exported_cells(export_dir: Path, exclude_undefined: bool = False) -> pd.DataFrame:
-    """Load and merge the per-cell tables `export_for_r.py` writes to `EXPORT_DIR`.
+    """Load and merge the per-cell tables `export.py` writes to `EXPORT_DIR`.
 
     One row per cell, combining `metadata.parquet` (labels) and
     `intensity_normalized.parquet` (markers), used by every figure script
@@ -107,9 +107,10 @@ def resolve_output_figures_dir() -> Path:
 def resolve_legacy_dir() -> Path:
     """Load `.env` and return `LEGACY_DATA_DIR` as a `Path`.
 
-    Read-only, consolidated copy of pre-migration data with no reproducing
-    script in this repo (niche-neighborhood raw data, the PCA_NHOODs_clean
-    code some figure scripts import, colormaps.yaml). Never use this for
+    Consolidated, in-repo copy (`data/legacy/`) of pre-migration data with no
+    reproducing script in this repo (niche-neighborhood raw graph data, the
+    PCA_NHOODs_clean code some figure scripts import, precomputed niche
+    annotation/composition tables). Never use this for
     metadata/clinical/intensity(_normalized).parquet -- those come from
     `resolve_export_dir()` instead. See REPRODUCIBILITY.md and
     figure_script_mapping.md.
@@ -415,7 +416,7 @@ def normalize_row_annotations(row_annotations):
     return row_annotations_norm
 
 def normalize_img(img, censoring=0.999, cofactor=1, exclude_zeros=True):
-    """Normalizes an image using an arcsin/work/FAC/FBM/DBC/mrapsoma/prometex/data/omics-embed/datasetsh transformation and applies intensity censoring.
+    """Normalizes an image using an arcsinh transformation and applies intensity censoring.
 
     Args:
         img (np.ndarray): The input image array.
