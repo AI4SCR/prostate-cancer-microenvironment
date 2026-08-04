@@ -17,6 +17,12 @@
 # (legacy's own `# ggsave(...)` inside the quantile loop) are NOT this
 # panel and are left commented out, matching legacy.
 #
+# Disclosed fix: legacy's trailing diagnostic CSV (`df_histo`) selects
+# `clinical$sample_name`, a column this repo's clinical.parquet export
+# doesn't have (see open-questions.md) -- dropped from the select since
+# it's incidental to this panel (the two KM plots above are unaffected;
+# they're both saved before this block runs).
+#
 # Reads clusters_annotated_v2.parquet from LEGACY_DATA_DIR and
 # clinical.parquet from EXPORT_DIR. Writes to OUTPUT_FIGURES_DIR/figure6/.
 
@@ -209,8 +215,7 @@ ggsave(filename = file.path(save_dir, plot_name), plot = p2$plot, width = 8, hei
 df_histo <- clinical %>%
   select(
     tma_id,
-    inflammation,
-    sample_name
+    inflammation
   ) %>%
   rename(eva_annotation_infl = inflammation) %>%
   distinct() %>%
