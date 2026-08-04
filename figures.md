@@ -13,7 +13,7 @@ Which script produces each panel of each main-text figure. Blank "Script" = not 
 | 4 | a | Patient-level hierarchical clustering (P1-P6) | `scripts/figures/figure4_patient_clustering.py` | |
 | 4 | b | Mean metagroup distribution per patient cluster | `scripts/figures/figure4_metagroup_barplot.py` | yes |
 | 4 | c | KM survival by patient cluster | `scripts/figures/figure4c_patient_cluster_km.R` | |
-| 4 | d-e | Cox PH: disease progression / overall survival, per cell type | `scripts/figures/figure4de_cox_hazard_ratio.R` | |
+| 4 | d-e | Cox PH: disease progression / overall survival, per cell type | `scripts/figures/figure4de_cox_hazard_ratio.R` | yes |
 | 5 | a | Niche x cell-type z-score heatmap | `scripts/figures/figure5_niche_heatmap.R` (+ `figure5_niche_clustering.py`, `figure5_niche_annotation.py`) | |
 | 5 | b | Niche pairwise Spearman correlation | `scripts/figures/figure5_niche_correlation.R` | |
 | 5 | c | Representative cores + stacked barplots | not implemented | |
