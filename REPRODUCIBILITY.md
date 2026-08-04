@@ -27,7 +27,7 @@ or delete.
 
 R scripts load the same `.env` via `dotenv::load_dot_env()` and
 `Sys.getenv("BASE_DIR")` / `Sys.getenv("EXPORT_DIR")`. Required R packages:
-`dotenv`, `arrow`, `tidyverse`, `survival`, `ggsurvfit`, `gtsummary`,
+`dotenv`, `arrow`, `tidyverse`, `survival`, `survminer`, `gtsummary`,
 `compositions`, `coxme`, `ComplexHeatmap`. No `renv.lock` is maintained —
 package versions aren't pinned on the R side.
 
@@ -36,11 +36,29 @@ this cluster, `Rscript` isn't on `PATH` by default and needs the module
 system: `module load r-light/4.4.1` (matches the personal package library
 at `~/R/x86_64-pc-linux-gnu-library/4.4`, where `arrow`, `ComplexHeatmap`,
 `circlize`, `dplyr`, `tibble`, `dotenv`, `tidyverse`/`tidyr`, `survival`,
-`ggsurvfit`, `gtsummary`, `compositions`, `yaml` are confirmed installed).
+`survminer`, `gtsummary`, `compositions`, `yaml` are confirmed installed).
 Confirmed **not** installed there: `coxme`, `viridis`, `stringr` (standalone,
-though `tidyverse` pulls it in transitively), `survminer`, `entropy`,
-`ggpubr` — install into that library before running a script that needs one
-of these.
+though `tidyverse` pulls it in transitively), `entropy` — install into that
+library before running a script that needs one of these.
+
+**`survminer` install note**: its dependency chain (`ggpubr -> rstatix ->
+car -> pbkrtest -> doBy -> Deriv`) fails against this R 4.4.1 build if
+installed the normal way, because `Deriv`'s current CRAN release (4.3.0,
+published 2026-07-23) calls `R_ClosureFormals` in its C++ source -- a
+symbol absent from this R build's compiled `libR.so` entirely (confirmed
+with `nm -D`, not just a missing header). No minimum R version is declared
+for `Deriv` on CRAN despite this, so it looks like an upstream packaging
+bug (built/tested against R-devel, not any released R). Fixed by pinning
+the previous `Deriv` release instead, which has no C++ code at all:
+```r
+install.packages("https://cran.r-project.org/src/contrib/Archive/Deriv/Deriv_4.2.0.tar.gz", repos = NULL, type = "source")
+install.packages(c("doBy", "pbkrtest", "car", "rstatix", "ggpubr", "survminer"))
+```
+Once `survminer` is installed this way, every figure script in this repo
+uses it directly (no `ggsurvfit` substitution anywhere) -- an earlier
+version of several scripts substituted `ggsurvfit`/`survfit2` for
+`survminer::ggsurvplot()` while this was blocked; all reverted back to the
+literal legacy calls once this fix was found.
 
 `ai4bmr-datasets` is pinned in `pyproject.toml` to its `pca` git branch: the
 `PCa` dataset class this repo depends on currently only exists there, not on
