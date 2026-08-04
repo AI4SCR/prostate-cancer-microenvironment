@@ -18,6 +18,11 @@
 # than accept that residual mismatch, this reads the real precomputed
 # partition directly. See REPRODUCIBILITY.md's Figure 4a/c note.
 #
+# Excludes leaf_color_group == "black" (5 patients) before the KM fit --
+# confirmed against 000_paper/sync_paper/03_survival/patient_risk_group_km.R
+# (newly-pulled), which filters these out; "black" marks dendrogram leaves
+# above the color threshold, not a real cluster.
+#
 # Reads scripts/data/export.py's clinical.parquet,
 # figure4_patient_clustering.py's composition output (for 4d-e, unaffected
 # by the clustering question), and the precomputed cluster file above.
@@ -52,6 +57,7 @@ composition <- read_parquet(file.path(save_dir, "figure4a_patient_composition.pa
 patient_clusters <- read_parquet(file.path(
   legacy_dir, "5-niches", "barplot_data", "metadata_with_dendrogram_colors_label_pat_id.parquet"
 )) |>
+  filter(leaf_color_group != "black") |>
   transmute(pat_id, patient_cluster = leaf_color_group)
 clinical <- read_parquet(file.path(export_dir, "clinical.parquet"))
 
