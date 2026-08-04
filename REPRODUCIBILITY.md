@@ -72,7 +72,7 @@ Everything this repo generates goes to `$EXPORT_DIR` instead (outside
 
 ```
 $EXPORT_DIR/
-├── metadata.parquet, clinical.parquet, intensity_normalized.parquet   # export_for_r.py
+├── metadata.parquet, clinical.parquet, intensity_normalized.parquet   # export.py
 └── figures/figureN/*.png                                             # scripts/figures/figureN_*.py
 ```
 
@@ -110,7 +110,7 @@ before step 2 below.
    feature table (`02_processed/features/{intensity,spatial}/filtered-annotated/`
    and `02_processed/metadata/filtered-annotated/`) that every figure script
    consumes.
-7. `python scripts/00-data-export/export_for_r.py` — writes
+7. `python scripts/data/export.py` — writes
    `metadata.parquet`, `clinical.parquet`, `intensity.parquet`,
    `intensity_normalized.parquet` to `$EXPORT_DIR` for the R scripts (see
    below). This is a 1:1 port of the original publication's own export
@@ -175,7 +175,7 @@ patient clusters P1–P6 / niches 1–18.
   reconcile the gap. **Verified 2026-07-29** against the materialized dataset
   at `$BASE_DIR`: `02_processed/metadata/filtered-annotated/*.parquet` sums
   to exactly **2,191,967** cells across **534** sample files — matches the
-  paper exactly. `scripts/00-data-export/export_for_r.py` hard-asserts this
+  paper exactly. `scripts/data/export.py` hard-asserts this
   number against the final exported table.
 - **ROI / patient count — RESOLVED.** The paper reports 523 "high-quality"
   ROIs (Results) and, after further removing ROIs lacking clinical
@@ -206,7 +206,7 @@ patient clusters P1–P6 / niches 1–18.
   **Implication for every figure branch**: any ROI/core-level aggregation
   (cell counts per core, niche abundance per core, KM stratification by
   core) must group by `tma_id`, not `sample_id`, or interrupted-acquisition
-  duplicates will be double-counted. `export_for_r.py`'s exported
+  duplicates will be double-counted. `export.py`'s exported
   `clinical.parquet` is restricted to ROIs present in both `metadata` and
   `clinical` (534 rows, matching the original publication export script) —
   so it asserts **515** unique `tma_id` (the "534 rows, pre-tumor-filter"
@@ -224,7 +224,7 @@ patient clusters P1–P6 / niches 1–18.
   | Clinical annotated (restricted to sample_ids with labeled cells) | 195 | 534 | **515** | 476 | 39 | 19 |
   | Clinical tumor-only | 190 | 476 | **459** | 476 | 0 | 0 |
 
-  `export_for_r.py`'s exported `clinical.parquet` is exactly the "Clinical
+  `export.py`'s exported `clinical.parquet` is exactly the "Clinical
   annotated" row (534 rows / 515 ROIs / 195 patients) — hence
   `EXPECTED_ROI_COUNT = 515`, `EXPECTED_PATIENT_COUNT = 195`. The paper's
   headline 523/196 describes the row above it (unrestricted); 459/190 the
@@ -235,7 +235,7 @@ patient clusters P1–P6 / niches 1–18.
   losing 19 ROIs to interrupted-and-restarted acquisitions).
 - **Normalization: `prepare_data()` vs `normalize()` — RESOLVED, was a
   wrong-function port, not a data or formula discrepancy.**
-  `export_for_r.py` used to build `intensity_normalized.parquet` by calling
+  `export.py` used to build `intensity_normalized.parquet` by calling
   `prepare_data()`. That produced values differing from the legacy
   publication export on ~79% of cells (max abs diff 0.063 on a min-max-scaled
   [0,1] range) -- small, but real and systematic, not floating-point noise.
@@ -257,7 +257,7 @@ patient clusters P1–P6 / niches 1–18.
   `mask_version="cleaned"`→`"annotated"` question were red herrings; neither
   the formula nor these dataset parameters ever changed there).
 
-  **Fix**: `export_for_r.py` now ports `000_paper/0-export/data.py` itself
+  **Fix**: `export.py` now ports `000_paper/0-export/data.py` itself
   (paths only changed) and calls `utils.normalize(intensity,
   exclude_zeros=True)` directly, matching `mask_version='annotated'`,
   `load_intensity=True`, `align=False`, and the `sample_ids = set(metadata...)

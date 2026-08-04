@@ -14,7 +14,7 @@ Differences from the legacy script, all disclosed:
 - Loads `intensity_normalized.parquet` from `$EXPORT_DIR` directly, instead
   of loading raw intensities via a live `ai4bmr_datasets.PCa()` call and
   then calling `normalize(data, exclude_zeros=True)`. This repo's
-  `intensity_normalized.parquet` (via `export_for_r.py`) IS
+  `intensity_normalized.parquet` (via `export.py`) IS
   `normalize(raw_intensity, exclude_zeros=True)` -- confirmed byte-identical
   to the legacy export (see REPRODUCIBILITY.md) -- so this is the same
   values, not a different computation, just reading a cache of it that

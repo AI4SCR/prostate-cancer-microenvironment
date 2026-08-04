@@ -14,7 +14,7 @@
 # it even has a commented-out `filter3 = grepl('stromal-', meta$label)`
 # alternative it chose not to use).
 #
-# Reads the tables scripts/00-data-export/export_for_r.py produces in
+# Reads the tables scripts/data/export.py produces in
 # EXPORT_DIR (never BASE_DIR -- see REPRODUCIBILITY.md), plus
 # resources/colormaps.yaml (ported from a personal-machine path). Writes to
 # EXPORT_DIR/figures/figure3/.
@@ -43,7 +43,7 @@ dir.create(save_dir, recursive = TRUE, showWarnings = FALSE)
 
 data_path <- file.path(export_dir, "intensity_normalized.parquet")
 metadata_path <- file.path(export_dir, "metadata.parquet")
-colormap_path <- file.path(dirname(dirname(export_dir)), "resources", "colormaps.yaml")
+colormap_path <- file.path(dirname(export_dir), "resources", "colormaps.yaml")
 index_names <- c("sample_id", "object_id")
 exclude_channels <- c("fap", "dna1", "dna2", "icsk1", "icsk2", "icsk3")
 

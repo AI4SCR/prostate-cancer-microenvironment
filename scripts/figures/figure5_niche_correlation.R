@@ -5,7 +5,7 @@
 # changed; see figure_script_mapping.md). Niche composition/annotation
 # tables have no reproducing script in this repo, so they come from
 # LEGACY_DATA_DIR; clinical.parquet comes from EXPORT_DIR (this repo's own
-# export_for_r.py, confirmed byte-identical to the legacy export).
+# export.py, confirmed byte-identical to the legacy export).
 #
 # Writes to $EXPORT_DIR/figures/figure5/.
 

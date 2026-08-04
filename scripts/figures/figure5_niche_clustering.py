@@ -7,10 +7,12 @@ neighborhood-composition vector (radius=32 cell-cell neighborhood graph,
 frequency-normalized) into 24 k-means niches, then drops niches with too few
 cells/patients to be meaningful.
 
-Inputs are the pre-computed neighborhood-graph data under
-`$LEGACY_DATA_DIR/../PCa_NHood/` on shared storage (not reproduced by any
+Inputs are the pre-computed neighborhood-graph data, staged at
+`$LEGACY_DATA_DIR/PCa_NHood/CellCellNeighborhoods/` (not reproduced by any
 script in this repo -- computing the neighborhood graph itself is a
-separate, undocumented upstream step) and the `utils.clustering`/
+separate, undocumented upstream step; copied in-repo for self-containment,
+originally read live off shared storage at
+`/work/.../prometex/data/PCa_NHood/...`), and the `utils.clustering`/
 `utils.visualization` code staged at `$LEGACY_DATA_DIR/PCA_NHOODs_clean/`
 (the original import path, `/users/mensmeng/workspace/...`, is not
 accessible to this account -- see missing_files.md).
@@ -34,14 +36,11 @@ NEIGHBOR_COUNT_THRESHOLD = 2  # drop cells with <= this many neighbors
 MIN_CELLS_PER_NICHE = 15
 MIN_PATIENTS_PER_NICHE = 5
 
-# Not staged under LEGACY_DATA_DIR (6.6G) -- already directly readable on
-# shared storage (group prometex_101454-pr-g), so referenced in place.
-COUNT_BASE_DIR = Path("/work/FAC/FBM/DBC/mrapsoma/prometex/data/PCa_NHood/final_analysis/evaluation/count/CellCellNeighborhoods")
-
 
 def main(export_dir: Path | None = None, legacy_dir: Path | None = None):
     export_dir = export_dir or resolve_export_dir()
     legacy_dir = legacy_dir or resolve_legacy_dir()
+    count_base_dir = legacy_dir / "PCa_NHood" / "CellCellNeighborhoods"
     save_dir = resolve_output_figures_dir() / "figure5"
     save_dir.mkdir(parents=True, exist_ok=True)
 
@@ -50,9 +49,9 @@ def main(export_dir: Path | None = None, legacy_dir: Path | None = None):
     from utils.visualization import calculate_freqs, calculate_zscore, create_plot, transform_for_heatmap
 
     # %% load the neighborhood-composition graph
-    data_path = COUNT_BASE_DIR / f"graph_type=radius-radius={GRAPH_RADIUS}" / "data.parquet"
-    cell_metadata = pd.read_parquet(COUNT_BASE_DIR / "cell_metadata.parquet", engine="fastparquet")
-    metadata = pd.read_parquet(COUNT_BASE_DIR / "metadata.parquet", engine="fastparquet")
+    data_path = count_base_dir / f"graph_type=radius-radius={GRAPH_RADIUS}" / "data.parquet"
+    cell_metadata = pd.read_parquet(count_base_dir / "cell_metadata.parquet", engine="fastparquet")
+    metadata = pd.read_parquet(count_base_dir / "metadata.parquet", engine="fastparquet")
 
     data = pd.read_parquet(data_path, engine="fastparquet")
     data_filt = data[data.sum(axis=1) > NEIGHBOR_COUNT_THRESHOLD]
