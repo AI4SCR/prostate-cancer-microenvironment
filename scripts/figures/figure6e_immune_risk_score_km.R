@@ -1,0 +1,222 @@
+# Reproduce Figure 6e: Kaplan-Meier survival by immune niche-derived risk
+# score (0-3 immune-associated niches at high abundance).
+#
+# 1:1 port of 000_paper/11_niches/113_survival/inflammation_outcome.R.
+# `cols_inflamed` are niches 18/17/16 (`TLS`, `Macrophages_Tcells_CAF1(CD105-)`,
+# `immune_bloodvessels_CAF1(CD105-)`, per the fixed niche_order list used
+# throughout the legacy niche-visualization scripts -- see
+# figureS4b_niche_mean_composition.py's NICHE_ORDER), 75th-percentile
+# per-niche threshold, patient-level max-aggregation of the resulting 0-3
+# risk_group -- matches the paper's "four risk groups based on high
+# abundance... of 0, 1, 2 or all 3 immune-associated niches 16-18" exactly.
+#
+# Disclosed fix: both KM ggsave() calls are commented out in legacy
+# (computed-but-never-saved, confirmed by direct read) -- enabled here,
+# same precedent as figure6_niche_abundance_heatmap.R's already-enabled
+# commented-out pdf()/dev.off(). The per-niche histogram diagnostic plots
+# (legacy's own `# ggsave(...)` inside the quantile loop) are NOT this
+# panel and are left commented out, matching legacy.
+#
+# Reads clusters_annotated_v2.parquet from LEGACY_DATA_DIR and
+# clinical.parquet from EXPORT_DIR. Writes to OUTPUT_FIGURES_DIR/figure6/.
+
+library(dotenv)
+load_dot_env()
+
+library(arrow)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(survival)
+library(survminer)
+
+export_dir <- Sys.getenv("EXPORT_DIR")
+legacy_dir <- Sys.getenv("LEGACY_DATA_DIR")
+output_figures_dir <- Sys.getenv("OUTPUT_FIGURES_DIR")
+stopifnot("EXPORT_DIR is not set; copy .env.example to .env and fill it in" = nzchar(export_dir))
+stopifnot("OUTPUT_FIGURES_DIR is not set; copy .env.example to .env and fill it in" = nzchar(output_figures_dir))
+stopifnot("LEGACY_DATA_DIR is not set; copy .env.example to .env and fill it in" = nzchar(legacy_dir))
+
+save_dir <- file.path(output_figures_dir, "figure6")
+dir.create(save_dir, recursive = TRUE, showWarnings = FALSE)
+
+df_clusters <- read_parquet(file.path(legacy_dir, "5-niches", "annotation", "clusters_annotated_v2.parquet"))
+df_clusters[["sample_name"]] <- df_clusters[["tma_id"]]
+
+compute_label_frequency <- function(data, level, pseudocount = 1) {
+  level_sym <- rlang::sym(level)
+
+  data_summary <- data %>%
+    dplyr::group_by(sample_name, !!level_sym) %>%
+    dplyr::summarise(count = dplyr::n() + pseudocount, .groups = "drop") %>%
+    tidyr::complete(
+      sample_name,
+      !!level_sym,
+      fill = list(count = 0)
+    )
+
+  df_freqs <- data_summary %>%
+    dplyr::group_by(sample_name) %>%
+    dplyr::mutate(
+      proportion = (count) / (sum(count))
+    ) %>%
+    dplyr::ungroup()
+
+  return(df_freqs)
+}
+
+######### per niche ###########
+df_freqs <- compute_label_frequency(df_clusters, level = "niche", pseudocount = 0)
+
+## rename sample_name to tma_id, select niche, proportion and make to wide format
+df_wide <- df_freqs %>%
+  select(tma_id = sample_name, niche, proportion) %>%
+  pivot_wider(names_from = niche, values_from = proportion, values_fill = 0)
+
+df_props <- df_wide
+
+## plot histogram for selected columns of df_props
+cols_inflamed <- c("TLS", "Macrophages_Tcells_CAF1(CD105-)", "immune_bloodvessels_CAF1(CD105-)")
+qs <- c(0.25, 0.5, 0.6, 0.75, 0.8)
+
+quantiles <- list()
+
+for (col in cols_inflamed) {
+  x <- df_props[[col]]
+  x_nz <- x[x > 0]
+
+  q_vals <- quantile(x_nz, probs = qs, na.rm = TRUE)
+  print(paste("Quantiles for", col, ":"))
+  print(q_vals)
+  quantiles[[col]] <- q_vals
+
+  p <- ggplot(df_props, aes(x = .data[[col]])) +
+    geom_histogram(
+      binwidth = 0.01,
+      fill = "blue",
+      color = "black",
+      alpha = 0.7
+    ) +
+    geom_vline(
+      xintercept = q_vals,
+      linetype = "dashed",
+      linewidth = 1,
+      color = "red"
+    ) +
+    labs(
+      title = paste("Histogram of", col),
+      x = col,
+      y = "Frequency"
+    ) +
+    theme_minimal()
+  print(p)
+
+  # ggsave(...)
+}
+
+threshold <- "75%"
+thr <- sapply(cols_inflamed, function(col) quantiles[[col]][[threshold]])
+names(thr) <- cols_inflamed
+
+df_inflammation <- df_props %>%
+  select(tma_id, all_of(cols_inflamed)) %>%
+  mutate(
+    n_inflamed = rowSums(
+      sweep(across(all_of(cols_inflamed)), 2, thr, `>`),
+      na.rm = TRUE
+    ),
+    inflammation = ifelse(n_inflamed > 1, 1, 0)
+  ) %>%
+  select(tma_id, n_inflamed, inflammation)
+
+# join with clinical to get patient id
+
+clinical <- read_parquet(file.path(export_dir, "clinical.parquet"))
+num.patients <- clinical$pat_id |> n_distinct()
+
+tma_ids.valid <- intersect(df_props$tma_id, clinical$tma_id)
+
+clinical$os_status <- ifelse(clinical$os_status == "dead", 1, 0)
+
+progression <- clinical %>%
+  select(
+    pat_id,
+    disease_progr,
+    disease_progr_time,
+  ) %>%
+  distinct()
+
+death <- clinical %>%
+  select(
+    pat_id,
+    os_status,
+    last_fu
+  ) %>%
+  distinct()
+
+df_patient <- clinical %>%
+  select(
+    pat_id,
+    tma_id
+  ) %>%
+  distinct() %>%
+  inner_join(df_inflammation, by = "tma_id") %>%
+  select(pat_id, risk_group = n_inflamed)
+
+df_patient <- df_patient %>%
+  group_by(pat_id) %>%
+  summarise(
+    risk_group = max(risk_group),
+    .groups = "drop"
+  )
+
+df_analysis <- df_patient %>%
+  inner_join(progression, by = "pat_id") %>%
+  inner_join(death, by = "pat_id")
+
+fit <- survfit(Surv(last_fu, os_status) ~ risk_group, data = df_analysis)
+p1 <- ggsurvplot(
+  fit,
+  data = df_analysis,
+  risk.table = TRUE,
+  pval = TRUE,
+  conf.int = FALSE,
+  palette = "Set2",
+  xlab = "Time",
+  ylab = "Survival probability using 75% quantile",
+  legend.title = "Group",
+  risk.table.height = 0.25
+)
+plot_name <- paste0("kaplan_meier_inflammation_os_", "risk_group_bin.pdf")
+ggsave(filename = file.path(save_dir, plot_name), plot = p1$plot, width = 8, height = 6, dpi = 300)
+
+fit_prog <- survfit(Surv(disease_progr_time, disease_progr) ~ risk_group, data = df_analysis)
+p2 <- ggsurvplot(
+  fit_prog,
+  data = df_analysis,
+  risk.table = TRUE,
+  pval = TRUE,
+  conf.int = FALSE,
+  palette = "Set2",
+  xlab = "Time",
+  ylab = "Progression-free probability",
+  legend.title = "Group",
+  risk.table.height = 0.25
+)
+plot_name <- paste0("kaplan_meier_inflammation_progression_", "risk_group_bin.pdf")
+ggsave(filename = file.path(save_dir, plot_name), plot = p2$plot, width = 8, height = 6, dpi = 300)
+
+df_histo <- clinical %>%
+  select(
+    tma_id,
+    inflammation,
+    sample_name
+  ) %>%
+  rename(eva_annotation_infl = inflammation) %>%
+  distinct() %>%
+  inner_join(df_inflammation, by = "tma_id")
+
+## save as csv
+write.csv(df_histo, file.path(save_dir, "figure6e_histo_inflammation_annotation.csv"), row.names = FALSE)
+
+cat("Saved Figure 6e panels to", save_dir, "\n")
