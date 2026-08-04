@@ -23,7 +23,11 @@
 # elsewhere in this repo; survminer fails to compile in this environment,
 # see REPRODUCIBILITY.md): ggsurvfit() + scale_color_manual() for the custom
 # palette, add_risktable() for the risk table, no add_confidence_interval()
-# call (matching conf.int = FALSE).
+# call (matching conf.int = FALSE). ggsurvplot() shows censoring tick marks
+# by default (censor=TRUE); ggsurvfit() does not unless explicitly added --
+# add_censor_mark() included here to match (an earlier version of this
+# script omitted it, missing the small event/censoring markers visible on
+# the published curves).
 #
 # Reads scripts/data/export.py's clinical.parquet and LEGACY_DATA_DIR's
 # precomputed metadata_with_dendrogram_colors_label_pat_id.parquet (already
@@ -84,6 +88,7 @@ df$cluster_group <- factor(df$leaf_color_group, levels = names(custom_palette))
 fit_prog <- survfit2(Surv(disease_progr_time, disease_progr) ~ cluster_group, data = df)
 p_prog <- fit_prog |>
   ggsurvfit() +
+  add_censor_mark() +
   scale_color_manual(values = custom_palette) +
   scale_fill_manual(values = custom_palette) +
   labs(title = "Figure 4c -- progression-free survival by patient cluster", x = "Time", y = "Progression-free survival probability") +
@@ -95,6 +100,7 @@ df$overall_survival <- ifelse(df$os_status == "alive", 0, 1)
 fit_survival <- survfit2(Surv(last_fu, overall_survival) ~ cluster_group, data = df)
 p_survival <- fit_survival |>
   ggsurvfit() +
+  add_censor_mark() +
   scale_color_manual(values = custom_palette) +
   scale_fill_manual(values = custom_palette) +
   labs(title = "Figure 4c -- overall survival by patient cluster", x = "Time", y = "Survival probability") +
