@@ -93,7 +93,15 @@ def main(export_dir: Path | None = None, legacy_dir: Path | None = None):
         color=[colordict_meta[c] for c in df_freqs_meta_wide.columns],
         ax=ax,
     )
-    ax.set_xticklabels(df_freqs_meta_wide.index, rotation=0)
+    # "C1".."C6" -> "P1".."P6" for the displayed labels only: the published
+    # figure labels clusters "P1"-"P6", not the precomputed file's own
+    # "leaf_color_group" values. Underlying grouping/color-key values are
+    # left as "C1".."C6" (matplotlib's own C0-C9 cycle convention, which the
+    # cluster_colors dict above is keyed by) -- only the tick text changes.
+    # No script in the legacy repo performs this relabeling; applied here to
+    # match the published figure (same fix as figure4c_patient_cluster_km.R).
+    display_labels = [g.replace("C", "P", 1) for g in df_freqs_meta_wide.index]
+    ax.set_xticklabels(display_labels, rotation=0)
     ax.set_xlabel("Cluster")
     ax.set_ylabel("Average Proportion")
     ax.set_title("Figure 4b -- average cell type proportions by cluster")

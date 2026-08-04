@@ -11,20 +11,23 @@
 # script twice, flipping event.name, to get both 4d and 4e. Wrapped in a
 # loop over both events here instead of duplicating the body (a disclosed,
 # permitted deviation -- the per-event computation itself is untouched).
-# Hardcoded to score_type='proportion_pat_tumor', aggregation='',
-# tumors_only=FALSE (legacy's own naming for "patient-level, tumor-ROIs-
-# only, no further pooling"), matching this repo's already-established data
-# pathway (see below).
+#
+# Both panels use score_type='proportion_tma', aggregation='max',
+# tumors_only=TRUE (per direct confirmation): per-core (tma_id) cell-type
+# composition restricted to is_tumor=="yes" cores, max-pooled per patient
+# across their cores.
 #
 # Legacy loads `scores-v2.parquet` (a wide per-ROI/TMA score table with a
-# `score_type` column, requiring pivot + pat_id pooling by max/mean) --
-# that export script (000_paper/0-export/scores.py) is not reproduced in
-# this repo. Reads figure4_patient_clustering.py's own
-# figure4a_patient_composition.parquet instead: already patient-level,
-# already restricted to is_tumor=="yes" ROIs, i.e. already exactly what
-# legacy's pivot+pooling step would produce for score_type=
-# 'proportion_pat_tumor'. This substitution was already disclosed and
-# audited (PASS) before this file existed as a separate script.
+# `score_type` column) and pivots/pools it in R. That export script
+# (000_paper/0-export/scores.py) is not reproduced in this repo, so the
+# per-tma_id composition is computed directly here from this repo's own
+# metadata.parquet/clinical.parquet instead, using the same pseudocount=1
+# frequency-table algorithm already established and audited elsewhere in
+# this repo (figure4_patient_clustering.py's compute_label_frequency, there
+# grouped by pat_id; here grouped by tma_id, per legacy's score_type=
+# 'proportion_tma'), then max-pooled per patient in R exactly as legacy's
+# `aggregation == 'max'` branch does
+# (`group_by(pat_id, score_name) |> summarise(score = max(score))`).
 #
 # Two disclosed omissions of genuinely dead code in the legacy source
 # (verified unused downstream, not simplifications of live logic): the
@@ -50,6 +53,7 @@ load_dot_env()
 
 library(arrow)
 library(dplyr)
+library(tidyr)
 library(purrr)
 library(survival)
 library(compositions)
@@ -69,18 +73,49 @@ stopifnot(
 save_dir <- file.path(output_figures_dir, "figure4")
 dir.create(save_dir, recursive = TRUE, showWarnings = FALSE)
 
-score_type <- "proportion_pat_tumor"
-aggregation <- ""
-tumors_only <- FALSE
+score_type <- "proportion_tma"
+aggregation <- "max"
+tumors_only <- TRUE
 
-composition <- read_parquet(file.path(save_dir, "figure4a_patient_composition.parquet"))
-score_names <- setdiff(colnames(composition), "pat_id")
-
-clinical <- read_parquet(file.path(export_dir, "clinical.parquet"))
-num.patients <- clinical$pat_id |> n_distinct()
+clinical_full <- read_parquet(file.path(export_dir, "clinical.parquet"))
+num.patients <- clinical_full$pat_id |> n_distinct()
 
 clinical.names <- c("sample_id", "pat_id", "tma_id", "last_fu", "os_status", "disease_progr", "disease_progr_time")
-clinical <- clinical |> select(any_of(clinical.names))
+clinical <- clinical_full |> select(any_of(clinical.names))
+
+# %% per-tma_id cell-type composition, restricted to tumor cores (tumors_only=TRUE),
+# then max-pooled per patient (aggregation='max') -- see docstring
+metadata <- read_parquet(file.path(export_dir, "metadata.parquet"))
+sample_tma <- clinical_full |>
+  select(sample_id, tma_id, pat_id, is_tumor) |>
+  distinct()
+
+cells <- metadata |>
+  select(sample_id, object_id, label) |>
+  inner_join(sample_tma, by = "sample_id") |>
+  filter(!is.na(is_tumor), is_tumor == "yes")
+
+# pseudocount=1 frequency table per tma_id (matches figure4_patient_clustering.py's
+# compute_label_frequency, there grouped by pat_id, here by tma_id)
+freq <- cells |>
+  count(tma_id, label, name = "n") |>
+  complete(tma_id, label, fill = list(n = 0)) |>
+  mutate(n = n + 1) |>
+  group_by(tma_id) |>
+  mutate(prop = n / sum(n)) |>
+  ungroup()
+
+tma_pat <- sample_tma |> select(tma_id, pat_id) |> distinct()
+
+# max-pool per patient across their tma_ids (aggregation == 'max')
+composition <- freq |>
+  select(tma_id, label, prop) |>
+  left_join(tma_pat, by = "tma_id") |>
+  group_by(pat_id, label) |>
+  summarise(score = max(prop), .groups = "drop") |>
+  pivot_wider(names_from = label, values_from = score)
+
+score_names <- setdiff(colnames(composition), "pat_id")
 
 # CLR transform of proportions (matches legacy's `data[, 2:ncol(data)] = clr(data[, 2:ncol(data)])`)
 data <- composition

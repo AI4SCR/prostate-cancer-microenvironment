@@ -27,7 +27,15 @@
 # by default (censor=TRUE); ggsurvfit() does not unless explicitly added --
 # add_censor_mark() included here to match (an earlier version of this
 # script omitted it, missing the small event/censoring markers visible on
-# the published curves).
+# the published curves). Legacy's `pval = TRUE, pval.method = TRUE` also
+# has no direct ggsurvfit equivalent auto-added -- add_pvalue() included
+# here to match (also missing from an earlier version).
+#
+# Cluster labels: the precomputed file's `leaf_color_group` values are
+# "C1".."C6"; the published figure labels them "P1".."P6" instead (per
+# direct visual confirmation). No script anywhere in the legacy repo
+# performs this C->P relabeling -- it isn't derivable from code, only
+# applied here to match the published figure.
 #
 # Reads scripts/data/export.py's clinical.parquet and LEGACY_DATA_DIR's
 # precomputed metadata_with_dendrogram_colors_label_pat_id.parquet (already
@@ -63,6 +71,7 @@ df_patient <- read_parquet(file.path(
 ))
 
 df <- df_patient |> filter(leaf_color_group != "black")
+df$leaf_color_group <- sub("^C", "P", df$leaf_color_group) # "C1".."C6" -> "P1".."P6", see docstring
 
 df_colors <- df |>
   select(leaf_color_group, leaf_color) |>
@@ -89,6 +98,7 @@ fit_prog <- survfit2(Surv(disease_progr_time, disease_progr) ~ cluster_group, da
 p_prog <- fit_prog |>
   ggsurvfit() +
   add_censor_mark() +
+  add_pvalue() +
   scale_color_manual(values = custom_palette) +
   scale_fill_manual(values = custom_palette) +
   labs(title = "Figure 4c -- progression-free survival by patient cluster", x = "Time", y = "Progression-free survival probability") +
@@ -101,6 +111,7 @@ fit_survival <- survfit2(Surv(last_fu, overall_survival) ~ cluster_group, data =
 p_survival <- fit_survival |>
   ggsurvfit() +
   add_censor_mark() +
+  add_pvalue() +
   scale_color_manual(values = custom_palette) +
   scale_fill_manual(values = custom_palette) +
   labs(title = "Figure 4c -- overall survival by patient cluster", x = "Time", y = "Survival probability") +
