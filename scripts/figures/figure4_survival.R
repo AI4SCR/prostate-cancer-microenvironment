@@ -3,8 +3,18 @@
 # 4c: Kaplan-Meier overall survival stratified by patient cluster, two-sided
 #     log-rank test.
 # 4d-e: univariate Cox PH regression per cell type (CLR-transformed
-#     max-pooled patient-level proportions) for overall survival and disease
-#     progression, BH-adjusted p-values, plotted as a hazard-ratio forest plot.
+#     max-pooled patient-level proportions), BH-adjusted p-values, plotted as
+#     a hazard-ratio forest plot. 4d = disease progression, 4e = overall
+#     survival (confirmed against the actual published panels -- an earlier
+#     version of this script had these two swapped).
+#
+# Forest plot styling ported from 000_paper/03_survival/survival-proportions.r:
+# rows ordered by ascending p-value (NOT reversed -- ggplot's discrete y-axis
+# puts the first factor level at the bottom, so the most significant hit
+# lands at the bottom of the plot, matching the published figure), points
+# colored red (FDR-significant) / gray (not), matching the published style
+# (an earlier version used ggplot's default two-color discrete scale and had
+# rows reversed).
 #
 # Figure 4c's cluster labels come from LEGACY_DATA_DIR's precomputed
 # metadata_with_dendrogram_colors_label_pat_id.parquet, NOT from
@@ -116,19 +126,19 @@ run_cox_panel <- function(event_col, time_col, label) {
   write_csv(results, file.path(save_dir, sprintf("figure4_cox_%s.csv", label)), row.names = FALSE)
 
   p <- results |>
-    mutate(cell_type = factor(cell_type, levels = rev(cell_type))) |>
-    ggplot(aes(x = hr, y = cell_type, color = p_adj < 0.05)) +
+    mutate(cell_type = factor(cell_type, levels = cell_type), signf = p_adj < 0.05) |>
+    ggplot(aes(x = hr, y = cell_type, color = signf)) +
     geom_point() +
     geom_errorbarh(aes(xmin = hr_lower, xmax = hr_upper), height = 0.3) +
     geom_vline(xintercept = 1, linetype = "dashed") +
     scale_x_log10() +
-    labs(title = sprintf("Figure 4%s -- Cox PH hazard ratios (%s)", label, event_col), x = "Hazard ratio (log scale)", y = NULL) +
-    theme(legend.position = "bottom")
+    scale_color_manual(values = c("TRUE" = "red", "FALSE" = "gray"), guide = "none") +
+    labs(title = sprintf("Figure 4%s -- Cox PH hazard ratios (%s)", label, event_col), x = "Hazard ratio (log scale)", y = NULL)
   ggsave(file.path(save_dir, sprintf("figure4_cox_%s.png", label)), p, width = 8, height = 10, dpi = 200)
   results
 }
 
-os_results <- run_cox_panel("os_status", "last_fu", "d")
-progression_results <- run_cox_panel("disease_progr", "disease_progr_time", "e")
+os_results <- run_cox_panel("os_status", "last_fu", "e")
+progression_results <- run_cox_panel("disease_progr", "disease_progr_time", "d")
 
 cat("Saved figure 4c-e panels to", save_dir, "\n")
