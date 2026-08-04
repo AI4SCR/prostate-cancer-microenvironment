@@ -25,7 +25,7 @@ import pandas as pd
 from jsonargparse import CLI
 from loguru import logger
 
-from prostate_cancer.utils import resolve_export_dir, resolve_legacy_dir
+from prostate_cancer.utils import resolve_export_dir, resolve_legacy_dir, resolve_output_figures_dir
 
 K = 24
 SEED = 686
@@ -42,7 +42,7 @@ COUNT_BASE_DIR = Path("/work/FAC/FBM/DBC/mrapsoma/prometex/data/PCa_NHood/final_
 def main(export_dir: Path | None = None, legacy_dir: Path | None = None):
     export_dir = export_dir or resolve_export_dir()
     legacy_dir = legacy_dir or resolve_legacy_dir()
-    save_dir = export_dir / "figures" / "figure5"
+    save_dir = resolve_output_figures_dir() / "figure5"
     save_dir.mkdir(parents=True, exist_ok=True)
 
     sys.path.append(str(legacy_dir / "PCA_NHOODs_clean" / "robustness"))

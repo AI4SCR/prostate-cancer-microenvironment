@@ -16,7 +16,7 @@ import pandas as pd
 from jsonargparse import CLI
 from loguru import logger
 
-from prostate_cancer.utils import NON_MARKER_CHANNELS, resolve_export_dir
+from prostate_cancer.utils import NON_MARKER_CHANNELS, resolve_export_dir, resolve_output_figures_dir
 
 N_NEIGHBORS = 50
 MIN_DIST = 0.1
@@ -26,7 +26,7 @@ def main(export_dir: Path | None = None):
     import umap
 
     export_dir = export_dir or resolve_export_dir()
-    save_dir = export_dir / "figures" / "figure2"
+    save_dir = resolve_output_figures_dir() / "figure2"
     save_dir.mkdir(parents=True, exist_ok=True)
     reducer_path = save_dir / "reducer_embedding.parquet"
 

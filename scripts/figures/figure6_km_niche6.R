@@ -35,10 +35,12 @@ library(rlang)
 
 export_dir <- Sys.getenv("EXPORT_DIR")
 legacy_dir <- Sys.getenv("LEGACY_DATA_DIR")
+output_figures_dir <- Sys.getenv("OUTPUT_FIGURES_DIR")
 stopifnot("EXPORT_DIR is not set; copy .env.example to .env and fill it in" = nzchar(export_dir))
+stopifnot("OUTPUT_FIGURES_DIR is not set; copy .env.example to .env and fill it in" = nzchar(output_figures_dir))
 stopifnot("LEGACY_DATA_DIR is not set; copy .env.example to .env and fill it in" = nzchar(legacy_dir))
 
-save_dir <- file.path(export_dir, "figures", "figure6", "niche_km")
+save_dir <- file.path(output_figures_dir, "figure6", "niche_km")
 dir.create(save_dir, recursive = TRUE, showWarnings = FALSE)
 
 clinical <- read_parquet(file.path(export_dir, "clinical.parquet"))

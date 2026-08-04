@@ -46,7 +46,7 @@ from matplotlib import pyplot as plt
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import Normalize, to_rgba
 
-from prostate_cancer.utils import NON_MARKER_CHANNELS, get_colormap_dict, normalize, resolve_export_dir
+from prostate_cancer.utils import NON_MARKER_CHANNELS, get_colormap_dict, normalize, resolve_export_dir, resolve_output_figures_dir
 
 ALL_MARKERS = [
     "smooth_muscle_actin", "prostate_specific_antigen", "vimentin", "collagen1", "synaptophysin", "keratin5",
@@ -107,7 +107,7 @@ def plot_points(
 
 def main(export_dir: Path | None = None):
     export_dir = export_dir or resolve_export_dir()
-    save_dir = export_dir / "figures" / "figure3"
+    save_dir = resolve_output_figures_dir() / "figure3"
     save_dir.mkdir(parents=True, exist_ok=True)
 
     logger.info("loading exported tables")
