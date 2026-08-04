@@ -11,8 +11,8 @@ Which script produces each panel of each main-text figure. Blank "Script" = not 
 | 3 | b | CAF subcluster marker-expression heatmap | `scripts/figures/figure3_caf_heatmap.R` | |
 | 3 | c-e | Representative CAF/fibrocyte ROIs | not implemented | |
 | 4 | a | Patient-level hierarchical clustering (P1-P6) | `scripts/figures/figure4_patient_clustering.py` | |
-| 4 | b | Mean metagroup distribution per patient cluster | `scripts/figures/figure4_metagroup_barplot.py` | |
-| 4 | c | KM survival by patient cluster | `scripts/figures/figure4_survival.R` | |
+| 4 | b | Mean metagroup distribution per patient cluster | `scripts/figures/figure4_metagroup_barplot.py` | yes |
+| 4 | c | KM survival by patient cluster | `scripts/figures/figure4_survival.R` | no -- KM curve colors wrong |
 | 4 | d-e | Cox PH: overall survival / progression, per cell type | `scripts/figures/figure4_survival.R` | |
 | 5 | a | Niche x cell-type z-score heatmap | `scripts/figures/figure5_niche_heatmap.R` (+ `figure5_niche_clustering.py`, `figure5_niche_annotation.py`) | |
 | 5 | b | Niche pairwise Spearman correlation | `scripts/figures/figure5_niche_correlation.R` | |
