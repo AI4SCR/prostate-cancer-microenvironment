@@ -1,25 +1,55 @@
+os_status:
+  alive: "#1f91b4"
+  dead: "#ff0e4a"
+
 cause_of_death:
-  PCa_death: '#cd80bc'
-  alive: '#f8fca4'
-  non-PCa_death: '#9bb8d7'
+  alive: "#1f91b4"
+  PCa_death: "#ff0e4a"
+  non-PCa_death: "#ff7f0e"
+
 clinical_progr:
-  0: '#bdbdbd'
-  1: '#eaab75'
+  "0": "#1f77b4"
+  "1": "#ffbb78"
+
+disease_progr:
+  "0": "#1f77b4"
+  "1": "#ffbb78"
+
+psa_progr:
+  "0": "#1f77b4"
+  "1": "#ffbb78"
 gleason_grp:
-  1: '#fee5d9'
-  2: '#fcae91'
-  3: '#fb6a4a'
-  4: '#de2d26'
-  5: '#a50f15'
-  unknown: '#C4BFBF'
+  "1.0": "#f6d2d2"
+  "2.0": "#f1abab"
+  "3.0": "#f96b6b"
+  "4.0": "#f44336"
+  "5.0": "#b71c1c"
+  "None": "#9e9e9e"
+  "nan": "#9e9e9e"
 gs_grp:
-  '1': '#fee5d9'
-  '2': '#fcae91'
-  '3': '#fb6a4a'
-  '4': '#de2d26'
-  '5': '#a50f15'
-  unknown: '#C4BFBF'
-  nan: '#bdbdbd'
+  "1": "#f6d2d2"
+  "2": "#f1abab"
+  "3": "#f96b6b"
+  "4": "#f44336"
+  "5": "#b71c1c"
+  "nan": "#9e9e9e"
+
+stromogenic_smc_loss_reactive_stroma_present:
+  no: "#9efa70"
+  yes: "#c55797"
+  "None": "#9e9e9e"
+  "nan": "#9e9e9e"
+
+inflammation:
+  no: "#21c8e9"
+  yes: "#e95321"
+  "None": "#9e9e9e"
+  "nan": "#9e9e9e"
+
+glandular_atrophy_pin:
+  no: "#1f77b4"
+  yes: "#ff7f0e"
+  "nan": "#9e9e9e"
 label:
   endothelial-blood-vessel(ERG+): '#05acc6'
   endothelial-blood-vessel(ERG-): '#a877ac'
@@ -300,3 +330,58 @@ pat_id:
   '99.5433': '#2b7e60'
   '99.7976': '#b1e400'
   '99.9655': '#eda590'
+
+
+metagroups:
+  endothelial-blood-vessel: "#5d342b"
+  endothelial-lymphatic: "#91633b"
+  endothelial-lymphatic-vessel: "#91633b"
+
+  epithelial-basal: "#d45f05"
+  epithelial-luminal: "#c71104"
+  epithelial-luminal-ERG-positive: "#e67a7a"
+  epithelial-tumor: "#e67a7a"
+  epithelial-luminal-p53-positive: "#a00641"
+  epithelial-neuroendocrine: "#e377c2"
+  epithelial-other: "#e377c2"
+
+  epithelial-transient: "#d09617"
+  immune-B-cells: "#287636"
+  immune-T-cells: "#64ba92"
+  immune-myeloid: "#30C213"
+  immune-other: "#0eff82"
+  immune-fibrocytes: "#02250b"
+  immune-mixed: "#0eff82"
+
+  stromal-CAF1: "#142FDF"
+  stromal-CAF2: "#4488d1"
+  stromal-CAF1-CD105+: "#142FDF"
+  stromal-CAF1-CD105-: "#05167F"
+  stromal-CAF2-AR-: "#4488d1"
+  stromal-CAF2-AR+: "#93bdea"
+  stromal-other: "#5fe5ef"
+  stromal-pericytes: "#4B5177"
+
+  undefined: "#b1afae"
+
+
+niche:
+  luminal: "#e12626"
+  luminal_CAF1(CD105High): "#f6b4f2"
+  tumor(ERG+): "#360549"
+  luminal_infiltrated: "#ea7e7e"
+  CAF1_CD105-_infiltrated: "#448cbf"
+  basal_luminal_glands: "#e19f26"
+  tumor_CAF1_lymphocytes: "#9905d4"
+  TLS: "#22985D"
+  tumorERG+p53+_ProlifLuminal: "#91617b"
+  CAFs_lymphocytes: "#7d8ec2"
+  luminal_CAF1(CD105-): "#fd79f4"
+  CAF2s_enriched: "#6ed5e9"
+  immune_bloodvessels_CAF1(CD105-): "#530ce3"
+  Macrophages_Tcells_CAF1(CD105-): "#1ada1a"
+  tumor_CAF1(CD105High): "#763457"
+  tumor(ERG+)_luminal: "#734DB5"
+  bloodvessels_CAF1(CD105-): "#FF69AC"
+  CAF2(AR-)_enriched: "#77abd1"
+  unassigned: "#7f7f7f"
