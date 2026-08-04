@@ -7,35 +7,23 @@
 # cluster (leaf_color_group), excluding "black" (dendrogram leaves above
 # the color threshold, not a real cluster).
 #
-# Previously this was incorrectly combined into figure4_survival.R alongside
-# the unrelated Cox PH panels (4d-e) -- that script's actual legacy source
-# (survival-proportions.r) has no patient-cluster KM logic at all, only an
-# ad hoc single-marker threshold-sweep KM exploration unrelated to any
-# published panel. Split out into its own faithful port.
-#
-# Key correction vs. the earlier combined version: legacy uses an EXPLICIT
-# custom color palette from the precomputed file's own `leaf_color` column
-# (the actual dendrogram leaf colors, matching Figure 4a), not a default
-# color scheme, and disables the confidence-interval band (`conf.int =
-# FALSE`) -- the earlier version used default colors and added a CI band.
-#
-# survminer::ggsurvplot -> ggsurvfit substitution (already established
-# elsewhere in this repo; survminer fails to compile in this environment,
-# see REPRODUCIBILITY.md): ggsurvfit() + scale_color_manual() for the custom
-# palette, add_risktable() for the risk table, no add_confidence_interval()
-# call (matching conf.int = FALSE). ggsurvplot() shows censoring tick marks
-# by default (censor=TRUE); ggsurvfit() does not unless explicitly added --
-# add_censor_mark() included here to match (an earlier version of this
-# script omitted it, missing the small event/censoring markers visible on
-# the published curves). Legacy's `pval = TRUE, pval.method = TRUE` also
-# has no direct ggsurvfit equivalent auto-added -- add_pvalue() included
-# here to match (also missing from an earlier version).
+# Uses survminer::ggsurvplot() directly, exactly as legacy does -- no
+# package substitution. An earlier version of this script substituted
+# ggsurvfit for survminer (survminer previously failed to compile in this
+# environment; see REPRODUCIBILITY.md and open-questions.md's now-resolved
+# note) and, in doing so, introduced real deviations from the legacy
+# plotting code: default colors instead of the custom `leaf_color` palette,
+# an added confidence-interval band, missing censor tick marks, missing
+# p-value display. All fixed by reverting to the literal survminer call.
 #
 # Cluster labels: the precomputed file's `leaf_color_group` values are
 # "C1".."C6"; the published figure labels them "P1".."P6" instead (per
 # direct visual confirmation). No script anywhere in the legacy repo
-# performs this C->P relabeling -- it isn't derivable from code, only
-# applied here to match the published figure.
+# performs this C->P relabeling -- it isn't derivable from code. Kept as a
+# disclosed correction (independent of the library-substitution revert
+# above): applied to the `leaf_color_group` values right after loading,
+# before any downstream computation, so every subsequent step (palette,
+# factor levels, survfit strata, legend) naturally uses "P1".."P6".
 #
 # Reads scripts/data/export.py's clinical.parquet and LEGACY_DATA_DIR's
 # precomputed metadata_with_dendrogram_colors_label_pat_id.parquet (already
@@ -49,8 +37,8 @@ load_dot_env()
 library(arrow)
 library(dplyr)
 library(survival)
-library(ggsurvfit)
-library(ggplot2)
+library(survminer)
+library(patchwork)
 
 base_dir <- Sys.getenv("BASE_DIR")
 export_dir <- Sys.getenv("EXPORT_DIR")
@@ -66,9 +54,11 @@ stopifnot(
 save_dir <- file.path(output_figures_dir, "figure4")
 dir.create(save_dir, recursive = TRUE, showWarnings = FALSE)
 
-df_patient <- read_parquet(file.path(
-  legacy_dir, "5-niches", "barplot_data", "metadata_with_dendrogram_colors_label_pat_id.parquet"
-))
+clinical <- read_parquet(file.path(export_dir, "clinical.parquet"))
+num.patients <- clinical$pat_id |> n_distinct()
+
+group.path <- file.path(legacy_dir, "5-niches", "barplot_data", "metadata_with_dendrogram_colors_label_pat_id.parquet")
+df_patient <- read_parquet(group.path)
 
 df <- df_patient |> filter(leaf_color_group != "black")
 df$leaf_color_group <- sub("^C", "P", df$leaf_color_group) # "C1".."C6" -> "P1".."P6", see docstring
@@ -77,45 +67,63 @@ df_colors <- df |>
   select(leaf_color_group, leaf_color) |>
   distinct() |>
   arrange(leaf_color_group)
-custom_palette <- setNames(df_colors$leaf_color, df_colors$leaf_color_group)
 
-clinical <- read_parquet(file.path(export_dir, "clinical.parquet"))
+custom_palette <- df_colors$leaf_color
+names(custom_palette) <- df_colors$leaf_color_group
+
+## merge with disease_progr, last_fu
 clinical_time <- clinical |>
   select(pat_id, disease_progr_time, last_fu) |>
   distinct()
 
 df <- df |> left_join(clinical_time, by = "pat_id")
-df$cluster_group <- factor(df$leaf_color_group, levels = names(custom_palette))
 
-# %% Progression-free survival
+df$cluster_group <- factor(df$leaf_color_group, levels = names(custom_palette))
+fit <- survfit(Surv(disease_progr_time, disease_progr) ~ cluster_group, data = df)
+
+# Extract order used internally by survfit
+strata_order <- names(fit$strata)
+strata_order <- gsub("cluster_group=", "", strata_order)
+names(custom_palette) <- names(fit$strata)
+p_prog <- ggsurvplot(
+  fit,
+  data = df,
+  risk.table = TRUE,
+  pval = TRUE,
+  conf.int = FALSE,
+  palette = custom_palette,
+  xlab = "Time",
+  ylab = "Progression-free survival probability",
+  legend.title = "Group",
+  risk.table.height = 0.25
+)
 # Legacy computes and displays this plot but never saves it -- its ggsave
 # call is commented out, and references an undefined `result_dir` variable
 # (a bug/incomplete cleanup left in the source). Matched verbatim: computed,
-# not written to disk. This suggests the published Figure 4c is the overall
-# survival panel below, not this one (consistent with REPRODUCIBILITY.md's
-# note that progression-free appears in Supplementary Fig 3c instead).
-fit_prog <- survfit2(Surv(disease_progr_time, disease_progr) ~ cluster_group, data = df)
-p_prog <- fit_prog |>
-  ggsurvfit() +
-  add_censor_mark() +
-  add_pvalue() +
-  scale_color_manual(values = custom_palette) +
-  scale_fill_manual(values = custom_palette) +
-  labs(title = "Figure 4c -- progression-free survival by patient cluster", x = "Time", y = "Progression-free survival probability") +
-  add_risktable()
-p_prog
+# not written to disk.
+p_prog$plot
 
-# %% Overall survival
 df$overall_survival <- ifelse(df$os_status == "alive", 0, 1)
-fit_survival <- survfit2(Surv(last_fu, overall_survival) ~ cluster_group, data = df)
-p_survival <- fit_survival |>
-  ggsurvfit() +
-  add_censor_mark() +
-  add_pvalue() +
-  scale_color_manual(values = custom_palette) +
-  scale_fill_manual(values = custom_palette) +
-  labs(title = "Figure 4c -- overall survival by patient cluster", x = "Time", y = "Survival probability") +
-  add_risktable()
-ggsave(file.path(save_dir, "figure4c_survival_by_patient_cluster.png"), p_survival, width = 10, height = 6, dpi = 200)
+fit <- survfit(Surv(last_fu, overall_survival) ~ cluster_group, data = df)
+
+# Extract order used internally by survfit
+strata_order <- names(fit$strata)
+strata_order <- gsub("cluster_group=", "", strata_order)
+names(custom_palette) <- names(fit$strata)
+p_survival <- ggsurvplot(
+  fit,
+  data = df,
+  risk.table = TRUE,
+  pval = TRUE,
+  conf.int = FALSE,
+  palette = custom_palette,
+  xlab = "Time",
+  ylab = "Survival probability",
+  legend.title = "Group",
+  risk.table.height = 0.25
+)
+p_survival_combined <- p_survival$plot / p_survival$table
+plot_path <- file.path(save_dir, "figure4c_survival_by_patient_cluster.png")
+ggsave(plot_path, p_survival_combined, width = 10, height = 6)
 
 cat("Saved Figure 4c panels to", save_dir, "\n")

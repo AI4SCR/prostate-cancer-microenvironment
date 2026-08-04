@@ -11,13 +11,14 @@
 # so it's read from LEGACY_DATA_DIR's precomputed copy; clinical.parquet
 # comes from EXPORT_DIR.
 #
-# Plotting uses `ggsurvfit`/`survfit2` instead of the original's
-# `survminer::ggsurvplot` -- survminer's dependency chain (via ggpubr ->
-# rstatix -> car -> pbkrtest -> doBy -> Deriv) fails to compile against this
-# R 4.4.1 install (Deriv's C++ source uses `R_ClosureFormals`, not available
-# here). `ggsurvfit` is already the established KM-plotting convention in
-# this repo (see figure4_survival.R) and is installed; the statistical
-# analysis (survfit/survdiff/coxph) is unchanged.
+# Uses survminer::ggsurvplot() directly, exactly as legacy does -- no
+# package substitution. An earlier version of this script substituted
+# ggsurvfit/survfit2 for survminer (survminer previously failed to compile
+# in this environment, via its ggpubr -> rstatix -> car -> pbkrtest -> doBy
+# -> Deriv dependency chain -- Deriv's C++ source called `R_ClosureFormals`,
+# absent from this R 4.4.1 build); reverted now that a compatible Deriv
+# version (pinned from CRAN's archive, see REPRODUCIBILITY.md) resolves
+# that.
 #
 # Writes one KM PDF per niche (survival + progression) to
 # $EXPORT_DIR/figures/figure6/niche_km/threshold_50/.
@@ -30,7 +31,7 @@ library(dplyr)
 library(tidyr)
 library(ggplot2)
 library(survival)
-library(ggsurvfit)
+library(survminer)
 library(rlang)
 
 export_dir <- Sys.getenv("EXPORT_DIR")
@@ -110,34 +111,50 @@ for (col in cols) {
     inner_join(progression, by = "pat_id") %>%
     inner_join(death, by = "pat_id")
 
-  fit <- survfit2(Surv(last_fu, os_status) ~ risk_group, data = df_analysis)
+  fit <- survfit(Surv(last_fu, os_status) ~ risk_group, data = df_analysis)
   form <- as.formula(fit$call$formula)
   sd <- survdiff(form, data = df_analysis)
   pval <- 1 - pchisq(sd$chisq, df = length(sd$n) - 1)
   cox <- coxph(formula = form, data = df_analysis)
   s_cox <- summary(cox)$coefficients[, c("exp(coef)", "Pr(>|z|)")]
   results_os[[col]] <- list(pval = pval, cox_coef = s_cox[1], cox_pval = s_cox[2])
-  p1 <- fit |>
-    ggsurvfit() +
-    labs(title = paste("Survival by", col, "high vs low"), x = "Time", y = "Survival probability") +
-    add_risktable() +
-    add_pvalue()
+  p1 <- ggsurvplot(
+    fit,
+    data = df_analysis,
+    risk.table = TRUE,
+    pval = TRUE,
+    conf.int = FALSE,
+    palette = "Set2",
+    xlab = "Time",
+    ylab = "Survival probability",
+    legend.title = "Group",
+    risk.table.height = 0.25,
+    title = paste("Survival by", col, "high vs low")
+  )
   pdf(file.path(survival_dir, paste0("km_survival_os_status_", col, ".pdf")), width = 8, height = 6)
   print(p1)
   dev.off()
 
-  fit_prog <- survfit2(Surv(disease_progr_time, disease_progr) ~ risk_group, data = df_analysis)
+  fit_prog <- survfit(Surv(disease_progr_time, disease_progr) ~ risk_group, data = df_analysis)
   form <- as.formula(fit_prog$call$formula)
   sd <- survdiff(form, data = df_analysis)
   pval <- 1 - pchisq(sd$chisq, df = length(sd$n) - 1)
   cox <- coxph(formula = form, data = df_analysis)
   s_cox <- summary(cox)$coefficients[, c("exp(coef)", "Pr(>|z|)")]
   results_prog[[col]] <- list(pval = pval, cox_coef = s_cox[1], cox_pval = s_cox[2])
-  p2 <- fit_prog |>
-    ggsurvfit() +
-    labs(title = paste("Progression-free by", col, "high vs low"), x = "Time", y = "Progression-free probability") +
-    add_risktable() +
-    add_pvalue()
+  p2 <- ggsurvplot(
+    fit_prog,
+    data = df_analysis,
+    risk.table = TRUE,
+    pval = TRUE,
+    conf.int = FALSE,
+    palette = "Set2",
+    xlab = "Time",
+    ylab = "Progression-free probability",
+    legend.title = "Group",
+    risk.table.height = 0.25,
+    title = paste("Progression-free by", col, "high vs low")
+  )
   pdf(file.path(progression_dir, paste0("km_progression_disease_progr_", col, ".pdf")), width = 8, height = 6)
   print(p2)
   dev.off()

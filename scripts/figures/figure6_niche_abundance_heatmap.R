@@ -7,10 +7,11 @@
 # no reproducing script in this repo, so they come from LEGACY_DATA_DIR;
 # clinical.parquet comes from EXPORT_DIR.
 #
-# Plotting uses `ggsurvfit`/`survfit2` instead of the original's
-# `survminer::ggsurvplot` -- survminer fails to compile in this environment
-# (see figure6_km_niche6.R's docstring for the exact error). `ggsurvfit` is
-# already this repo's established KM-plotting convention (figure4_survival.R).
+# Uses survminer::ggsurvplot() directly, exactly as legacy does -- no
+# package substitution. An earlier version of this script substituted
+# ggsurvfit/survfit2 for survminer (survminer previously failed to compile
+# in this environment); reverted now that a compatible Deriv version
+# (pinned from CRAN's archive, see REPRODUCIBILITY.md) resolves that.
 #
 # Legacy's pdf()/dev.off() calls around the main heatmap are commented out
 # (`#pdf(...)`), so as literally written, that script never saves this
@@ -33,7 +34,7 @@ library(tidyr)
 library(ggplot2)
 library(entropy)
 library(survival)
-library(ggsurvfit)
+library(survminer)
 
 export_dir <- Sys.getenv("EXPORT_DIR")
 legacy_dir <- Sys.getenv("LEGACY_DATA_DIR")
@@ -185,26 +186,40 @@ metadata_filtered <- metadata %>%
 metadata_filtered$risk_group <- factor(metadata_filtered$risk_group)
 metadata_filtered$clinical_progr <- as.numeric(metadata_filtered$clinical_progr)
 
-fit_prog <- survfit2(Surv(clinical_progr_time, clinical_progr) ~ risk_group, data = metadata_filtered)
-p_prog <- fit_prog |>
-  ggsurvfit() +
+fit_prog <- survfit(Surv(clinical_progr_time, clinical_progr) ~ risk_group, data = metadata_filtered)
+p_prog <- ggsurvplot(
+  fit_prog,
+  data = metadata_filtered,
+  risk.table = TRUE,
+  pval = TRUE,
+  conf.int = FALSE,
+  palette = "Set3",
+  xlab = "Time",
   # Legacy's ylab for this progression-model plot literally says "Survival
   # probability" too (same text as the OS panel below) -- looks like a
   # copy-paste label bug in the original given it plots clinical_progr, not
   # os_status, but matched here literally rather than "corrected".
-  labs(x = "Time", y = "Survival probability") +
-  add_risktable() +
-  add_pvalue()
+  ylab = "Survival probability",
+  legend.title = "Group",
+  risk.table.height = 0.25
+)
 pdf(file.path(save_dir, "figure6a_progression_km_by_dendrogram_split.pdf"), width = 9, height = 8)
 print(p_prog)
 dev.off()
 
-fit_os <- survfit2(Surv(last_fu, overall_survival) ~ risk_group, data = metadata_filtered)
-p_os <- fit_os |>
-  ggsurvfit() +
-  labs(x = "Time", y = "Survival probability") +
-  add_risktable() +
-  add_pvalue()
+fit_os <- survfit(Surv(last_fu, overall_survival) ~ risk_group, data = metadata_filtered)
+p_os <- ggsurvplot(
+  fit_os,
+  data = metadata_filtered,
+  risk.table = TRUE,
+  pval = TRUE,
+  conf.int = FALSE,
+  palette = "Set3",
+  xlab = "Time",
+  ylab = "Survival probability",
+  legend.title = "Group",
+  risk.table.height = 0.25
+)
 pdf(file.path(save_dir, "figure6a_survival_km_by_dendrogram_split.pdf"), width = 9, height = 8)
 print(p_os)
 dev.off()
