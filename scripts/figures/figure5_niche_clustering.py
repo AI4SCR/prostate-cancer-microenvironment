@@ -67,7 +67,8 @@ def main(export_dir: Path | None = None, legacy_dir: Path | None = None):
     final_cluster_name = cluster_data.columns[-1]
 
     df_results = pd.DataFrame(index=data.index).join(cluster_data[[final_cluster_name]], how="inner")
-    assert data.index.equals(df_results.index)
+    assert data.index.equals(df_results.index), f"data index {data.index} does not match df_results index {df_results.index}"
+    assert data.shape[0] == df_results.shape[0], f"data shape {data.shape} does not match df_results shape {df_results.shape}"
     logger.info(f"cluster assignments: {df_results.shape}")
 
     # %% z-scored niche x cell-type composition heatmap
