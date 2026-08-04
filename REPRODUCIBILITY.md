@@ -57,7 +57,7 @@ $BASE_DIR/
 │   ├── raw/                      # input .mcd files (external)
 │   ├── acquisitions/             # process_acquisitions() output: per-acquisition TIFF+JSON
 │   ├── masks/deepcell/           # EXTERNAL: segmentation masks must already be staged here
-│   ├── clustering/annotations.parquet   # produced by scripts/01-clustering/09_main-annotate.py
+│   ├── clustering/annotations.parquet   # produced by archive/scripts/01-clustering/09_main-annotate.py
 │   ├── reclustering/, reclustering-v2/  # manual re-clustering memberships (external/manual)
 │   └── metadata/                 # label-names.xlsx, ROI_matching_blockID.xlsx, tma-annotations-v3.xlsx
 └── 02_processed/
@@ -95,7 +95,7 @@ before step 2 below.
    correct input for clustering on a from-scratch `BASE_DIR` (as opposed to
    `mask_version="annotated"`, which requires labels that don't exist yet —
    see "the bootstrap loop" below).
-4. `scripts/01-clustering/01_immune-non-immune.py` through
+4. `archive/scripts/01-clustering/01_immune-non-immune.py` through
    `09_main-annotate.py`, in numeric order. Each stage clusters one cellular
    compartment (immune / epithelial / stromal / endothelial / undefined /
    basal) using `src/prostate_cancer/cluster.py:cluster()` and the matching
@@ -137,7 +137,7 @@ default). If you're re-running clustering against an already-labeled
 it's just a superset of cells that includes ones later excluded during label
 transfer.
 
-`scripts/01-clustering/10_transfer_labels.py` was a standalone script that
+`archive/scripts/01-clustering/10_transfer_labels.py` was a standalone script that
 duplicated what `PCa.label_transfer()` now does inside `ai4bmr-datasets`; it
 has been removed as a second, divergent source of truth.
 
@@ -160,7 +160,7 @@ patient clusters P1–P6 / niches 1–18.
 ## Known discrepancies (documented, not silently resolved)
 
 - **Spillover correction**: the paper's Methods state channel spillover was
-  negligible and required "no further corrections." `scripts/00-spillover-correction/`
+  negligible and required "no further corrections." `archive/scripts/00-spillover-correction/`
   nonetheless contains active R scripts (`spillover_correct_images_pca.R` and
   two dated variants) that compute and apply spillover compensation via
   CATALYST, plus a Python step that compresses the "compensated" images.
@@ -197,7 +197,7 @@ patient clusters P1–P6 / niches 1–18.
   - (The 534 rows with labeled cells, pre-tumor-filter → 515 unique
     `tma_id` — this number was already known but undocumented: it's a stray
     comment, `# 515 TMA_IDs before filtering for tumor cores only`, in
-    `scripts/03-survival/survival-proportions.r`.)
+    `archive/scripts/03-survival/survival-proportions.r`.)
 
   Patient counts (previous paragraph) are also explained by the same
   `sample_id`-vs-`tma_id` distinction plus one ROI that was never processed
@@ -269,7 +269,7 @@ patient clusters P1–P6 / niches 1–18.
   `src/prostate_cancer/utils.py` only for the 01-clustering bootstrap
   scripts (`mask_version="filtered"`), which is a different, still-valid use
   case -- it is no longer called anywhere in the export path.
-- **`scripts/01-clustering/03_epithelial-non-epithelial-annotate.py`** is an
+- **`archive/scripts/01-clustering/03_epithelial-non-epithelial-annotate.py`** is an
   empty file (0 bytes) in the current repo. Not reconstructed here — flagged
   for the `figure-2-cell-phenotyping` branch to investigate.
 - **Figure 4a/c patient-composition clustering — UNRESOLVED, confirmed
@@ -356,7 +356,7 @@ patient clusters P1–P6 / niches 1–18.
   **Original (now-superseded) analysis, kept for context:** the Methods
   text doesn't specify how the dendrogram was cut into exactly 6 groups. The
   only script found *within this repo* that touches a patient-level
-  cluster/group assignment, `scripts/11_niches/113_survival/risk_groups_label.R`,
+  cluster/group assignment, `archive/scripts/11_niches/113_survival/risk_groups_label.R`,
   reads a `leaf_color_group` column (`risk_groups_label.R:66`) from
   `metadata_with_dendrogram_colors_label_pat_id.parquet`
   (`risk_groups_label.R:36`) under a hardcoded local path that doesn't exist

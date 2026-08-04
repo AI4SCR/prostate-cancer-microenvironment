@@ -12,8 +12,8 @@ forward, new `scripts/figures/figureN_*` files should be written fresh from
 the old-repo column, not from the `scripts/{02-umaps,...}` copies.
 
 **Verified**: `000_paper/` in the old repo is byte-identical, file-for-file,
-to what's currently sitting in this repo's `scripts/02-umaps/`,
-`scripts/03-survival/`, `scripts/04-heatmaps/`, `scripts/11_niches/` (checked
+to what's currently sitting in this repo's `archive/scripts/02-umaps/`,
+`archive/scripts/03-survival/`, `archive/scripts/04-heatmaps/`, `archive/scripts/11_niches/` (checked
 `risk_groups_label.R`, `survival.r`, `2-cell-types-heatmap.R`,
 `00_kmeans_clustering.py`, `01_annotation_v2.py` — `diff` clean on all,
 `02_umaps/*.py` differ only by two import-path renames). So `000_paper/` is
@@ -38,8 +38,8 @@ repo either. **Gap**, not reconstructable.
 
 | Panel | Old repo (authoritative) | This repo (migrated copy) | New target |
 |---|---|---|---|
-| (a) heatmap | `000_paper/04_heatmaps/2-cell-types-heatmap.R` | `scripts/04-heatmaps/2-cell-types-heatmap.R` | `scripts/figures/figure2_cell_type_heatmap.R` ✅ |
-| (b) UMAP | `000_paper/02_umaps/0-umaps.py`, `0-umaps-main-types.py` | `scripts/02-umaps/0-umaps*.py` | `scripts/figures/figure2_umap.py` ✅ |
+| (a) heatmap | `000_paper/04_heatmaps/2-cell-types-heatmap.R` | `archive/scripts/04-heatmaps/2-cell-types-heatmap.R` | `scripts/figures/figure2_cell_type_heatmap.R` ✅ |
+| (b) UMAP | `000_paper/02_umaps/0-umaps.py`, `0-umaps-main-types.py` | `archive/scripts/02-umaps/0-umaps*.py` | `scripts/figures/figure2_umap.py` ✅ |
 
 Note: `000_paper/04_heatmaps/2-1-cell-types-heatmap.R` also exists —
 confirmed **older/stale** variant (still on `me3312`'s Mac paths, missing a
@@ -76,10 +76,10 @@ guessing.
 
 | Panel | Old repo (authoritative) | This repo (migrated copy) | New target |
 |---|---|---|---|
-| clustering (upstream) | `000_paper/11_niches/110_analysis/00_kmeans_clustering.py` (k=24, k-means++) | `scripts/11_niches/110_analysis/00_kmeans_clustering.py` | `scripts/figures/figure5_niche_clustering.py` (not yet created) |
-| annotation (upstream) | `000_paper/11_niches/110_analysis/01_annotation_v2.py` | `scripts/11_niches/110_analysis/01_annotation_v2.py` | same file or `figure5_niche_annotation.py` |
-| (a) z-score heatmap | `000_paper/11_niches/111_heatmaps/z_score_heatmap.R` | `scripts/11_niches/111_heatmaps/z_score_heatmap.R` | `scripts/figures/figure5_niche_heatmap.R` |
-| (b) niche correlation | `000_paper/11_niches/111_heatmaps/niche_pairwise_corrleation.R` | `scripts/11_niches/111_heatmaps/niche_pairwise_corrleation.R` | `scripts/figures/figure5_niche_correlation.R` |
+| clustering (upstream) | `000_paper/11_niches/110_analysis/00_kmeans_clustering.py` (k=24, k-means++) | `archive/scripts/11_niches/110_analysis/00_kmeans_clustering.py` | `scripts/figures/figure5_niche_clustering.py` (not yet created) |
+| annotation (upstream) | `000_paper/11_niches/110_analysis/01_annotation_v2.py` | `archive/scripts/11_niches/110_analysis/01_annotation_v2.py` | same file or `figure5_niche_annotation.py` |
+| (a) z-score heatmap | `000_paper/11_niches/111_heatmaps/z_score_heatmap.R` | `archive/scripts/11_niches/111_heatmaps/z_score_heatmap.R` | `scripts/figures/figure5_niche_heatmap.R` |
+| (b) niche correlation | `000_paper/11_niches/111_heatmaps/niche_pairwise_corrleation.R` | `archive/scripts/11_niches/111_heatmaps/niche_pairwise_corrleation.R` | `scripts/figures/figure5_niche_correlation.R` |
 | (c) representative cores | Not found | — | **Gap** |
 | Suppl. Fig 7 (50-seed ARI robustness sweep) | Data exists (`.../PCa_NHood/robustness/*_kmeans_robustness.pkl`) but no plotting script found yet | — | **Gap**, may need writing from the raw sweep output |
 
@@ -114,3 +114,4 @@ guessing.
 4. For panels marked **Gap** (representative cores, Suppl. Fig 7, Fig 4b
    metagroup distribution not yet located) — reconstruct from Methods text
    like Fig 4a was, or leave flagged and move on?
+
