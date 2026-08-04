@@ -1,0 +1,15 @@
+[workspace]
+name = "port-umap-reducer"
+channels = ["conda-forge"]
+platforms = ["linux-64"]
+
+[dependencies]
+python = "3.12.*"
+numba = "0.61.*"
+numpy = "2.0.*"
+pandas = "3.*"
+pyarrow = ">=25.0.0,<26"
+
+[pypi-dependencies]
+umap-learn = ">=0.5.5"
+jsonargparse = "*"
