@@ -8,11 +8,18 @@
 # `main_group == "stromal"` and used all 34 markers -- the same class of bug
 # already found and fixed in figure3_caf_umap.py, just never audited here
 # until now. Legacy's actual filter is `grepl("CAF", label)` (label string
-# match, not main_group), and it subsets to only the 9 CAF-relevant markers
-# before z-scoring. `main_group == "stromal"` is broader (includes pericytes
-# and other non-CAF stromal cells legacy explicitly does NOT include here --
-# it even has a commented-out `filter3 = grepl('stromal-', meta$label)`
-# alternative it chose not to use).
+# match, not main_group), NOT `main_group == "stromal"` (broader, includes
+# pericytes and other non-CAF stromal cells legacy explicitly does not
+# include here -- it even has a commented-out `filter3 =
+# grepl('stromal-', meta$label)` alternative it chose not to use).
+#
+# Marker list: confirmed against the published figure to be 12 markers, not
+# the 9 in this file's original source (000_paper/04_heatmaps/
+# 2-cell-types-heatmap.R) nor the 13 in a newer sibling variant
+# (2-1-cell-types-heatmap.R, pulled in later) -- the true set is that
+# newer 13-marker list with `pdpn` uncommented (it's commented out there)
+# and `c_casp3`/`ki_67` removed. Confirmed by the user directly reading off
+# the published panel's marker order.
 #
 # Reads the tables scripts/data/export.py produces in
 # EXPORT_DIR (never BASE_DIR -- see REPRODUCIBILITY.md), plus
@@ -85,7 +92,7 @@ heatmap.caf <- function(data_path, metadata_path, colormap_path,
   meta <- meta[filter_, ]
 
   caf_markers <- c(
-    "smooth_muscle_actin", "vimentin", "collagen1", "cd146", "cnn1", "cd105", "ar", "egr1", "ces1"
+    "vimentin", "collagen1", "cd146", "cnn1", "smooth_muscle_actin", "cd105", "ar", "pdpn", "egr1", "ces1", "yap1", "beta_catenin"
   )
   filter1 <- colnames(mat) %in% caf_markers
   mat <- mat[, filter1]
