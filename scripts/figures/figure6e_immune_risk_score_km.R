@@ -1,31 +1,3 @@
-# Reproduce Figure 6e: Kaplan-Meier survival by immune niche-derived risk
-# score (0-3 immune-associated niches at high abundance).
-#
-# 1:1 port of 000_paper/11_niches/113_survival/inflammation_outcome.R.
-# `cols_inflamed` are niches 18/17/16 (`TLS`, `Macrophages_Tcells_CAF1(CD105-)`,
-# `immune_bloodvessels_CAF1(CD105-)`, per the fixed niche_order list used
-# throughout the legacy niche-visualization scripts -- see
-# figureS4b_niche_mean_composition.py's NICHE_ORDER), 75th-percentile
-# per-niche threshold, patient-level max-aggregation of the resulting 0-3
-# risk_group -- matches the paper's "four risk groups based on high
-# abundance... of 0, 1, 2 or all 3 immune-associated niches 16-18" exactly.
-#
-# Disclosed fix: both KM ggsave() calls are commented out in legacy
-# (computed-but-never-saved, confirmed by direct read) -- enabled here,
-# same precedent as figure6_niche_abundance_heatmap.R's already-enabled
-# commented-out pdf()/dev.off(). The per-niche histogram diagnostic plots
-# (legacy's own `# ggsave(...)` inside the quantile loop) are NOT this
-# panel and are left commented out, matching legacy.
-#
-# Disclosed fix: legacy's trailing diagnostic CSV (`df_histo`) selects
-# `clinical$sample_name`, a column this repo's clinical.parquet export
-# doesn't have (see open-questions.md) -- dropped from the select since
-# it's incidental to this panel (the two KM plots above are unaffected;
-# they're both saved before this block runs).
-#
-# Reads clusters_annotated_v2.parquet from LEGACY_DATA_DIR and
-# clinical.parquet from EXPORT_DIR. Writes to OUTPUT_FIGURES_DIR/figure6/.
-
 library(dotenv)
 load_dot_env()
 
@@ -35,19 +7,15 @@ library(tidyr)
 library(ggplot2)
 library(survival)
 library(survminer)
+library(rlang)
 
 export_dir <- Sys.getenv("EXPORT_DIR")
-legacy_dir <- Sys.getenv("LEGACY_DATA_DIR")
 output_figures_dir <- Sys.getenv("OUTPUT_FIGURES_DIR")
 stopifnot("EXPORT_DIR is not set; copy .env.example to .env and fill it in" = nzchar(export_dir))
 stopifnot("OUTPUT_FIGURES_DIR is not set; copy .env.example to .env and fill it in" = nzchar(output_figures_dir))
-stopifnot("LEGACY_DATA_DIR is not set; copy .env.example to .env and fill it in" = nzchar(legacy_dir))
 
-save_dir <- file.path(output_figures_dir, "figure6")
-dir.create(save_dir, recursive = TRUE, showWarnings = FALSE)
-
-df_clusters <- read_parquet(file.path(legacy_dir, "5-niches", "annotation", "clusters_annotated_v2.parquet"))
-df_clusters[["sample_name"]] <- df_clusters[["tma_id"]]
+figures_dir <- file.path(output_figures_dir, "figure6")
+dir.create(figures_dir, showWarnings = FALSE, recursive = TRUE)
 
 compute_label_frequency <- function(data, level, pseudocount = 1) {
   level_sym <- rlang::sym(level)
@@ -58,7 +26,7 @@ compute_label_frequency <- function(data, level, pseudocount = 1) {
     tidyr::complete(
       sample_name,
       !!level_sym,
-      fill = list(count = 0)
+      fill = list(count = pseudocount)
     )
 
   df_freqs <- data_summary %>%
@@ -71,10 +39,20 @@ compute_label_frequency <- function(data, level, pseudocount = 1) {
   return(df_freqs)
 }
 
-######### per niche ###########
-df_freqs <- compute_label_frequency(df_clusters, level = "niche", pseudocount = 0)
+### read clinical metadata
+clinical <- read_parquet(file.path(export_dir, "clinical.parquet"))
+num.patients <- clinical$pat_id |> n_distinct()
+print(paste("Number of patients:", num.patients))
 
-## rename sample_name to tma_id, select niche, proportion and make to wide format
+### read cell annotation data
+df_cells <- read_parquet(file.path(export_dir, "metadata.parquet"))
+
+sample_col <- "tma_id"
+df_cells[["sample_name"]] <- df_cells[[sample_col]]
+
+# compute label frequencies for each sample and label
+label_col <- "niche"
+df_freqs <- compute_label_frequency(df_cells, level = label_col, pseudocount = 0)
 df_wide <- df_freqs %>%
   select(tma_id = sample_name, niche, proportion) %>%
   pivot_wider(names_from = niche, values_from = proportion, values_fill = 0)
@@ -116,8 +94,6 @@ for (col in cols_inflamed) {
     ) +
     theme_minimal()
   print(p)
-
-  # ggsave(...)
 }
 
 threshold <- "75%"
@@ -135,13 +111,7 @@ df_inflammation <- df_props %>%
   ) %>%
   select(tma_id, n_inflamed, inflammation)
 
-# join with clinical to get patient id
-
-clinical <- read_parquet(file.path(export_dir, "clinical.parquet"))
-num.patients <- clinical$pat_id |> n_distinct()
-
-tma_ids.valid <- intersect(df_props$tma_id, clinical$tma_id)
-
+# join with clinical to get patient id and survival data
 clinical$os_status <- ifelse(clinical$os_status == "dead", 1, 0)
 
 progression <- clinical %>%
@@ -193,9 +163,9 @@ p1 <- ggsurvplot(
   legend.title = "Group",
   risk.table.height = 0.25
 )
-plot_name <- paste0("kaplan_meier_inflammation_os_", "risk_group_bin.pdf")
-ggsave(filename = file.path(save_dir, plot_name), plot = p1$plot, width = 8, height = 6, dpi = 300)
-
+plot_name <- paste0("kaplan_meier_inflammation_os_", "risk_group_max.pdf")
+ggsave(filename = file.path(figures_dir, plot_name), plot = p1$plot, width = 8, height = 6, dpi = 300)
+print(p1)
 fit_prog <- survfit(Surv(disease_progr_time, disease_progr) ~ risk_group, data = df_analysis)
 p2 <- ggsurvplot(
   fit_prog,
@@ -209,19 +179,5 @@ p2 <- ggsurvplot(
   legend.title = "Group",
   risk.table.height = 0.25
 )
-plot_name <- paste0("kaplan_meier_inflammation_progression_", "risk_group_bin.pdf")
-ggsave(filename = file.path(save_dir, plot_name), plot = p2$plot, width = 8, height = 6, dpi = 300)
-
-df_histo <- clinical %>%
-  select(
-    tma_id,
-    inflammation
-  ) %>%
-  rename(eva_annotation_infl = inflammation) %>%
-  distinct() %>%
-  inner_join(df_inflammation, by = "tma_id")
-
-## save as csv
-write.csv(df_histo, file.path(save_dir, "figure6e_histo_inflammation_annotation.csv"), row.names = FALSE)
-
-cat("Saved Figure 6e panels to", save_dir, "\n")
+plot_name <- paste0("kaplan_meier_inflammation_progression_", "risk_group_max.pdf")
+ggsave(filename = file.path(figures_dir, plot_name), plot = p2$plot, width = 8, height = 6, dpi = 300)

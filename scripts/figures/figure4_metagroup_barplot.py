@@ -1,37 +1,3 @@
-# %%
-"""Reproduce Figure 4b: mean cellular metagroup distribution per patient cluster.
-
-1:1 port of the newly-pulled old repo's
-`000_paper/sync_paper/05-heterogeneity/stacked-frequencies-label.py`
-(`group_var='pat_id'` branch, its second half -- lines ~322-367, the block
-gated `if group_var == 'pat_id':`). See figure_script_mapping.md.
-
-Averages per-patient cell-type (`label`) composition within each patient
-cluster, maps each of the 34 fine-grained labels to one of 17 coarser
-"metagroup" lineages via `resources/metalabels.yaml`'s `metagroups` key
-(ported from `000_paper/metalabels.yaml`), then sums within each
-(cluster, metagroup) pair to get the average metagroup composition per
-cluster.
-
-Two disclosed deviations, both consistent with the already-established
-convention in figure4_survival.R (see that script's docstring for the full
-rationale, not repeated here):
-- Reads `figure4_patient_clustering.py`'s own composition matrix
-  (`figure4a_patient_composition.parquet`) rather than recomputing
-  per-patient label frequencies inline -- identical computation
-  (`get_label_frequency_table`), already verified byte-equivalent between
-  the two legacy script versions, just not duplicated a third time.
-- Uses the precomputed patient-cluster partition
-  ($LEGACY_DATA_DIR/5-niches/barplot_data/metadata_with_dendrogram_colors_label_pat_id.parquet,
-  `leaf_color_group`, excluding "black") instead of live-recomputing the
-  dendrogram/leaf-coloring here, for the same reason figure4_survival.R
-  does: our own fcluster reconstruction's near-singleton leaves don't
-  exactly match matplotlib's dendrogram(color_threshold=...) leaf-coloring
-  that produced this file.
-
-Reads from `$EXPORT_DIR`/`$LEGACY_DATA_DIR`/`resources/`. Writes to
-`$OUTPUT_FIGURES_DIR/figure4/`.
-"""
 from pathlib import Path
 
 import matplotlib
@@ -93,15 +59,7 @@ def main(export_dir: Path | None = None, legacy_dir: Path | None = None):
         color=[colordict_meta[c] for c in df_freqs_meta_wide.columns],
         ax=ax,
     )
-    # "C1".."C6" -> "P1".."P6" for the displayed labels only: the published
-    # figure labels clusters "P1"-"P6", not the precomputed file's own
-    # "leaf_color_group" values. Underlying grouping/color-key values are
-    # left as "C1".."C6" (matplotlib's own C0-C9 cycle convention, which the
-    # cluster_colors dict above is keyed by) -- only the tick text changes.
-    # No script in the legacy repo performs this relabeling; applied here to
-    # match the published figure (same fix as figure4c_patient_cluster_km.R).
-    display_labels = [g.replace("C", "P", 1) for g in df_freqs_meta_wide.index]
-    ax.set_xticklabels(display_labels, rotation=0)
+    ax.set_xticklabels(df_freqs_meta_wide.index, rotation=0)
     ax.set_xlabel("Cluster")
     ax.set_ylabel("Average Proportion")
     ax.set_title("Figure 4b -- average cell type proportions by cluster")

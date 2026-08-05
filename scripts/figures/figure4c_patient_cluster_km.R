@@ -1,36 +1,3 @@
-# Reproduce Figure 4c: Kaplan-Meier survival by patient cluster.
-#
-# 1:1 port of 000_paper/sync_paper/03_survival/patient_risk_group_km.R
-# (newly-pulled). Produces TWO plots, matching legacy exactly: progression-
-# free survival (Surv(disease_progr_time, disease_progr)) and overall
-# survival (Surv(last_fu, os_status=="dead")), both stratified by patient
-# cluster (leaf_color_group), excluding "black" (dendrogram leaves above
-# the color threshold, not a real cluster).
-#
-# Uses survminer::ggsurvplot() directly, exactly as legacy does -- no
-# package substitution. An earlier version of this script substituted
-# ggsurvfit for survminer (survminer previously failed to compile in this
-# environment; see REPRODUCIBILITY.md and open-questions.md's now-resolved
-# note) and, in doing so, introduced real deviations from the legacy
-# plotting code: default colors instead of the custom `leaf_color` palette,
-# an added confidence-interval band, missing censor tick marks, missing
-# p-value display. All fixed by reverting to the literal survminer call.
-#
-# Cluster labels: the precomputed file's `leaf_color_group` values are
-# "C1".."C6"; the published figure labels them "P1".."P6" instead (per
-# direct visual confirmation). No script anywhere in the legacy repo
-# performs this C->P relabeling -- it isn't derivable from code. Kept as a
-# disclosed correction (independent of the library-substitution revert
-# above): applied to the `leaf_color_group` values right after loading,
-# before any downstream computation, so every subsequent step (palette,
-# factor levels, survfit strata, legend) naturally uses "P1".."P6".
-#
-# Reads scripts/data/export.py's clinical.parquet and LEGACY_DATA_DIR's
-# precomputed metadata_with_dendrogram_colors_label_pat_id.parquet (already
-# carries os_status/disease_progr; only disease_progr_time/last_fu are
-# joined in from clinical.parquet, matching legacy's left_join). Writes to
-# OUTPUT_FIGURES_DIR/figure4/.
-
 library(dotenv)
 load_dot_env()
 
@@ -61,7 +28,6 @@ group.path <- file.path(legacy_dir, "5-niches", "barplot_data", "metadata_with_d
 df_patient <- read_parquet(group.path)
 
 df <- df_patient |> filter(leaf_color_group != "black")
-df$leaf_color_group <- sub("^C", "P", df$leaf_color_group) # "C1".."C6" -> "P1".."P6", see docstring
 
 df_colors <- df |>
   select(leaf_color_group, leaf_color) |>
@@ -97,10 +63,6 @@ p_prog <- ggsurvplot(
   legend.title = "Group",
   risk.table.height = 0.25
 )
-# Legacy computes and displays this plot but never saves it -- its ggsave
-# call is commented out, and references an undefined `result_dir` variable
-# (a bug/incomplete cleanup left in the source). Matched verbatim: computed,
-# not written to disk.
 p_prog$plot
 
 df$overall_survival <- ifelse(df$os_status == "alive", 0, 1)
