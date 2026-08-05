@@ -1,22 +1,3 @@
-# Reproduce Supplementary Figure 6a: Kaplan-Meier progression-free survival
-# by stromogenic status (patient-level clinical variable, presence of at
-# least one histologically stromogenic core).
-#
-# 1:1 port of 000_paper/11_niches/113_survival/risk_groups_label.R -- the
-# "STROMOGENIC" section only (`stromogenic_smc_loss_reactive_stroma_present`).
-# Not the patient-cluster, inflammation (figureS5b_inflammation_km.R), or
-# Gleason-concordance sections of that same multi-analysis legacy script.
-#
-# Patient-level aggregation: max() of the per-core binary stromogenic flag
-# -- same pattern as figureS5b_inflammation_km.R's inflammation section.
-#
-# Disclosed fix: both ggsave() calls are commented out in legacy
-# (computed-but-never-saved) -- enabled here using the exact args legacy's
-# own commented-out calls specify (`plot = p$plot`, same width/height).
-#
-# Reads $EXPORT_DIR/clinical.parquet. Writes to
-# $OUTPUT_FIGURES_DIR/figureS6/.
-
 library(dotenv)
 load_dot_env()
 
@@ -24,17 +5,19 @@ library(arrow)
 library(dplyr)
 library(survival)
 library(survminer)
+library(patchwork)
 
 export_dir <- Sys.getenv("EXPORT_DIR")
 output_figures_dir <- Sys.getenv("OUTPUT_FIGURES_DIR")
 stopifnot("EXPORT_DIR is not set; copy .env.example to .env and fill it in" = nzchar(export_dir))
 stopifnot("OUTPUT_FIGURES_DIR is not set; copy .env.example to .env and fill it in" = nzchar(output_figures_dir))
 
-save_dir <- file.path(output_figures_dir, "figureS6")
-dir.create(save_dir, recursive = TRUE, showWarnings = FALSE)
+figures_dir <- file.path(output_figures_dir, "figureS6")
+dir.create(figures_dir, showWarnings = FALSE, recursive = TRUE)
 
 clinical <- read_parquet(file.path(export_dir, "clinical.parquet"))
 
+dir_stromo <- file.path(figures_dir, "stromogenic")
 df_stromo <- clinical %>%
   select(pat_id, stromogenic_smc_loss_reactive_stroma_present) %>%
   filter(!is.na(stromogenic_smc_loss_reactive_stroma_present)) %>%
@@ -72,9 +55,12 @@ p_prog_stromo <- ggsurvplot(
   legend.title = "stromogenic",
   risk.table.height = 0.25
 )
-plot_path <- file.path(save_dir, "figureS6a_progr_stromogenic.pdf")
-ggsave(plot_path, p_prog_stromo$plot, width = 6, height = 4)
+p <- p_prog_stromo$plot / p_prog_stromo$table
 
+plot_name <- "progr_stromogenic_with_table.pdf"
+plot_path <- file.path(dir_stromo, plot_name)
+ggsave(plot_path, p, width = 6, height = 4)
+p_prog_stromo$plot
 fit <- survfit(Surv(last_fu, overall_survival) ~ stromogenic, data = df_final)
 p_survival_stromo <- ggsurvplot(
   fit,
@@ -88,7 +74,7 @@ p_survival_stromo <- ggsurvplot(
   legend.title = "stromogenic",
   risk.table.height = 0.25
 )
-plot_path <- file.path(save_dir, "figureS6a_survival_stromogenic.pdf")
-ggsave(plot_path, p_survival_stromo$plot, width = 6, height = 4)
-
-cat("Saved Supplementary Figure 6a panels to", save_dir, "\n")
+p <- p_survival_stromo$plot / p_survival_stromo$table
+plot_name <- "survival_stromogenic_with_table.pdf"
+plot_path <- file.path(dir_stromo, plot_name)
+ggsave(plot_path, p, width = 6, height = 4)
