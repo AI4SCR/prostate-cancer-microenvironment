@@ -163,20 +163,58 @@ Both fixed as disclosed, minimal, save-enabling changes (same precedent as
   `(g_strip + g_main) + plot_layout(...)`) -- fixed by assigning that
   expression to `p` first (`figureS1b_gleason_concordance.R`).
 
-## Figure 7d-f (circos interaction plots): blocked on missing data
+## ~~Figure 7d-f (circos interaction plots): blocked on missing data~~ RESOLVED
 
-`compute_interactions.py` (first stage of the 6-script circos pipeline --
-`compute_interactions.py` → `visualize_interactions_lfc.py` →
-`visualize_circos_plot.py`, with `circos_plots.py`/`utils_interactions.py`
-as support modules and `nhood_interactions.py` as a separate reference
-script) requires per-sample anndata pickles at
-`/users/mensmeng/workspace/nhoods/PCa_NHood/final_analysis/evaluation/proportion/CellCellNeighborhoods/anndatas/`.
-Confirmed via `ls` that this path is `Permission denied` for this account,
-and via `find` that no copy is staged under `LEGACY_DATA_DIR` (unlike niche
-annotations/composition data, which are staged). Same class of blocker as
-other `missing_files.md` entries -- not attempted. If ever unblocked, one
-script covering niches 2/8/9 (d/e/f) together would be the natural unit,
-matching how `figureS6bc_niche_km.R` bundles two niches into one script.
+Was: `compute_interactions.py` (first stage of the pipeline) requires
+per-sample anndata pickles at
+`/users/mensmeng/workspace/nhoods/PCa_NHood/final_analysis/evaluation/proportion/CellCellNeighborhoods/anndatas/`,
+inaccessible (`Permission denied`) and not staged under `LEGACY_DATA_DIR`.
+
+Resolved -- the same anndata pickles exist at a different, accessible live
+path, `/work/FAC/FBM/DBC/mrapsoma/prometex/data/PCa_NHood/CellCellNeighborhoods/anndatas/`
+(2,515 files; loadable with a disclosed `anndata`-version compatibility
+monkeypatch, see below). But per direct user instruction, the two upstream
+stages that would consume them (`compute_interactions.py`,
+`visualize_interactions_lfc.py`) were skipped entirely, since neither
+produces a paper panel itself -- they're intermediate data-generation steps.
+Their combined output already exists precomputed at the exact path the
+actual figure-producing script (`visualize_circos_plot.py`) reads:
+`.../5-niches/visualization/interactions/redo/per_niche_lfc_above_median/dataframes_v2/{niche}.parquet`
+(confirmed present and schema-correct for niches 2/8/9, staged into
+`LEGACY_DATA_DIR` for self-containment -- see `data/assets.md`). Ported as
+`figure7def_circos_plots.py`, bundling niches 2/8/9 (d/e/f) into one
+script per the same "figure-level bundling where it's the natural unit"
+precedent as `figureS6bc_niche_km.R`. Verified running end to end.
+
+**Two things worth remembering if `compute_interactions.py`/
+`visualize_interactions_lfc.py` are ever ported** (not currently needed,
+since their output is already available precomputed):
+- The `anndata` pickle version-compatibility issue: pickled with an older
+  `anndata` whose internal `AnnDataFileManager` used the state key `_adata`;
+  the installed `anndata` 0.12.10 expects `_adata_ref` and raises
+  `KeyError` otherwise. Confirmed these objects aren't actually file-backed
+  (`_filename`/`_file` are `None`), so it's a pure key-rename fix, not a
+  real backed-file problem.
+- A sample-ID namespace mismatch: `compute_interactions.py` indexes
+  `clusters_annotated.parquet` by the anndata pickle's short napari-style
+  filename (e.g. `240217_005`), but that file is indexed by the long-form
+  `sample_id` used everywhere else in this repo. Bridging via
+  `clinical.parquet`'s `napari_sample_id` column works for 515/541 (95%)
+  of pickles; the rest have no matching clinical row (presumably excluded
+  from the final cohort).
+- **Important, initially-missed nuance**: `compute_interactions.py` reads
+  `clusters_annotated.parquet` (no `_v2`), which disagrees with the
+  verified-correct `_v2` file on 73% of rows' `niche` column -- this looks
+  like a bug at first glance, but isn't: `visualize_interactions_lfc.py`
+  computes everything using the old (non-`_v2`) niche assignment throughout
+  (this is genuinely what produced the paper's results), then at the very
+  end remaps *only the output filenames* from old to new niche names via a
+  lookup on the raw k-means cluster ID (present in both files), before
+  saving to `dataframes_v2/`. Naively substituting `_v2` throughout the
+  computation -- which is what "fix the stale annotation" would naturally
+  suggest -- would actually be the real deviation, since it would change
+  which cells get grouped into which niche during the interaction
+  computation itself.
 
 ## Supplementary Fig. 7 (50-seed ARI robustness sweep): no plotting script found
 

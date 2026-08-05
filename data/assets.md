@@ -41,7 +41,7 @@ missing from the table entirely.
 |---|---|---|---|
 | `5-niches/annotation/clusters_annotated_v2.parquet` | **Yes** | `figure5_niche_clustering.py` + `figure5_niche_annotation.py`; verified byte-identical (all 2,051,915 cells' `niche`/`meta_niche`) -- but downstream scripts still read this staged copy directly rather than that pipeline's own output, since the dependency predates the fix (see `figure5_niche_annotation.py`'s docstring) | `figure5_niche_heatmap.R`, `figure6_inflammation_violin.R`, `figure6_km_niche6.R`, `figure6e_immune_risk_score_km.R`, `figure7a_stromogenic_violin.R`, `figure7b_niche9_km.R`, `figure7c_myCAF_km.R`, `figureS4b_niche_mean_composition.py`, `figure6c_niche_composition_filtered.py`, `figureS6bc_niche_km.R` |
 | `5-niches/annotation/niche_annotations_v2.csv` | **Yes** | `figure5_niche_annotation.py` (same verification as above) | `figure5_niche_heatmap.R`, `figure5_niche_correlation.R`, `figure6_niche_abundance_heatmap.R` |
-| `5-niches/annotation/clusters_annotated.parquet` (no `_v2`) | No -- and **should not be used as-is**: confirmed its `niche` column differs from `clusters_annotated_v2.parquet` on 1,495,315 of 2,051,915 rows (73%) -- an older, pre-"revised annotation" naming scheme, superseded by v2 everywhere else in this repo. See Discrepancies. | unknown (predates the `niche_annotations_revised.xlsx` fix) | not used by any current script; `compute_interactions.py` (unported, Fig 7d-f) reads this file *by name* in legacy -- would need to be pointed at `_v2` instead, disclosed |
+| `5-niches/annotation/clusters_annotated.parquet` (no `_v2`) | No | unknown (predates the `niche_annotations_revised.xlsx` fix) | not used by any current script. Its `niche` column disagrees with `_v2` on 73% of rows, but this is **not** a "stale, should be replaced" case -- see Discrepancies: `compute_interactions.py`/`visualize_interactions_lfc.py` (unported, not needed -- see the circos-pipeline section) genuinely computed the paper's results using this old assignment, only renaming output *files* to `_v2` niche names at the very end |
 | `5-niches/annotation/niche_annotations.csv` (no `_v2`) | No | unknown, same vintage as `clusters_annotated.parquet` (no `_v2`) | not used by any current script |
 | `5-niches/barplot_data/metadata_with_dendrogram_colors_label_pat_id.parquet` | No | unknown (precomputed, no reproducing script) | `figure4_metagroup_barplot.py`, `figure4c_patient_cluster_km.R`, `figureS3b_cluster_concordance.R`, `figureS3c_progression_km.R` |
 | `5-niches/barplot_data/metadata_with_dendrogram_colors_label_tma_id.parquet` | No | unknown (precomputed, no reproducing script) | `figureS3b_cluster_concordance.R` |
@@ -57,26 +57,32 @@ missing from the table entirely.
 
 **Note**: `PCa_NHood/CellCellNeighborhoods/metadata.parquet` under `LEGACY_DATA_DIR` (464 rows, indexed by `tma_id`) is a *different, unrelated* file from the live, un-staged `metadata.parquet` at the same relative path under `/work/FAC/FBM/DBC/mrapsoma/prometex/data/PCa_NHood/CellCellNeighborhoods/` (541 rows, indexed by short `sample_id` like `240121_003`) -- see the circos-pipeline section below. Same filename, different pipeline stage, not interchangeable.
 
-## Circos-pipeline (Figure 7d-f) assets: live, unstaged, and partially blocked
+## Circos-pipeline (Figure 7d-f) assets
 
-Not under `LEGACY_DATA_DIR` at all -- found this session at
+`figure7def_circos_plots.py` (Fig 7d-f, niches 2/8/9) reads only the final,
+already-computed per-niche interaction data -- it does NOT need the raw
+anndata pickles, since the two upstream stages that would consume them
+(`compute_interactions.py`, `visualize_interactions_lfc.py`) don't
+themselves produce a paper panel and were skipped per direct user
+instruction (their output already existed precomputed).
+
+| Asset | Reproducible? | Produced by | Used by |
+|---|---|---|---|
+| `5-niches/visualization/interactions/redo/per_niche_lfc_above_median/dataframes_v2/{niche}.parquet` (niches 2/8/9 staged) | No | unknown (`compute_interactions.py` + `visualize_interactions_lfc.py`, not run in this repo -- see Discrepancies) | `figure7def_circos_plots.py` |
+
+**Live, unstaged, not currently needed** (documented here in case
+`compute_interactions.py`/`visualize_interactions_lfc.py` are ever ported):
+found this session at
 `/work/FAC/FBM/DBC/mrapsoma/prometex/data/PCa_NHood/CellCellNeighborhoods/`
 (a different, broader live directory than the `LEGACY_DATA_DIR`-staged copy
-above, which only has a subset of its contents copied in).
-
-| Asset | Reproducible? | Notes |
-|---|---|---|
-| `PCa_NHood/CellCellNeighborhoods/anndatas/{napari_sample_id}.pkl` (2,515 files) | No -- per-sample raw output, not derivable in this repo | Per-cell `AnnData` with `obsp['radius_32']`/`obsp['radius_48']` neighbor graphs, `obs['label']`/`x`/`y`. **Loads only with a disclosed compatibility monkeypatch** -- pickled with an older `anndata` version whose internal `AnnDataFileManager` stored a self-reference under the key `_adata`; the installed `anndata` 0.12.10 expects `_adata_ref` and raises `KeyError` otherwise. Confirmed the objects aren't actually file-backed (`_filename`/`_file` are `None`), so this is a pure key-rename compatibility issue, not a real backed-file problem. |
-| `PCa_NHood/CellCellNeighborhoods/metadata.parquet` (541 rows, `sample_id` = short napari-style id, e.g. `240121_003`) | No | Per-sample clinical metadata in the *same ID scheme as the anndata pickle filenames* -- **not needed** as a separate input, though, since `clinical.parquet`'s own `napari_sample_id` column (confirmed present, matches this scheme) already bridges to the long-form `sample_id` used everywhere else in this repo. |
-
-**Discrepancy -- sample-ID namespace mismatch (see below for detail):**
-`compute_interactions.py` does `df_clusters.loc[sample]` where `sample` is
-the anndata pickle's napari-style filename, but `clusters_annotated(_v2).parquet`
-is indexed by the long-form `sample_id`. Bridging via
-`clinical.parquet['napari_sample_id']` is required -- confirmed working for
-515 of 541 pickles (95%); the other 26 have no matching clinical row
-(presumably samples excluded from the final cohort, consistent with the
-per-core filtering seen elsewhere in this project).
+of the same relative path, which only has a subset of its contents copied
+in) -- `anndatas/{napari_sample_id}.pkl` (2,515 per-sample `AnnData`
+pickles with `obsp['radius_32']`/`obsp['radius_48']` neighbor graphs) and
+`metadata.parquet` (541 rows, indexed by the same short napari-style
+`sample_id` as the pickle filenames -- not actually needed as a separate
+input, since `clinical.parquet`'s own `napari_sample_id` column already
+bridges to this repo's usual long-form `sample_id`). See Discrepancies for
+the two issues that would need disclosed fixes to load/use these.
 
 ## Recovered legacy UMAP embeddings (`data/figures/`)
 
@@ -99,15 +105,25 @@ unused (confirmed by grep) -- re-checked this session, no change.
    + `figure5_niche_annotation.py` produce byte-identical output, confirmed
    in that script's own docstring. Downstream scripts still read the staged
    copy directly (a deliberate, disclosed choice, not an oversight).
-2. **`clusters_annotated.parquet` (no `_v2`) is stale, not just unreproduced**
-   -- its `niche` column disagrees with the verified-correct `_v2` file on
-   73% of rows. `compute_interactions.py` names this exact (non-`_v2`) file
-   in legacy; porting it verbatim would silently use outdated niche labels.
-   Using `_v2` instead would be a disclosed, justified substitution (matches
-   every other script in this repo), not a literal port.
-3. **Sample-ID namespace mismatch for the circos pipeline** -- see above.
-   Not present in any already-implemented script; only affects the
-   not-yet-ported `compute_interactions.py`/`visualize_interactions_lfc.py`/`visualize_circos_plot.py`.
-4. **`anndata` pickle version incompatibility** -- see above. A disclosed,
-   minimal compatibility shim (not a logic change) would be needed to port
-   `compute_interactions.py`.
+2. **`clusters_annotated.parquet` (no `_v2`) initially looked stale, but
+   isn't a bug to fix** -- its `niche` column disagrees with the
+   verified-correct `_v2` file on 73% of rows. First instinct was that
+   `compute_interactions.py` naming this exact file was an oversight and
+   should be pointed at `_v2` instead. Wrong: `visualize_interactions_lfc.py`
+   (read in full to check) confirms the *entire computation* -- which cells
+   get grouped into which niche, all interaction-frequency/LFC math --
+   genuinely ran on this old assignment to produce the paper's actual
+   results; only the output *filenames* get remapped from old to new niche
+   names at the very end (via a lookup on the raw k-means cluster ID,
+   present in both files), before `visualize_circos_plot.py` reads them.
+   Substituting `_v2` throughout the computation would have been the real
+   deviation. Moot for this repo either way, since `compute_interactions.py`/
+   `visualize_interactions_lfc.py` were skipped (their already-computed
+   `_v2`-renamed output exists precomputed, see below).
+3. **Sample-ID namespace mismatch, `anndata` pickle version incompatibility**
+   -- both documented in the circos-pipeline section above. Neither
+   affects any implemented script, including `figure7def_circos_plots.py`
+   (reads only the final precomputed data, never touches the raw pickles or
+   `clusters_annotated.parquet`) -- kept here only in case
+   `compute_interactions.py`/`visualize_interactions_lfc.py` are ever
+   ported for some other reason.
