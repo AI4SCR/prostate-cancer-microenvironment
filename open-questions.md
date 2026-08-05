@@ -512,13 +512,13 @@ since their output is already available precomputed):
   `KeyError` otherwise. Confirmed these objects aren't actually file-backed
   (`_filename`/`_file` are `None`), so it's a pure key-rename fix, not a
   real backed-file problem.
-- A sample-ID namespace mismatch: `compute_interactions.py` indexes
-  `clusters_annotated.parquet` by the anndata pickle's short napari-style
-  filename (e.g. `240217_005`), but that file is indexed by the long-form
-  `sample_id` used everywhere else in this repo. Bridging via
-  `clinical.parquet`'s `napari_sample_id` column works for 515/541 (95%)
-  of pickles; the rest have no matching clinical row (presumably excluded
-  from the final cohort).
+- ~~A sample-ID namespace mismatch~~ RESOLVED -- was a wrong-location
+  artifact. The anndata pickles found earlier (`/work/.../data/PCa_NHood/CellCellNeighborhoods/anndatas/`,
+  napari-style short filenames) turned out not to be the right location.
+  `data/assets.md` documents the actual correct location, matching legacy's
+  own hardcoded path exactly, where the pickles are already named with the
+  long-form `sample_id` directly -- 100% overlap with
+  `clusters_annotated_v2.parquet`, no bridging needed.
 - **Important, initially-missed nuance**: `compute_interactions.py` reads
   `clusters_annotated.parquet` (no `_v2`), which disagrees with the
   verified-correct `_v2` file on 73% of rows' `niche` column -- this looks
