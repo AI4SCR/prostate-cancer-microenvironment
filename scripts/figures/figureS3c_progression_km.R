@@ -1,31 +1,3 @@
-# Reproduce Supplementary Figure 3c: Kaplan-Meier progression-free survival
-# by patient cluster (P1-P6).
-#
-# 1:1 port of 000_paper/sync_paper/03_survival/patient_risk_group_km.R --
-# the progression-free branch only. The overall-survival branch of that same
-# script is Figure 4c's already-validated script,
-# figure4c_patient_cluster_km.R, which is not touched here; this is an
-# independent, standalone port of the same data-loading/relabeling logic
-# (duplicated rather than shared, per this repo's own anti-pattern rule
-# against cross-script imports of reusable logic).
-#
-# Disclosed fix: legacy computes this exact plot but never saves it -- its
-# ggsave call is commented out and references an undefined `result_dir`
-# variable (an authoring-artifact bug, matched verbatim as dead code in
-# figure4c_patient_cluster_km.R's port of the overall-survival branch, since
-# that branch's own save works fine). Since this script's entire purpose
-# *is* this panel, the save is enabled here -- same precedent as
-# figure6_niche_abundance_heatmap.R's already-enabled commented-out
-# pdf()/dev.off().
-#
-# Cluster labels: "C1".."C6" -> "P1".."P6", same disclosed correction as
-# figure4c_patient_cluster_km.R (see that script's docstring for the full
-# rationale).
-#
-# Reads scripts/data/export.py's clinical.parquet and LEGACY_DATA_DIR's
-# precomputed metadata_with_dendrogram_colors_label_pat_id.parquet. Writes
-# to OUTPUT_FIGURES_DIR/figureS3/.
-
 library(dotenv)
 load_dot_env()
 
@@ -46,8 +18,8 @@ stopifnot(
   "refusing to treat BASE_DIR as writable" = !startsWith(normalizePath(export_dir, mustWork = FALSE), normalizePath(base_dir, mustWork = FALSE))
 )
 
-save_dir <- file.path(output_figures_dir, "figureS3")
-dir.create(save_dir, recursive = TRUE, showWarnings = FALSE)
+figures_dir <- file.path(output_figures_dir, "figureS3")
+dir.create(figures_dir, recursive = TRUE, showWarnings = FALSE)
 
 clinical <- read_parquet(file.path(export_dir, "clinical.parquet"))
 num.patients <- clinical$pat_id |> n_distinct()
@@ -91,8 +63,8 @@ p_prog <- ggsurvplot(
   risk.table.height = 0.25
 )
 
-p_prog_combined <- p_prog$plot / p_prog$table
-plot_path <- file.path(save_dir, "figureS3c_progression_by_patient_cluster.png")
-ggsave(plot_path, p_prog_combined, width = 10, height = 6)
+p_prog$plot
 
-cat("Saved Supplementary Figure 3c to", plot_path, "\n")
+plot_name <- "progr_patient_cluster_group_final_all.pdf"
+plot_path <- file.path(result_dir, plot_name)
+# ggsave(plot_path, p_prog$plot, width = 10, height = 6)

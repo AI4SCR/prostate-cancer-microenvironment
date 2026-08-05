@@ -1,23 +1,3 @@
-# Reproduce Supplementary Figure 3b: core-to-patient cell-composition
-# cluster concordance heatmap.
-#
-# 1:1 port of the old repo's
-# 000_paper/sync_paper/05-heterogeneity/patient-core-heterogeneity.R --
-# the cluster-group concordance section only (first half of that file; the
-# Gleason-concordance section, second half, is Supplementary Figure 1b's
-# script, figureS1b_gleason_concordance.R).
-#
-# Disclosed fix: legacy references an undefined `save_dir` in its `ggsave()`
-# call (only `output_dir`/`figures_dir` are ever defined) -- same
-# authoring-artifact bug as figureS1b_gleason_concordance.R's, fixed the
-# same way (use `figures_dir`, here this script's own `save_dir`).
-#
-# Reads $EXPORT_DIR/clinical.parquet and LEGACY_DATA_DIR's precomputed
-# metadata_with_dendrogram_colors_label_{pat_id,tma_id}.parquet (the same
-# patient-level file Figure 4b/4c already read; the TMA-level file is this
-# script's own dendrogram-leaf-color output, already staged). Writes to
-# $OUTPUT_FIGURES_DIR/figureS3/heatmap_cluster_group_tma_by_patient_cluster_group.pdf.
-
 library(dotenv)
 load_dot_env()
 
@@ -35,8 +15,8 @@ stopifnot("EXPORT_DIR is not set; copy .env.example to .env and fill it in" = nz
 stopifnot("OUTPUT_FIGURES_DIR is not set; copy .env.example to .env and fill it in" = nzchar(output_figures_dir))
 stopifnot("LEGACY_DATA_DIR is not set; copy .env.example to .env and fill it in" = nzchar(legacy_dir))
 
-save_dir <- file.path(output_figures_dir, "figureS3")
-dir.create(save_dir, recursive = TRUE, showWarnings = FALSE)
+figures_dir <- file.path(output_figures_dir, "figureS3")
+dir.create(figures_dir, recursive = TRUE, showWarnings = FALSE)
 
 clinical <- read_parquet(file.path(export_dir, "clinical.parquet"))
 num.patients <- clinical$pat_id |> n_distinct()
@@ -161,10 +141,10 @@ g_strip <- pat_order %>%
     panel.grid = element_blank()
   )
 
-p <- (g_strip + g_main) + plot_layout(widths = c(1, 10))
+(g_strip + g_main) + plot_layout(widths = c(1, 10))
 
 # save as pdf
 plot_name <- "heatmap_cluster_group_tma_by_patient_cluster_group.pdf"
 plot_path <- file.path(save_dir, plot_name)
-ggsave(plot_path, p, width = 10, height = 20)
+ggsave(plot_path, (g_strip + g_main) + plot_layout(widths = c(1, 10)), width = 10, height = 20)
 cat("Saved Supplementary Figure 3b to", plot_path, "\n")

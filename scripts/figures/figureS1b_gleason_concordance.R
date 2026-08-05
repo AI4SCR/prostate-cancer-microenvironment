@@ -1,25 +1,3 @@
-# Reproduce Supplementary Figure 1b: core-to-patient Gleason group
-# concordance heatmap.
-#
-# 1:1 port of the old repo's
-# 000_paper/sync_paper/05-heterogeneity/patient-core-heterogeneity.R --
-# the Gleason-concordance section only (second half of that file; the
-# cluster-group concordance section, first half, is Supplementary Figure
-# 3b's script, figureS3b_cluster_concordance.R).
-#
-# Disclosed fix: legacy references an undefined `save_dir` in its `ggsave()`
-# call (only `output_dir`/`figures_dir` are ever defined) -- an
-# authoring-artifact bug, same class as figure6_niche_abundance_heatmap.R's
-# already-fixed commented-out pdf()/dev.off(). Fixed here by using
-# `figures_dir` (this script's `save_dir`, clearly the intended target).
-# Legacy also references an undefined `p` in its final `ggsave(plot_path,
-# p, ...)` call (only auto-printed via `(g_strip + g_main) +
-# plot_layout(...)`, never assigned) -- fixed by assigning that expression
-# to `p` before the save, matching the display line immediately above it.
-#
-# Reads $EXPORT_DIR/clinical.parquet. Writes to
-# $OUTPUT_FIGURES_DIR/figureS1/heatmap_gleason_grp_by_gs_grp.pdf.
-
 library(dotenv)
 load_dot_env()
 
@@ -35,8 +13,8 @@ output_figures_dir <- Sys.getenv("OUTPUT_FIGURES_DIR")
 stopifnot("EXPORT_DIR is not set; copy .env.example to .env and fill it in" = nzchar(export_dir))
 stopifnot("OUTPUT_FIGURES_DIR is not set; copy .env.example to .env and fill it in" = nzchar(output_figures_dir))
 
-save_dir <- file.path(output_figures_dir, "figureS1")
-dir.create(save_dir, recursive = TRUE, showWarnings = FALSE)
+figures_dir <- file.path(output_figures_dir, "figureS1")
+dir.create(figures_dir, recursive = TRUE, showWarnings = FALSE)
 
 clinical <- read_parquet(file.path(export_dir, "clinical.parquet"))
 
@@ -113,7 +91,7 @@ g_strip <- pat_order %>%
     panel.grid = element_blank()
   )
 
-p <- (g_strip + g_main) + plot_layout(widths = c(1, 10))
+(g_strip + g_main) + plot_layout(widths = c(1, 10))
 plot_name <- "heatmap_gleason_grp_by_gs_grp.pdf"
 plot_path <- file.path(save_dir, plot_name)
 
