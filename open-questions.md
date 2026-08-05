@@ -1,5 +1,58 @@
 # Open questions
 
+## Audit: strict verbatim compliance across all sync_paper-sourced scripts
+
+Per explicit user instruction: only path/env-var changes are a permitted
+deviation from a script's cited legacy source -- everything else (enabling
+a commented-out save, dropping a missing column, fixing an undefined
+variable, relabeling values) must be reverted, even when that means the
+ported script now errors out or produces no/incomplete output. Checked
+every script whose `figures.md` citation points at `000_paper/sync_paper/`
+for any deviation beyond path changes; reverted 8 found:
+
+- **`figure4_metagroup_barplot.py` / `figure4c_patient_cluster_km.R`**: the
+  disclosed "C1-C6 -> P1-P6" relabeling (display-only in 4b, underlying
+  value in 4c) doesn't exist in `stacked-frequencies-label.py`/
+  `patient_risk_group_km.R` at all -- removed. Cluster labels are now
+  literally "C1".."C6" again, not "P1".."P6".
+- **`figure6e_immune_risk_score_km.R`**: was still built against the older
+  `000_paper/11_niches/113_survival/inflammation_outcome.R`, not the
+  currently-cited `000_paper/sync_paper/03_survival/inflammatory_niche_risk_group.R`
+  -- these genuinely differ (different raw input, `cell_annotations`/
+  `cell_annotation.parquet` vs `clusters_annotated_v2.parquet`; no trailing
+  diagnostic CSV; `ggsave()` already active in the source, not commented
+  out). Rewritten as a real verbatim port of the current source. Confirmed
+  it now fails at `compute_label_frequency()` -- `metadata.parquet` (this
+  repo's closest analog to `cell_annotation.parquet`) has no `niche`
+  column, matching the cited source's own architecture.
+- **`figureS1b_gleason_concordance.R` / `figureS3b_cluster_concordance.R`**:
+  reverted the `save_dir`-undefined and stray `p <-` assignment fixes.
+  Both now fail with `object 'save_dir' not found`, matching
+  `patient-core-heterogeneity.R` exactly.
+- **`figureS3c_progression_km.R`**: removed the enabled `ggsave()` and the
+  `p_prog_combined` (plot/table) object -- `patient_risk_group_km.R`'s
+  progression-free panel only ever does bare `p_prog$plot` (auto-print,
+  discarded) then a commented-out `ggsave()` referencing undefined
+  `result_dir`. Now fails with `object 'result_dir' not found`.
+- **`figureS5b_inflammation_km.R` / `figureS6a_stromogenic_km.R`**: were
+  still built against the older `risk_groups_label.R`, not the
+  currently-cited `000_paper/sync_paper/03_survival/clinical_risk_group_km.R`
+  -- 3 of 4 KM panels there save a combined `plot/table` object, not the
+  plot alone, plus different filenames/subdirectory structure. Rewritten as
+  real verbatim ports. Both now fail at `ggsave()` with "Cannot find
+  directory" -- the source never creates the `dir_inflam`/`dir_stromo`
+  subdirectory it saves into, a genuine bug in the current source.
+
+**Deliberately not touched, different category**: Figure 6b/7b/S6bc/7c's
+"still implements the older legacy-dir script's logic despite now citing a
+`sync_paper` sibling" gap (see the policy audit entry below) is an openly
+disclosed citation-vs-implementation mismatch already tracked as a pending
+decision, not a silently-applied fix -- out of scope for this pass.
+Package substitutions required by genuinely uninstallable dependencies
+(`introdataviz` -> `geom_violin`+`position_dodge` in the two violin
+scripts) are also not in scope here; those remain under the project's
+original, separate "disclosed package substitution" permitted category.
+
 ## Supplementary Fig 4b: stacked bars only approximately match the published figure
 
 Per direct user observation, `figureS4b_niche_mean_composition.py`'s output
@@ -17,111 +70,186 @@ known cause; this one doesn't have a known cause yet). `figure6c_niche_compositi
 shares the exact same computation (filtered to niches 6/16/17/18), so
 whatever the cause turns out to be likely affects that panel too.
 
-## Audit: did every `scripts/figures/*` port use the newest available `sync_paper` sibling?
+## Policy: `figures.md`'s "Ported from" always cites `sync_paper` when a usable sibling exists
 
-Prompted by a direct question: several `000_paper/11_niches/`-family legacy
-scripts have a same-purpose sibling under the more recently-pulled
-`000_paper/sync_paper/`, since collaborators reorganized/updated a subset of
-scripts there. Checked every "Ported from" entry in `figures.md` that still
-points outside `sync_paper` for such a sibling. Two findings need a decision
-before anything is changed; the rest are informational.
+Prompted by a direct question about whether ported scripts used the newest
+available source. Checked every "Ported from" entry in `figures.md` that
+pointed outside `000_paper/sync_paper/` for a same-purpose `sync_paper`
+sibling, and confirmed via git history (not just file mtime, which only
+reflects when the legacy repo was pulled/copied into this environment) that
+`sync_paper` genuinely holds the later edit in every case: every `sync_paper`
+file checked has a last commit dated 2026-04-23 (one bulk "refactoring
+paths" commit across the whole tree), versus 2026-03-04/03-17 for every
+`000_paper/11_niches/`(or other legacy-dir) counterpart.
 
-**Figure 7c (myCAF KM) -- threshold discrepancy, not previously checked.**
-`figure7c_myCAF_km.R` ports `000_paper/11_niches/113_survival/label_kaplan_meier_binary.R`
-(threshold = 75th percentile, deliberately, per that script's own docstring).
-`000_paper/sync_paper/03_survival/celltype_km.R` is the same analysis at the
-same `level = "label"` granularity (confirmed via diff: identical
-frequency/quantile/binary-split/KM structure, only clinical-loading and
-path-setup boilerplate differs) -- but uses `threshold <- "50%"` (median),
-not 75th percentile. This is a genuine, previously-unflagged fork: our port
-matches the older script's 75% deliberately, but the newer sibling covering
-the exact same panel uses a different threshold entirely. This changes who
-falls into the "high myCAF" group and could change the reported HR/p-value.
-Not changed pending a decision on which threshold the published Figure 7c
+Per direct user instruction, adopted as policy and applied to `figures.md`:
+**`Ported from` always cites the `sync_paper` sibling when one exists, full
+stop -- the older legacy-dir path is cited only when no `sync_paper`
+sibling exists at all.** Reproducing the actual script the paper's
+collaborators used takes priority over having a working script: if the
+`sync_paper` sibling is broken, it's still the cited source and still the
+one ported verbatim (bugs and all), documented and flagged for upstream
+fixing rather than quietly swapped for an older script that happens to run
+(see Figure 6d/7a below -- the one case where this actually applies). This
+changed the `Ported from` citation for: Figure 5a (`z_score_heatmap.R` ->
+`z_score_composition_vis.R`; `00_kmeans_clustering.py` ->
+`kmeans_clustering.py`), Figure 5b (`niche_pairwise_corrleation.R` ->
+`correlation_frequencies.R`), Figure 6b/7b/S6bc
+(`niche_kaplan_meier_binary.R` -> `niche_km.R`), Figure 6d/7a
+(`inflammation_vis.R`/`stromogenic_vis.R`, both now BLOCKED, see below),
+Figure 6e (`inflammation_outcome.R` -> `inflammatory_niche_risk_group.R`),
+Figure 7c (`label_kaplan_meier_binary.R` -> `celltype_km.R`), and Figure
+S5b/S6a (`risk_groups_label.R` -> `clinical_risk_group_km.R`). Figure 6a
+already cited its `sync_paper` source (`heatmap_frequencies.R`).
+
+Citing a `sync_paper` source is purely an attribution change for most of
+these rows -- the sibling was confirmed functionally identical (or the
+script logic was already unaffected) for Figure 5a, 5b, 6e, and S5b/S6a, see
+the checks below. **It is not yet a logic change for Figure 6b/7b/S6bc or
+7c**: those scripts still implement the older behavior that the source they
+now cite has since departed from, and that gap is a separate, unresolved
+question (below) -- the citation says "this is the correct current source
+to port," not "our script already matches it."
+
+**Figure 7c (myCAF KM) -- threshold discrepancy, not yet resolved.**
+`figure7c_myCAF_km.R` still implements `000_paper/11_niches/113_survival/label_kaplan_meier_binary.R`'s
+threshold (75th percentile, deliberately, per that script's own docstring).
+Its now-cited source, `000_paper/sync_paper/03_survival/celltype_km.R`, is
+the same analysis at the same `level = "label"` granularity (confirmed via
+diff: identical frequency/quantile/binary-split/KM structure, only
+clinical-loading and path-setup boilerplate differs) -- but uses
+`threshold <- "50%"` (median), not 75th percentile. This changes who falls
+into the "high myCAF" group and could change the reported HR/p-value. Not
+changed pending a decision on which threshold the published Figure 7c
 actually used (paper Methods text, if it states a percentile, would settle
 this).
 
-**Figure 6b / 7b / S6bc (niche KM) -- newer sibling adds BH-adjusted q-values.**
-`figure6_km_niche6.R`/`figure7b_niche9_km.R`/`figureS6bc_niche_km.R` all port
-`000_paper/11_niches/113_survival/niche_kaplan_meier_binary.R` (threshold =
-50th percentile, `conf.int = FALSE`). `000_paper/sync_paper/03_survival/niche_km.R`
-runs the identical per-niche binary-split KM logic (same 50% threshold) but
-additionally: loops over *all* niches in one pass and aggregates a
-`coxph()` p-value/coefficient per niche into `overall_survival_analysis_results.csv`
-/ `progression_free_survival_analysis_results.csv`, each with a
+**Figure 6b / 7b / S6bc (niche KM) -- newer source adds BH-adjusted q-values, not yet resolved.**
+`figure6_km_niche6.R`/`figure7b_niche9_km.R`/`figureS6bc_niche_km.R` all
+still implement `000_paper/11_niches/113_survival/niche_kaplan_meier_binary.R`'s
+logic (threshold = 50th percentile, `conf.int = FALSE`). Their now-cited
+source, `000_paper/sync_paper/03_survival/niche_km.R`, runs the identical
+per-niche binary-split KM logic (same 50% threshold) but additionally: loops
+over *all* niches in one pass and aggregates a `coxph()` p-value/coefficient
+per niche into `overall_survival_analysis_results.csv`/
+`progression_free_survival_analysis_results.csv`, each with a
 Benjamini-Hochberg-adjusted q-value column (`p.adjust(..., method = "BH")`)
 on top of the raw log-rank p-value; and uses `conf.int = TRUE` in
-`ggsurvplot()`, vs `FALSE` in the version we ported. The underlying
-per-niche KM curve/threshold logic is unchanged, so this doesn't affect
-which curves get drawn -- but if the published p-values for Fig 6b/7b/S6bc
-are BH/FDR-adjusted across all 18 niches rather than raw log-rank p-values,
-our current scripts (which only ever compute one niche's raw p-value, never
-adjusted across niches) would report the wrong significance value. Not
-implemented pending confirmation of whether the paper's reported p-values
-are raw or multiple-testing-corrected.
+`ggsurvplot()`, vs `FALSE` in our scripts. The underlying per-niche KM
+curve/threshold logic is unchanged, so this doesn't affect which curves get
+drawn -- but if the published p-values for Fig 6b/7b/S6bc are BH/FDR-adjusted
+across all 18 niches rather than raw log-rank p-values, our current scripts
+(which only ever compute one niche's raw p-value, never adjusted across
+niches) would report the wrong significance value. Not implemented pending
+confirmation of whether the paper's reported p-values are raw or
+multiple-testing-corrected.
 
-**Checked and confirmed our current choice is already correct / no newer alternative:**
-- Figure 6e (`figure6e_immune_risk_score_km.R`, ports `inflammation_outcome.R`):
-  sync_paper sibling `03_survival/inflammatory_niche_risk_group.R` is
+**Checked and confirmed identical / no logic change needed:**
+- Figure 6e: sibling `03_survival/inflammatory_niche_risk_group.R` is
   functionally identical (same threshold, same risk_group logic) and
   independently applies the same two disclosed fixes already made in our
   port -- enabling the commented-out `ggsave()` calls, and dropping the
   trailing diagnostic CSV that selects the nonexistent `clinical$sample_name`
-  column (see the Figure 6e entry below). No change needed; this cross-check
-  increases confidence in both fixes.
-- Figure S5b / S6a (`figureS5b_inflammation_km.R`/`figureS6a_stromogenic_km.R`,
-  port `risk_groups_label.R`'s inflammation/stromogenic sections): sync_paper
-  sibling `03_survival/clinical_risk_group_km.R` covers the same two sections
-  (the sibling's patient-cluster-KM section was split out into
-  `patient_risk_group_km.R`, already our Figure 4c/S3c source) with `ggsave()`
-  already enabled and no other logic change. No change needed.
-- Figure 5b (`figure5_niche_correlation.R`): sync_paper copy
-  (`06-spatial-niches/abundance/correlation_frequencies.R`) already found and
+  column (see the Figure 6e entry below). This cross-check increases
+  confidence in both fixes.
+- Figure S5b / S6a: sibling `03_survival/clinical_risk_group_km.R` covers the
+  same two sections as `risk_groups_label.R`'s inflammation/stromogenic parts
+  (its patient-cluster-KM section was split out separately into
+  `patient_risk_group_km.R`, already our Figure 4c/S3c source) with
+  `ggsave()` already enabled and no other logic change.
+- Figure 5b: sibling `06-spatial-niches/abundance/correlation_frequencies.R`
   confirmed identical, see that entry below.
-- Figure 6a (`figure6_niche_abundance_heatmap.R`): already ports the
-  sync_paper script (`heatmap_frequencies.R`), see that entry below.
+- Figure 5a: sibling `06-spatial-niches/composition/z_score_composition_vis.R`
+  reads the same precomputed `niche_heatmap_data.parquet` our current script
+  already reads (not a from-scratch recompute on either side, contrary to an
+  earlier pass over this file); the only real differences are cosmetic
+  (colors sourced from `resources/colormaps.yaml`-equivalent YAML instead of
+  hardcoded, one dead `cell_fun` block dropped, output written once instead
+  of twice under two names) -- confirmed via full diff, no logic deviation.
+  Its clustering-step sibling, `06-spatial-niches/construction/kmeans_clustering.py`,
+  inlines the same `perform_kmeans_clustering()`/`wrapper_nhood_filtering()`
+  calls (same `k=24`, `seed=686`, `KMeans(n_init='auto', init='k-means++')`)
+  that `figure5_niche_clustering.py` already imports live from the staged
+  `utils.clustering` module -- same underlying function, inlined vs.
+  imported, not a different implementation.
 - Figure 2 heatmap/UMAPs, Figure 4d-e Cox HR, Figure S1a cohort summary: no
   `sync_paper` sibling exists at all (`sync_paper` has no `04_heatmaps`,
   `02_umaps`, or `01_clinical_metadata` equivalent, and no Cox-hazard-ratio
-  script under `03_survival`) -- current sources are the only ones available.
+  script under `03_survival`) -- current sources are the only ones available,
+  citation unchanged.
 
-**Checked, sync_paper sibling is broken -- current source correctly kept.**
-Figure 6d / 7a (`figure6_inflammation_violin.R`/`figure7a_stromogenic_violin.R`,
-port `112_violinplots/inflammation_vis.R`/`stromogenic_vis.R`): sync_paper's
-`06-spatial-niches/histology/inflammation_vis.R` and `.../stromogenic_vis.R`
-are mid-refactor and reference undefined variables as literally written
-(`inflammation_vis.R` uses `df_long` on its first real line of plotting code,
-never defined anywhere in that file; `stromogenic_vis.R` uses `df_long_full`,
-also never defined) -- both would error immediately if run. They also drop
-the split-violin/facet-by-up-down-direction panel entirely in favor of a
-differently-specified pair of panels (per-niche `facet_wrap`, then a
-non-split dodged violin), so even fixing the crash wouldn't reproduce the
-same panel our current ports produce. Correctly not adopted; flagging so a
-future check of `sync_paper` doesn't assume these are simply an unapplied
-upgrade.
+## Figure 6d / 7a: BLOCKED -- verbatim ports of the latest (`sync_paper`) source, which errors as literally written
 
-**Not deeply audited, flagged for awareness only:**
-- Figure 5a: `000_paper/sync_paper/06-spatial-niches/composition/z_score_composition_vis.R`
-  is a third copy of the niche z-score heatmap script (also uses
-  `top_annotation`, reinforcing the existing Figure 5a entry below), but
-  reads precomputed `niche_heatmap_data.parquet`/`niche_abundance_stats.parquet`
-  rather than recomputing z-scores from `clusters_annotated_v2.parquet` the
-  way `figure5_niche_heatmap.R`/`figure5_niche_clustering.py`/
-  `figure5_niche_annotation.py` currently do -- a structurally different
-  pipeline, not just a path refactor. Not compared line-by-line against our
-  current (already-validated, per the resolved 11-script audit below) niche
-  z-score pipeline.
-- Figure 5a support scripts: `000_paper/sync_paper/06-spatial-niches/construction/kmeans_clustering.py`
-  and `.../compute_spatial_nhood.py` are a much larger, function-based
-  rewrite of `000_paper/11_niches/110_analysis/00_kmeans_clustering.py`
-  (adds GPU/Leiden and nhood-filtering options not in the current script).
-  Not compared in depth.
-- Figure 7d-f circos: `000_paper/sync_paper/06-spatial-niches/interactions/interaction_compute_circos.py`
-  is a combined, single-file (582-line) version of the
-  compute/visualize-circos pipeline. Still appears to require per-sample
-  anndata objects, so almost certainly blocked by the same missing-data
-  issue already documented below (Figure 7d-f entry) -- not investigated
-  further since that blocker, not script choice, is the limiting factor.
+Was: an earlier pass on this question kept `figure6_inflammation_violin.R`/
+`figure7a_stromogenic_violin.R` pointed at the older, working
+`000_paper/11_niches/112_violinplots/inflammation_vis.R`/`stromogenic_vis.R`,
+reasoning that their `sync_paper` siblings were broken and therefore not
+"the relevant sibling." **Overridden per direct, explicit user instruction:
+reproducing the figures means using the actual script the paper's
+collaborators used, verbatim, even if that script is broken -- a broken
+script gets documented and escalated to the collaborators to fix, not
+silently swapped for a different, older script that happens to run.**
+
+Both scripts are now 1:1 ports of the `sync_paper` source (paths translated
+to this repo's `.env` vars, `utils_R.R`'s `compute_label_frequency()`
+inlined; no other change), and both are confirmed **BLOCKED** by actually
+running them in this environment:
+
+- **Figure 6d** (`000_paper/sync_paper/06-spatial-niches/histology/inflammation_vis.R`):
+  fails with `Error: object 'df_long' not found` at
+  `df_long$inflammation <- factor(df_long$inflammation, ...)` -- `df_long`
+  is referenced but never defined anywhere in the file. Traced via git log:
+  its definition was present as of commit `a7d0b602` (2026-04-12 21:03,
+  "descriptive niches added") and deleted 12 minutes later by `c185c9e9`
+  ("added niches and histology part") while the line using it was left
+  behind -- an accidental regression, never fixed by the later `aa8a8b59`
+  ("refactoring paths", 2026-04-23) commit, which only touches
+  path/config-loading boilerplate.
+- **Figure 7a** (`000_paper/sync_paper/06-spatial-niches/histology/stromogenic_vis.R`):
+  fails with `Error in c(no = "#9efa70", yes = "#c55797", ) : argument 3 is
+  empty` at the `my_cols <- c(...)` definition -- the trailing comma is
+  syntactically legal in R (unlike the "unparseable" characterization in
+  the now-superseded entry for the older script, see below) but produces an
+  empty third argument, a runtime error. A second, independent bug sits
+  further down (`p_full <- ggplot(df_long_full, ...)` references
+  `df_long_full`, never defined in this file) but isn't reachable/confirmed
+  since execution halts at the `my_cols` error first.
+
+Neither bug is fixed here, and the older, working legacy-dir scripts are
+not substituted. These are now blocked exactly like the other
+missing-data/permission-denied blockers in this file (Figure 6a, Figure
+7d-f) -- the fix has to come from whoever maintains `sync_paper`. If it's
+fixed upstream, re-pull and re-run; until then these two panels produce no
+output. The stale PDFs previously produced by the old (working, but no
+longer cited) script version were removed from `output/figures/figure7/`
+since they no longer correspond to any current script's output; Figure 6d
+had none staged.
+
+Also note: even a fixed version of these scripts would drop the
+split-violin/facet-by-up-down-direction panel present in the older scripts,
+replacing it with a differently-specified pair of panels (per-niche
+`facet_wrap`, then a non-split dodged violin) -- a real panel-scope
+difference, not just a bug, worth knowing about if/when this unblocks.
+
+**Not deeply audited, flagged for awareness only (no `figures.md` citation exists to change here):**
+- Figure 5a's clustering-support sibling, `06-spatial-niches/construction/kmeans_clustering.py`,
+  also bundles `compute_spatial_nhood.py`-adjacent functions (GPU/Leiden
+  graph construction, nhood-filtering) belonging to an earlier upstream step
+  (building the cell-cell neighborhood graph itself) that no script in this
+  repo reproduces either way -- not relevant to the citation change above,
+  noted in case that upstream step is ever tackled.
+- Figure 7d-f circos: correcting an error in an earlier pass over this
+  question, which assumed this panel was still blocked -- it's actually
+  already resolved (see the Figure 7d-f entry below) and
+  `figure7def_circos_plots.py` runs end to end today.
+  `000_paper/sync_paper/06-spatial-niches/interactions/interaction_compute_circos.py`
+  is a combined, single-file (582-line) version of the *compute* stages
+  (`compute_interactions.py`/`visualize_interactions_lfc.py`-equivalent) --
+  the two upstream stages our current script deliberately skips, since their
+  output already exists precomputed (per the resolved entry). It doesn't
+  contain a `visualize_circos_plot.py`-equivalent (the actual
+  figure-drawing stage `figure7def_circos_plots.py` ports), so it isn't a
+  relevant sibling to switch to; citation unchanged.
 
 ## ~~Figure 6a: wrong legacy script ported, correct one's data is missing~~ PARTIALLY RESOLVED
 
@@ -323,21 +451,25 @@ script both before and after the fix. Flagging as an open schema question
 columns, or was it dropped from the export entirely?) rather than guessing
 which one to substitute.
 
-## Figure 7a: legacy syntax bug (trailing comma)
+## ~~Figure 7a: legacy syntax bug (trailing comma)~~ SUPERSEDED (script no longer ports this source)
 
-`stromogenic_vis.R`'s `my_cols <- c(no = "#9efa70", yes = "#c55797",)` has a
-trailing comma inside `c(...)`, which is not valid R syntax -- confirmed
-this makes the legacy script unparseable past this line as literally
-written (R does not permit trailing commas in argument lists, unlike some
-other languages). Fixed in `figure7a_stromogenic_violin.R` by removing the
-trailing comma; no logic change. Also note: legacy's `p_up` panel
-(stromogenic-specific up/down niches) is computed and printed but never
-saved via `ggsave`, unlike the equivalent panel in its
-`figure6_inflammation_violin.R` sibling script, which does save it -- matched
-verbatim (not forced to save) since this script already produces 3 real
-saved panels, unlike the "computed but the whole panel is otherwise never
-produced" cases (Figure 6e, Supplementary Fig 5b/6a/3c) that warranted
-enabling a save elsewhere in this project.
+Was: `stromogenic_vis.R`'s (`000_paper/11_niches/112_violinplots/`)
+`my_cols <- c(no = "#9efa70", yes = "#c55797",)` has a trailing comma inside
+`c(...)` -- fixed in `figure7a_stromogenic_violin.R` by removing it, on the
+claim that trailing commas make R argument lists unparseable. Also noted
+there: legacy's `p_up` panel (stromogenic-specific up/down niches) is
+computed and printed but never saved via `ggsave`, matched verbatim.
+
+Superseded: `figure7a_stromogenic_violin.R` no longer ports this script (see
+"Figure 6d / 7a: BLOCKED" above) -- per explicit user instruction, it now
+ports the latest available source, `000_paper/sync_paper/06-spatial-niches/histology/stromogenic_vis.R`,
+which has the identical trailing-comma bug, left unfixed there. Actually
+running the current script shows the "unparseable" claim above was
+imprecise: R parses a trailing comma in `c(...)` fine (unlike some other
+languages), it just produces an empty argument, which errors at evaluation
+time (`argument 3 is empty`), not parse time -- everything before that line
+runs first. Kept as a historical note in case the `11_niches` version's fix
+is ever relevant again.
 
 ## `patient-core-heterogeneity.R`: two undefined-variable bugs
 
