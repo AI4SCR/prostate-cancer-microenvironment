@@ -1,5 +1,111 @@
 # Open questions
 
+## Audit: did every `scripts/figures/*` port use the newest available `sync_paper` sibling?
+
+Prompted by a direct question: several `000_paper/11_niches/`-family legacy
+scripts have a same-purpose sibling under the more recently-pulled
+`000_paper/sync_paper/`, since collaborators reorganized/updated a subset of
+scripts there. Checked every "Ported from" entry in `figures.md` that still
+points outside `sync_paper` for such a sibling. Two findings need a decision
+before anything is changed; the rest are informational.
+
+**Figure 7c (myCAF KM) -- threshold discrepancy, not previously checked.**
+`figure7c_myCAF_km.R` ports `000_paper/11_niches/113_survival/label_kaplan_meier_binary.R`
+(threshold = 75th percentile, deliberately, per that script's own docstring).
+`000_paper/sync_paper/03_survival/celltype_km.R` is the same analysis at the
+same `level = "label"` granularity (confirmed via diff: identical
+frequency/quantile/binary-split/KM structure, only clinical-loading and
+path-setup boilerplate differs) -- but uses `threshold <- "50%"` (median),
+not 75th percentile. This is a genuine, previously-unflagged fork: our port
+matches the older script's 75% deliberately, but the newer sibling covering
+the exact same panel uses a different threshold entirely. This changes who
+falls into the "high myCAF" group and could change the reported HR/p-value.
+Not changed pending a decision on which threshold the published Figure 7c
+actually used (paper Methods text, if it states a percentile, would settle
+this).
+
+**Figure 6b / 7b / S6bc (niche KM) -- newer sibling adds BH-adjusted q-values.**
+`figure6_km_niche6.R`/`figure7b_niche9_km.R`/`figureS6bc_niche_km.R` all port
+`000_paper/11_niches/113_survival/niche_kaplan_meier_binary.R` (threshold =
+50th percentile, `conf.int = FALSE`). `000_paper/sync_paper/03_survival/niche_km.R`
+runs the identical per-niche binary-split KM logic (same 50% threshold) but
+additionally: loops over *all* niches in one pass and aggregates a
+`coxph()` p-value/coefficient per niche into `overall_survival_analysis_results.csv`
+/ `progression_free_survival_analysis_results.csv`, each with a
+Benjamini-Hochberg-adjusted q-value column (`p.adjust(..., method = "BH")`)
+on top of the raw log-rank p-value; and uses `conf.int = TRUE` in
+`ggsurvplot()`, vs `FALSE` in the version we ported. The underlying
+per-niche KM curve/threshold logic is unchanged, so this doesn't affect
+which curves get drawn -- but if the published p-values for Fig 6b/7b/S6bc
+are BH/FDR-adjusted across all 18 niches rather than raw log-rank p-values,
+our current scripts (which only ever compute one niche's raw p-value, never
+adjusted across niches) would report the wrong significance value. Not
+implemented pending confirmation of whether the paper's reported p-values
+are raw or multiple-testing-corrected.
+
+**Checked and confirmed our current choice is already correct / no newer alternative:**
+- Figure 6e (`figure6e_immune_risk_score_km.R`, ports `inflammation_outcome.R`):
+  sync_paper sibling `03_survival/inflammatory_niche_risk_group.R` is
+  functionally identical (same threshold, same risk_group logic) and
+  independently applies the same two disclosed fixes already made in our
+  port -- enabling the commented-out `ggsave()` calls, and dropping the
+  trailing diagnostic CSV that selects the nonexistent `clinical$sample_name`
+  column (see the Figure 6e entry below). No change needed; this cross-check
+  increases confidence in both fixes.
+- Figure S5b / S6a (`figureS5b_inflammation_km.R`/`figureS6a_stromogenic_km.R`,
+  port `risk_groups_label.R`'s inflammation/stromogenic sections): sync_paper
+  sibling `03_survival/clinical_risk_group_km.R` covers the same two sections
+  (the sibling's patient-cluster-KM section was split out into
+  `patient_risk_group_km.R`, already our Figure 4c/S3c source) with `ggsave()`
+  already enabled and no other logic change. No change needed.
+- Figure 5b (`figure5_niche_correlation.R`): sync_paper copy
+  (`06-spatial-niches/abundance/correlation_frequencies.R`) already found and
+  confirmed identical, see that entry below.
+- Figure 6a (`figure6_niche_abundance_heatmap.R`): already ports the
+  sync_paper script (`heatmap_frequencies.R`), see that entry below.
+- Figure 2 heatmap/UMAPs, Figure 4d-e Cox HR, Figure S1a cohort summary: no
+  `sync_paper` sibling exists at all (`sync_paper` has no `04_heatmaps`,
+  `02_umaps`, or `01_clinical_metadata` equivalent, and no Cox-hazard-ratio
+  script under `03_survival`) -- current sources are the only ones available.
+
+**Checked, sync_paper sibling is broken -- current source correctly kept.**
+Figure 6d / 7a (`figure6_inflammation_violin.R`/`figure7a_stromogenic_violin.R`,
+port `112_violinplots/inflammation_vis.R`/`stromogenic_vis.R`): sync_paper's
+`06-spatial-niches/histology/inflammation_vis.R` and `.../stromogenic_vis.R`
+are mid-refactor and reference undefined variables as literally written
+(`inflammation_vis.R` uses `df_long` on its first real line of plotting code,
+never defined anywhere in that file; `stromogenic_vis.R` uses `df_long_full`,
+also never defined) -- both would error immediately if run. They also drop
+the split-violin/facet-by-up-down-direction panel entirely in favor of a
+differently-specified pair of panels (per-niche `facet_wrap`, then a
+non-split dodged violin), so even fixing the crash wouldn't reproduce the
+same panel our current ports produce. Correctly not adopted; flagging so a
+future check of `sync_paper` doesn't assume these are simply an unapplied
+upgrade.
+
+**Not deeply audited, flagged for awareness only:**
+- Figure 5a: `000_paper/sync_paper/06-spatial-niches/composition/z_score_composition_vis.R`
+  is a third copy of the niche z-score heatmap script (also uses
+  `top_annotation`, reinforcing the existing Figure 5a entry below), but
+  reads precomputed `niche_heatmap_data.parquet`/`niche_abundance_stats.parquet`
+  rather than recomputing z-scores from `clusters_annotated_v2.parquet` the
+  way `figure5_niche_heatmap.R`/`figure5_niche_clustering.py`/
+  `figure5_niche_annotation.py` currently do -- a structurally different
+  pipeline, not just a path refactor. Not compared line-by-line against our
+  current (already-validated, per the resolved 11-script audit below) niche
+  z-score pipeline.
+- Figure 5a support scripts: `000_paper/sync_paper/06-spatial-niches/construction/kmeans_clustering.py`
+  and `.../compute_spatial_nhood.py` are a much larger, function-based
+  rewrite of `000_paper/11_niches/110_analysis/00_kmeans_clustering.py`
+  (adds GPU/Leiden and nhood-filtering options not in the current script).
+  Not compared in depth.
+- Figure 7d-f circos: `000_paper/sync_paper/06-spatial-niches/interactions/interaction_compute_circos.py`
+  is a combined, single-file (582-line) version of the
+  compute/visualize-circos pipeline. Still appears to require per-sample
+  anndata objects, so almost certainly blocked by the same missing-data
+  issue already documented below (Figure 7d-f entry) -- not investigated
+  further since that blocker, not script choice, is the limiting factor.
+
 ## ~~Figure 6a: wrong legacy script ported, correct one's data is missing~~ PARTIALLY RESOLVED
 
 Was: `scripts/figures/figure6_niche_abundance_heatmap.R` ported
@@ -16,14 +122,19 @@ gleason_grp, inflammation, stromogenic_smc_loss_reactive_stroma_present`
 was the other TMA-level sibling candidate, ruled out -- it has two extra
 annotation columns, `gs_grp`/`d_amico_risk`, beyond what's actually shown.)
 
-`figure6_niche_abundance_heatmap.R` has been rewritten as a verbatim port
-of `heatmap_frequencies.R` (disclosed fix applied: `tma_id` is commented
-out of legacy's own `select()` but still referenced two lines later in
-`matrix[as.character(df_metadata$tma_id), ]` -- a bug, not intent, fixed by
-keeping it in the select). Confirmed by running it that this is now the
-only remaining issue: it fails at exactly one point, the
-`read_parquet(".../niche_frequencies_per_tma_id.parquet")` call, and
-nowhere else.
+`figure6_niche_abundance_heatmap.R` has been rewritten as a strict verbatim
+port of `heatmap_frequencies.R`. Confirmed by running it that its only
+issue is the missing input data below -- fails at exactly one point, the
+`read_parquet(".../niche_frequencies_per_tma_id.parquet")` call.
+
+**Legacy bug, preserved verbatim per explicit user instruction (no
+disclosed fix -- reverted from an earlier version of this port that did
+fix it)**: `tma_id` is commented out of `df_metadata`'s `select()` but
+still referenced two lines later, `matrix[as.character(df_metadata$tma_id), ]`.
+Since that column doesn't exist, this evaluates to `matrix[character(0), ]`
+-- a 0-row matrix. So even once the missing data below is available, this
+script as literally ported will not produce a populated heatmap; matches
+legacy's own behavior exactly, not "fixed."
 
 **Still blocked**: `niche_frequencies_per_tma_id.parquet` does not exist
 anywhere accessible -- checked
