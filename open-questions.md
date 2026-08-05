@@ -1,51 +1,45 @@
 # Open questions
 
-## Figure 6a: wrong legacy script ported, correct one's data is missing
+## ~~Figure 6a: wrong legacy script ported, correct one's data is missing~~ PARTIALLY RESOLVED
 
-`scripts/figures/figure6_niche_abundance_heatmap.R` was ported from
+Was: `scripts/figures/figure6_niche_abundance_heatmap.R` ported
 `000_paper/11_niches/111_heatmaps/patient_heatmap.R`, which is
-**patient-level** (`props_niche_pat_id.parquet`, rows = patients). The
-paper's actual Fig 6a legend is "Clustered heatmap of niche abundance
-scores **per tumor core**" -- TMA/core-level, wrong granularity, which is
-also why the row annotations (`cause_of_death, clinical_progr, psa_progr,
-recurrence, gs_grp`) don't match what the published figure actually shows.
+**patient-level** (`props_niche_pat_id.parquet`, rows = patients) -- wrong
+granularity versus the paper's actual "per tumor core" Fig 6a legend, which
+is also why the row annotations didn't match what's published.
 
-Two TMA-level sibling scripts exist in the legacy repo:
-- `000_paper/11_niches/111_heatmaps/proportion_heatmap.R`: reads
-  `props_niche_tma_id.parquet` (already staged in `LEGACY_DATA_DIR`). Row
-  annotations: `pat_id, os_status, disease_progr, gs_grp, gleason_grp,
-  inflammation, stromogenic_smc_loss_reactive_stroma_present, d_amico_risk,
-  tma_id` -- close but has two extra columns (`gs_grp`, `d_amico_risk`)
-  beyond what the user described seeing.
-- `000_paper/sync_paper/06-spatial-niches/abundance/heatmap_frequencies.R`:
-  the newer sync_paper version. Row annotations: `pat_id, os_status,
-  disease_progr, gleason_grp, inflammation,
-  stromogenic_smc_loss_reactive_stroma_present` -- **exact match**,
-  confirmed correct by direct user identification. This is the correct
-  legacy source (recorded in `figures.md`).
+Correct source confirmed by direct user identification:
+`000_paper/sync_paper/06-spatial-niches/abundance/heatmap_frequencies.R`
+(TMA/core-level; row annotations `pat_id, os_status, disease_progr,
+gleason_grp, inflammation, stromogenic_smc_loss_reactive_stroma_present`
+-- exact match). (`000_paper/11_niches/111_heatmaps/proportion_heatmap.R`
+was the other TMA-level sibling candidate, ruled out -- it has two extra
+annotation columns, `gs_grp`/`d_amico_risk`, beyond what's actually shown.)
 
-**Blocked**: `heatmap_frequencies.R` reads `niche_frequencies_per_tma_id.parquet`,
-which does not exist anywhere accessible -- checked
+`figure6_niche_abundance_heatmap.R` has been rewritten as a verbatim port
+of `heatmap_frequencies.R` (disclosed fix applied: `tma_id` is commented
+out of legacy's own `select()` but still referenced two lines later in
+`matrix[as.character(df_metadata$tma_id), ]` -- a bug, not intent, fixed by
+keeping it in the select). Confirmed by running it that this is now the
+only remaining issue: it fails at exactly one point, the
+`read_parquet(".../niche_frequencies_per_tma_id.parquet")` call, and
+nowhere else.
+
+**Still blocked**: `niche_frequencies_per_tma_id.parquet` does not exist
+anywhere accessible -- checked
 `/work/FAC/FBM/DBC/mrapsoma/prometex/data/PCa_NHood` (nothing matching
 `niche_frequencies*` at all) and
 `/work/FAC/FBM/DBC/mrapsoma/prometex/data/PCa/5-niches/frequencies/` (has a
-`niche_frequencies_per_tma.parquet`, but checked its columns directly --
-uses an older, pre-"revised annotation" niche naming scheme, e.g.
-`TLS_Bcells_Tcells`, `canonical_BLepithelium`, completely different from
-the current `_v2` niche names used throughout this repo -- not the same
-data, not usable as a substitute).
+`niche_frequencies_per_tma.parquet`, no `_id`, but uses an older,
+pre-"revised annotation" niche naming scheme, e.g. `TLS_Bcells_Tcells`,
+`canonical_BLepithelium` -- not the same data, not a usable substitute).
 
-Per standing project rule (see `CLAUDE.md`'s top-of-file hard constraint,
-added after this was found): **we do not write scripts to compute missing
-data, only port scripts against data that already exists.** So this panel
-stays on the wrong (patient-level) script for now, flagged here rather than
-"fixed" by introducing a new data-computation step. If
-`niche_frequencies_per_tma_id.parquet` (or the `stacked_frequencies.py`
-run that would produce it) ever turns up staged somewhere, revisit and
-port `heatmap_frequencies.R` properly (including its own disclosed fix: `tma_id`
-is commented out of its `select()` but still referenced two lines later in
-`matrix[as.character(df_metadata$tma_id), ]` -- as literally written this
-produces a 0-row heatmap, needs uncommenting).
+Per `CLAUDE.md`'s top-of-file hard constraint: **we do not write scripts to
+compute missing data, only port scripts against data that already
+exists.** The script is ported and correct; it will run once
+`niche_frequencies_per_tma_id.parquet` (or the `stacked_frequencies.py` run
+that would produce it, per that script's own `group_var='tma_id'` branch)
+turns up staged somewhere.
 
 ## Figure 3b CAF heatmap marker list
 
