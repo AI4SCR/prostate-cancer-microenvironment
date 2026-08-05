@@ -533,13 +533,27 @@ since their output is already available precomputed):
   which cells get grouped into which niche during the interaction
   computation itself.
 
-## Supplementary Fig. 7 (50-seed ARI robustness sweep): no plotting script found
+## ~~Supplementary Fig. 7 (50-seed ARI robustness sweep): no plotting script found~~ CORRECTED
 
-Data exists (`.../PCa_NHood/robustness/*_kmeans_robustness.pkl`) but no
-script that plots it (boxplots of pairwise adjusted Rand index per run) was
-found anywhere in the legacy repo, including the two niche-relevant
-directories above. Would need to be written from the raw sweep output if
-implemented -- flagged as a gap, not attempted.
+Was: assumed no plotting script existed anywhere, since only raw sweep
+output (`.../PCa_NHood/robustness/*_kmeans_robustness.pkl`) was found, and
+a dedicated/standalone "robustness" or "ARI" script search came up empty.
+
+Wrong -- the script exists, just not as a separate file: it's a second
+section inside `000_paper/sync_paper/06-spatial-niches/construction/kmeans_clustering.py`,
+the same file already cited for Figure 5a's clustering step (a different
+section of it -- same pattern as Figure 4a/4b or S1b/S3b, one legacy file
+with multiple panels' worth of code). Confirmed it matches the published
+S7 legend precisely: `n_runs = 50`, seeds via `np.random.RandomState(42)`,
+k-means (k=24) run once per seed, `construct_ari_matrix()`/
+`prepare_ari_data()` compute pairwise Adjusted Rand Index across all 50
+runs, `sns.boxplot` of ARI per run (x=clustering run, y=ARI), and the
+highest-mean-ARI run is highlighted yellow -- which is literally `seed =
+686`, the same seed the actual published clustering downstream uses
+(`# seed with top ARI mean across runs`, in the very next section of the
+same file). Not yet ported (would be a new, dedicated script mirroring
+this section only, not touching `figure5_niche_clustering.py`) -- flagged
+here as portable, pending confirmation to proceed.
 
 ## ~~Figure 4c KM styling: add_censor_mark()/add_pvalue() are not in the legacy source~~ RESOLVED
 
