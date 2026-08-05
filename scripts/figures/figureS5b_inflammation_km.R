@@ -1,25 +1,3 @@
-# Reproduce Supplementary Figure 5b: Kaplan-Meier overall survival by
-# inflammation status (patient-level clinical variable, presence of at
-# least one inflamed core).
-#
-# 1:1 port of 000_paper/11_niches/113_survival/risk_groups_label.R -- the
-# "INFLAMMATION" section only (patient-level clinical `inflammation`
-# variable, not niche-based -- distinct from Figure 6e's niche-derived risk
-# score, figure6e_immune_risk_score_km.R). Not the patient-cluster (P1-P6),
-# stromogenic (figureS6a_stromogenic_km.R), or Gleason-concordance
-# (already figureS1b/figureS3b) sections of that same multi-analysis
-# legacy script.
-#
-# Patient-level aggregation: max() of the per-core binary inflammation flag
-# -- a patient counts as "inflamed" if at least one of their cores does.
-#
-# Disclosed fix: both ggsave() calls are commented out in legacy
-# (computed-but-never-saved) -- enabled here using the exact args legacy's
-# own commented-out calls specify (`plot = p$plot`, same width/height).
-#
-# Reads $EXPORT_DIR/clinical.parquet. Writes to
-# $OUTPUT_FIGURES_DIR/figureS5/.
-
 library(dotenv)
 load_dot_env()
 
@@ -27,17 +5,19 @@ library(arrow)
 library(dplyr)
 library(survival)
 library(survminer)
+library(patchwork)
 
 export_dir <- Sys.getenv("EXPORT_DIR")
 output_figures_dir <- Sys.getenv("OUTPUT_FIGURES_DIR")
 stopifnot("EXPORT_DIR is not set; copy .env.example to .env and fill it in" = nzchar(export_dir))
 stopifnot("OUTPUT_FIGURES_DIR is not set; copy .env.example to .env and fill it in" = nzchar(output_figures_dir))
 
-save_dir <- file.path(output_figures_dir, "figureS5")
-dir.create(save_dir, recursive = TRUE, showWarnings = FALSE)
+figures_dir <- file.path(output_figures_dir, "figureS5")
+dir.create(figures_dir, showWarnings = FALSE, recursive = TRUE)
 
 clinical <- read_parquet(file.path(export_dir, "clinical.parquet"))
 
+dir_inflam <- file.path(figures_dir, "inflammation")
 df_inflam <- clinical %>%
   select(pat_id, inflammation) %>%
   filter(!is.na(inflammation)) %>%
@@ -75,9 +55,10 @@ p_prog_inflam <- ggsurvplot(
   legend.title = "Inflammation",
   risk.table.height = 0.25
 )
-plot_path <- file.path(save_dir, "figureS5b_progr_inflammation.pdf")
+plot_name <- "progr_inflammation.pdf"
+plot_path <- file.path(dir_inflam, plot_name)
 ggsave(plot_path, p_prog_inflam$plot, width = 6, height = 4)
-
+p_prog_inflam$plot
 fit <- survfit(Surv(last_fu, overall_survival) ~ inflammation, data = df_final)
 p_survival_inflam <- ggsurvplot(
   fit,
@@ -91,7 +72,8 @@ p_survival_inflam <- ggsurvplot(
   legend.title = "Inflammation",
   risk.table.height = 0.25
 )
-plot_path <- file.path(save_dir, "figureS5b_survival_inflammation.pdf")
-ggsave(plot_path, p_survival_inflam$plot, width = 6, height = 4)
-
-cat("Saved Supplementary Figure 5b panels to", save_dir, "\n")
+p <- p_survival_inflam$plot / p_survival_inflam$table
+plot_name <- "survival_inflammation_with_table.pdf"
+plot_path <- file.path(dir_inflam, plot_name)
+ggsave(plot_path, p, width = 6, height = 4)
+p_survival_inflam$plot
