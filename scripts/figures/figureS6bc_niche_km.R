@@ -47,7 +47,7 @@ num.patients <- clinical$pat_id |> n_distinct()
 print(paste("Number of patients:", num.patients))
 
 ### read cell annotation data
-df_cells <- read_parquet(file.path(export_dir, "metadata.parquet"))
+df_cells <- read_parquet(file.path(export_dir, "cell_annotation.parquet"))
 
 sample_col <- "tma_id"
 df_cells[["sample_name"]] <- df_cells[[sample_col]]
