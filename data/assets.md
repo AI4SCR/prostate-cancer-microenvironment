@@ -45,7 +45,7 @@ missing from the table entirely.
 | `5-niches/annotation/niche_annotations.csv` (no `_v2`) | No | unknown, same vintage as `clusters_annotated.parquet` (no `_v2`) | not used by any current script |
 | `5-niches/barplot_data/metadata_with_dendrogram_colors_label_pat_id.parquet` | No | unknown (precomputed, no reproducing script) | `figure4_metagroup_barplot.py`, `figure4c_patient_cluster_km.R`, `figureS3b_cluster_concordance.R`, `figureS3c_progression_km.R` |
 | `5-niches/barplot_data/metadata_with_dendrogram_colors_label_tma_id.parquet` | No | unknown (precomputed, no reproducing script) | `figureS3b_cluster_concordance.R` |
-| `5-niches/frequencies/stacked_barplots/props_niche_pat_id.parquet` | No | unknown (precomputed, no reproducing script) | `figure6_niche_abundance_heatmap.R` |
+| `5-niches/frequencies/stacked_barplots/props_niche_pat_id.parquet` | No | unknown (precomputed, no reproducing script) | `figure6_niche_abundance_heatmap.R` -- **wrong-script stopgap**: this is patient-level data from `patient_heatmap.R`, the wrong legacy source for Figure 6a (paper legend is TMA/core-level); kept as-is only because the correct source's data is missing, see Missing data assets below |
 | `5-niches/frequencies/stacked_barplots/props_niche_tma_id.parquet` | No | unknown (precomputed, no reproducing script) | `figure5_niche_correlation.R` |
 | `5-niches/visualization/composition/niche_heatmap_data.parquet` | No | unknown (precomputed, no reproducing script) | `figure5_niche_heatmap.R` |
 | `5-niches/visualization/composition/mean_celltype_composition_per_niche.parquet` | No | unknown (precomputed, no reproducing script) | `figure5_niche_heatmap.R` |
@@ -83,6 +83,17 @@ pickles with `obsp['radius_32']`/`obsp['radius_48']` neighbor graphs) and
 input, since `clinical.parquet`'s own `napari_sample_id` column already
 bridges to this repo's usual long-form `sample_id`). See Discrepancies for
 the two issues that would need disclosed fixes to load/use these.
+
+## Missing data assets (blocked panels)
+
+Per `CLAUDE.md`'s hard constraint (added this session): when a script's
+required input doesn't exist anywhere accessible, we report the gap and
+leave the panel unfixed rather than writing a script to compute the
+missing data ourselves. Currently one asset in this state:
+
+| Asset | Needed by | Status |
+|---|---|---|
+| `niche_frequencies_per_tma_id.parquet` | `000_paper/sync_paper/06-spatial-niches/abundance/heatmap_frequencies.R` -- the correct legacy source for Figure 6a (TMA/core-level; row annotations `pat_id, os_status, disease_progr, gleason_grp, inflammation, stromogenic_smc_loss_reactive_stroma_present` match the published figure exactly, confirmed by direct user identification) | **Not found anywhere.** Checked `/work/FAC/FBM/DBC/mrapsoma/prometex/data/PCa_NHood` (nothing matching `niche_frequencies*` at all) and `/work/FAC/FBM/DBC/mrapsoma/prometex/data/PCa/5-niches/frequencies/` (has a similarly-named `niche_frequencies_per_tma.parquet` -- no `_id` -- but its columns use an older, pre-"revised annotation" niche naming scheme, e.g. `TLS_Bcells_Tcells`, `canonical_BLepithelium`, completely different from the `_v2` niche names used throughout this repo; not the same data, not a usable substitute). Figure 6a stays on the wrong (patient-level `patient_heatmap.R`) script in the meantime -- see `open-questions.md`. |
 
 ## Recovered legacy UMAP embeddings (`data/figures/`)
 
