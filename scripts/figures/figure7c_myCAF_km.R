@@ -1,32 +1,3 @@
-# Reproduce Figure 7c: KM progression-free survival by high-vs-low myCAF
-# (CD105-high CAF1) abundance (binary 75th-percentile split).
-#
-# 1:1 port of the old repo's
-# 000_paper/11_niches/113_survival/label_kaplan_meier_binary.R, trimmed to
-# the single `stromal-CAF1(CD105+)` label only -- remove the loop over all
-# ~34 other cell-type labels, they belong to no current panel. "myCAF" =
-# `stromal-CAF1(CD105+)`: the paper text states "CD105high are annotated as
-# myCAFs", and `resources/colormaps.yaml`'s `label:` key confirms
-# `stromal-CAF1(CD105+)` is the CD105-high CAF1 variant (not
-# `stromal-CAF2(AR+)`, an earlier incorrect guess -- see open-questions.md).
-#
-# Same structure as niche_kaplan_meier_binary.R (already ported as
-# figure6_km_niche6.R/figure7b_niche9_km.R/figureS6bc_niche_km.R), but with
-# level="label" instead of "niche", threshold=75th percentile (not 50th),
-# and `conf.int = TRUE` in both ggsurvplot() calls (legacy's own, not a
-# deviation -- differs from the niche-level scripts' `conf.int = FALSE`).
-#
-# Disclosed fix: both ggsave() calls are commented out in legacy
-# (computed-but-never-saved) -- enabled here using `p$plot` (matching
-# legacy's own commented-out call args).
-#
-# clusters_annotated_v2.parquet has no reproducing script in this repo, so
-# it's read from LEGACY_DATA_DIR's precomputed copy; clinical.parquet comes
-# from EXPORT_DIR.
-#
-# Writes KM PDFs (survival + progression) to
-# $OUTPUT_FIGURES_DIR/figure7/label_km/threshold_75/.
-
 library(dotenv)
 load_dot_env()
 
@@ -37,81 +8,159 @@ library(ggplot2)
 library(survival)
 library(survminer)
 library(rlang)
+library(patchwork)
 
 export_dir <- Sys.getenv("EXPORT_DIR")
-legacy_dir <- Sys.getenv("LEGACY_DATA_DIR")
 output_figures_dir <- Sys.getenv("OUTPUT_FIGURES_DIR")
 stopifnot("EXPORT_DIR is not set; copy .env.example to .env and fill it in" = nzchar(export_dir))
 stopifnot("OUTPUT_FIGURES_DIR is not set; copy .env.example to .env and fill it in" = nzchar(output_figures_dir))
-stopifnot("LEGACY_DATA_DIR is not set; copy .env.example to .env and fill it in" = nzchar(legacy_dir))
 
-save_dir <- file.path(output_figures_dir, "figure7", "label_km")
-
-clinical <- read_parquet(file.path(export_dir, "clinical.parquet"))
+figures_dir <- file.path(output_figures_dir, "figure7", "cell_types")
+dir.create(figures, showWarnings = FALSE, recursive = TRUE) # legacy bug: undefined `figures`, not `figures_dir`
+results_dir <- file.path(output_figures_dir, "figure7", "cell_types")
+dir.create(results_dir, showWarnings = FALSE, recursive = TRUE)
 
 compute_label_frequency <- function(data, level, pseudocount = 1) {
   level_sym <- rlang::sym(level)
+
   data_summary <- data %>%
     dplyr::group_by(sample_name, !!level_sym) %>%
     dplyr::summarise(count = dplyr::n() + pseudocount, .groups = "drop") %>%
-    tidyr::complete(sample_name, !!level_sym, fill = list(count = pseudocount))
-  data_summary %>%
+    tidyr::complete(
+      sample_name,
+      !!level_sym,
+      fill = list(count = pseudocount)
+    )
+
+  df_freqs <- data_summary %>%
     dplyr::group_by(sample_name) %>%
-    dplyr::mutate(proportion = count / sum(count)) %>%
+    dplyr::mutate(
+      proportion = (count) / (sum(count))
+    ) %>%
     dplyr::ungroup()
+
+  return(df_freqs)
 }
 
-df_clusters <- read_parquet(file.path(legacy_dir, "5-niches", "annotation", "clusters_annotated_v2.parquet"))
-df_clusters[["sample_name"]] <- df_clusters[["tma_id"]]
+### read clinical metadata
+clinical <- read_parquet(file.path(export_dir, "clinical.parquet"))
+num.patients <- clinical$pat_id |> n_distinct()
+print(paste("Number of patients:", num.patients))
 
-df_freqs <- compute_label_frequency(df_clusters, level = "label", pseudocount = 0)
-df_props <- df_freqs %>%
+### read cell annotation data
+df_cells <- read_parquet(file.path(export_dir, "metadata.parquet"))
+
+sample_col <- "tma_id"
+df_cells[["sample_name"]] <- df_cells[[sample_col]]
+
+# compute label frequencies for each sample and label
+label_col <- "label"
+df_freqs <- compute_label_frequency(df_cells, level = label_col, pseudocount = 0)
+df_wide <- df_freqs %>%
   select(tma_id = sample_name, label, proportion) %>%
   pivot_wider(names_from = label, values_from = proportion, values_fill = 0)
 
+df_props <- df_wide
+
+## plot histogram for celltype columns of df_props
 cols <- "stromal-CAF1(CD105+)" # myCAF
 qs <- c(0.25, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9)
 
 quantiles <- list()
 for (col in cols) {
-  x_nz <- df_props[[col]][df_props[[col]] > 0]
-  quantiles[[col]] <- quantile(x_nz, probs = qs, na.rm = TRUE)
+  x <- df_props[[col]]
+  x_nz <- x[x > 0]
+
+  q_vals <- quantile(x_nz, probs = qs, na.rm = TRUE)
+  print(paste("Quantiles for", col, ":"))
+  print(q_vals)
+  quantiles[[col]] <- q_vals
+
+  p <- ggplot(df_props, aes(x = .data[[col]])) +
+    geom_histogram(
+      binwidth = 0.01,
+      fill = "blue",
+      color = "black",
+      alpha = 0.7
+    ) +
+    geom_vline(
+      xintercept = q_vals,
+      linetype = "dashed",
+      linewidth = 1,
+      color = "red"
+    ) +
+    labs(
+      title = paste("Histogram of", col),
+      x = col,
+      y = "Frequency"
+    ) +
+    theme_minimal()
+  # print(p)
 }
 
-threshold <- "75%"
+## set median as threshold for binary classification
+threshold <- "50%"
 thr <- sapply(cols, function(col) quantiles[[col]][[threshold]])
 names(thr) <- cols
 
-save_dir <- file.path(save_dir, paste0("threshold_", substr(threshold, 1, 2)))
-progression_dir <- file.path(save_dir, "progression_free_survival")
-survival_dir <- file.path(save_dir, "overall_survival")
-dir.create(progression_dir, recursive = TRUE, showWarnings = FALSE)
-dir.create(survival_dir, recursive = TRUE, showWarnings = FALSE)
-
+# create binary labels based on threshold at sample level
 df_binary <- df_props %>%
   mutate(across(all_of(cols), ~ ifelse(.x >= thr[cur_column()], 1, 0)))
 
+# join with clinical to get patient id and survival data
 clinical$os_status <- ifelse(clinical$os_status == "dead", 1, 0)
-progression <- clinical %>% select(pat_id, disease_progr, disease_progr_time) %>% distinct()
-death <- clinical %>% select(pat_id, os_status, last_fu) %>% distinct()
 
+progression <- clinical %>%
+  select(
+    pat_id,
+    disease_progr,
+    disease_progr_time,
+  ) %>%
+  distinct()
+
+death <- clinical %>%
+  select(
+    pat_id,
+    os_status,
+    last_fu
+  ) %>%
+  distinct()
+
+results_os <- list()
+results_prog <- list()
+
+### run survival analysis for each label and save results
 for (col in cols) {
   df_label <- df_binary
   df_label[["target"]] <- df_label[[col]]
   df_patient <- clinical %>%
-    select(pat_id, tma_id) %>%
+    select(
+      pat_id,
+      tma_id
+    ) %>%
     distinct() %>%
     inner_join(df_label, by = "tma_id") %>%
-    select(pat_id, risk_group = target) %>%
+    select(pat_id, risk_group = target)
+
+  df_patient <- df_patient %>%
     group_by(pat_id) %>%
-    summarise(risk_group = max(risk_group), .groups = "drop")
+    summarise(
+      risk_group = max(risk_group),
+      .groups = "drop"
+    )
 
   df_analysis <- df_patient %>%
     inner_join(progression, by = "pat_id") %>%
     inner_join(death, by = "pat_id")
 
   fit <- survfit(Surv(last_fu, os_status) ~ risk_group, data = df_analysis)
-  p1 <- ggsurvplot(
+  form <- as.formula(fit$call$formula)
+  sd <- survdiff(form, data = df_analysis)
+  pval <- 1 - pchisq(sd$chisq, df = length(sd$n) - 1)
+  cox <- coxph(formula = form, data = df_analysis)
+  s_cox <- summary(cox)$coefficients[, c("exp(coef)", "Pr(>|z|)")]
+  results_os[[col]] <- list(pval = pval, cox_coef = s_cox[1], cox_pval = s_cox[2])
+  p_os <- ggsurvplot(
     fit,
     data = df_analysis,
     risk.table = TRUE,
@@ -124,11 +173,22 @@ for (col in cols) {
     risk.table.height = 0.25,
     title = paste("Survival by", col, "high vs low")
   )
-  plot_path <- file.path(survival_dir, paste0("km_survival_os_status_", col, ".pdf"))
-  ggsave(plot_path, p1$plot, width = 8, height = 6, dpi = 300)
+  # print(p_os)
+
+  if (col == "epithelial-luminal(ERG+p53+)") {
+    p_os_combined <- p_os$plot / p_os$table
+    plot_name <- paste0(figures_dir, "km_survival_", "_os_status_", col, "with_table.pdf")
+    ggsave(plot_name, p_os_combined, width = 8, height = 6, dpi = 300)
+  }
 
   fit_prog <- survfit(Surv(disease_progr_time, disease_progr) ~ risk_group, data = df_analysis)
-  p2 <- ggsurvplot(
+  form <- as.formula(fit_prog$call$formula)
+  sd <- survdiff(form, data = df_analysis)
+  pval <- 1 - pchisq(sd$chisq, df = length(sd$n) - 1)
+  cox <- coxph(formula = form, data = df_analysis)
+  s_cox <- summary(cox)$coefficients[, c("exp(coef)", "Pr(>|z|)")]
+  results_prog[[col]] <- list(pval = pval, cox_coef = s_cox[1], cox_pval = s_cox[2])
+  p_prog <- ggsurvplot(
     fit_prog,
     data = df_analysis,
     risk.table = TRUE,
@@ -141,8 +201,36 @@ for (col in cols) {
     risk.table.height = 0.25,
     title = paste("Progression-free by", col, "high vs low")
   )
-  plot_path <- file.path(progression_dir, paste0("km_progression_disease_progr_", col, ".pdf"))
-  ggsave(plot_path, p2$plot, width = 8, height = 6, dpi = 300)
+  # print(p_prog)
+  if (col == "stromal-CAF1(CD105+)") {
+    p_prog_combined <- p_prog$plot / p_prog$table
+    plot_name <- paste0(figures_dir, "km_survival_", "_disease_progr_", col, "with_table.pdf")
+    ggsave(plot_name, p_prog_combined, width = 8, height = 6, dpi = 300)
+  }
 }
 
-cat("Saved Figure 7c (myCAF) KM panels to", save_dir, "\n")
+## aggregate results into dataframes and adjust p-values for multiple testing (BH method)
+df_os <- do.call(rbind, lapply(names(results_os), function(col) {
+  data.frame(
+    celltype = col,
+    pval = results_os[[col]]$pval,
+    cox_coef = results_os[[col]]$cox_coef,
+    cox_pval = results_os[[col]]$cox_pval
+  )
+}))
+df_os$qval <- round(p.adjust(df_os$pval, method = "BH"), 4)
+df_os$cox_qval <- round(p.adjust(df_os$cox_pval, method = "BH"), 4)
+
+df_prog <- do.call(rbind, lapply(names(results_prog), function(col) {
+  data.frame(
+    celltype = col,
+    pval = results_prog[[col]]$pval,
+    cox_coef = results_prog[[col]]$cox_coef,
+    cox_pval = results_prog[[col]]$cox_pval
+  )
+}))
+df_prog$qval <- round(p.adjust(df_prog$pval, method = "BH"), 4)
+df_prog$cox_qval <- round(p.adjust(df_prog$cox_pval, method = "BH"), 4)
+
+write.csv(df_os, file.path(results_dir, "overall_survival_analysis_results.csv"), row.names = FALSE)
+write.csv(df_prog, file.path(results_dir, "progression_free_survival_analysis_results.csv"), row.names = FALSE)
