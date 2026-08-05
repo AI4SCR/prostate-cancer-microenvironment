@@ -1,5 +1,52 @@
 # Open questions
 
+## Figure 6a: wrong legacy script ported, correct one's data is missing
+
+`scripts/figures/figure6_niche_abundance_heatmap.R` was ported from
+`000_paper/11_niches/111_heatmaps/patient_heatmap.R`, which is
+**patient-level** (`props_niche_pat_id.parquet`, rows = patients). The
+paper's actual Fig 6a legend is "Clustered heatmap of niche abundance
+scores **per tumor core**" -- TMA/core-level, wrong granularity, which is
+also why the row annotations (`cause_of_death, clinical_progr, psa_progr,
+recurrence, gs_grp`) don't match what the published figure actually shows.
+
+Two TMA-level sibling scripts exist in the legacy repo:
+- `000_paper/11_niches/111_heatmaps/proportion_heatmap.R`: reads
+  `props_niche_tma_id.parquet` (already staged in `LEGACY_DATA_DIR`). Row
+  annotations: `pat_id, os_status, disease_progr, gs_grp, gleason_grp,
+  inflammation, stromogenic_smc_loss_reactive_stroma_present, d_amico_risk,
+  tma_id` -- close but has two extra columns (`gs_grp`, `d_amico_risk`)
+  beyond what the user described seeing.
+- `000_paper/sync_paper/06-spatial-niches/abundance/heatmap_frequencies.R`:
+  the newer sync_paper version. Row annotations: `pat_id, os_status,
+  disease_progr, gleason_grp, inflammation,
+  stromogenic_smc_loss_reactive_stroma_present` -- **exact match**,
+  confirmed correct by direct user identification. This is the correct
+  legacy source (recorded in `figures.md`).
+
+**Blocked**: `heatmap_frequencies.R` reads `niche_frequencies_per_tma_id.parquet`,
+which does not exist anywhere accessible -- checked
+`/work/FAC/FBM/DBC/mrapsoma/prometex/data/PCa_NHood` (nothing matching
+`niche_frequencies*` at all) and
+`/work/FAC/FBM/DBC/mrapsoma/prometex/data/PCa/5-niches/frequencies/` (has a
+`niche_frequencies_per_tma.parquet`, but checked its columns directly --
+uses an older, pre-"revised annotation" niche naming scheme, e.g.
+`TLS_Bcells_Tcells`, `canonical_BLepithelium`, completely different from
+the current `_v2` niche names used throughout this repo -- not the same
+data, not usable as a substitute).
+
+Per standing project rule (see `CLAUDE.md`'s top-of-file hard constraint,
+added after this was found): **we do not write scripts to compute missing
+data, only port scripts against data that already exists.** So this panel
+stays on the wrong (patient-level) script for now, flagged here rather than
+"fixed" by introducing a new data-computation step. If
+`niche_frequencies_per_tma_id.parquet` (or the `stacked_frequencies.py`
+run that would produce it) ever turns up staged somewhere, revisit and
+port `heatmap_frequencies.R` properly (including its own disclosed fix: `tma_id`
+is commented out of its `select()` but still referenced two lines later in
+`matrix[as.character(df_metadata$tma_id), ]` -- as literally written this
+produces a 0-row heatmap, needs uncommenting).
+
 ## Figure 3b CAF heatmap marker list
 
 No legacy script produces the correct 12-marker panel from code alone:
@@ -38,6 +85,27 @@ user observation, the published figure has this same annotation drawn at the
 `bottom_annotation` to visually match the paper, since no legacy script
 produces that layout. Flagging as an unresolved script-vs-published-figure
 discrepancy rather than silently correcting it.
+
+## Figure 5b: numbers and column order deviate from published figure
+
+`scripts/figures/figure5_niche_correlation.R` matches the legacy source
+exactly: all three copies found in the legacy repo -- the port's source
+`000_paper/11_niches/111_heatmaps/niche_pairwise_corrleation.R`, its older
+twin at `05_nhoods/PCA_NHOODs_clean/R_visualization/niche_correlation/niche_pairwise_corrleation.R`,
+and `000_paper/sync_paper/06-spatial-niches/abundance/correlation_frequencies.R`
+-- build the identical `Heatmap(corr_matrix, ..., cluster_rows = TRUE,
+cluster_columns = TRUE, cell_fun = ...)` call: per-cell correlation numbers
+drawn via `cell_fun`, row/column order left to `ComplexHeatmap`'s default
+clustering.
+
+Per direct user observation, the published Figure 5b heatmap has no numbers
+in the cells, and its row/column order runs the opposite direction from what
+this call produces (on a symmetric correlation matrix, `cluster_rows`/
+`cluster_columns = TRUE` cluster rows and columns identically, so "reversed
+column order" means the whole heatmap is mirrored along its diagonal, not
+just one axis). Not changed -- per the project's verbatim-port mandate, same
+as the Figure 5a annotation-position case above, since no legacy script
+produces a no-numbers/mirrored-order version of this heatmap.
 
 ## Figure 5c / S5a: no legacy plotting code for per-core composition bars
 
