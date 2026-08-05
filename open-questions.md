@@ -1,5 +1,22 @@
 # Open questions
 
+## Supplementary Fig 4b: stacked bars only approximately match the published figure
+
+Per direct user observation, `figureS4b_niche_mean_composition.py`'s output
+(mean cell-type composition stacked bar, one bar per niche, all 18 niches)
+only approximately matches the published S4b panel -- not confirmed exactly
+right, not confirmed wrong in a specific identifiable way either. The
+script itself is a verbatim port of `niche_composition.py`'s "MEAN
+COMPOSITION BARPLOT" section (see that script's docstring and
+`figures.md`'s S4b row) and passed the same fidelity checks as every other
+ported script in this project, so this isn't a known logic deviation --
+flagging so it isn't silently assumed correct, and as a starting point if
+it needs a closer line-by-line recheck (same treatment as the Figure
+5a/5b entries below, which are confirmed script-vs-paper mismatches with a
+known cause; this one doesn't have a known cause yet). `figure6c_niche_composition_filtered.py`
+shares the exact same computation (filtered to niches 6/16/17/18), so
+whatever the cause turns out to be likely affects that panel too.
+
 ## Audit: did every `scripts/figures/*` port use the newest available `sync_paper` sibling?
 
 Prompted by a direct question: several `000_paper/11_niches/`-family legacy
