@@ -105,44 +105,39 @@ already cited its `sync_paper` source (`heatmap_frequencies.R`).
 Citing a `sync_paper` source is purely an attribution change for most of
 these rows -- the sibling was confirmed functionally identical (or the
 script logic was already unaffected) for Figure 5a, 5b, 6e, and S5b/S6a, see
-the checks below. **It is not yet a logic change for Figure 6b/7b/S6bc or
-7c**: those scripts still implement the older behavior that the source they
-now cite has since departed from, and that gap is a separate, unresolved
-question (below) -- the citation says "this is the correct current source
-to port," not "our script already matches it."
+the checks below. **Figure 6b/7b/S6bc and 7c have since been rewritten as
+genuine verbatim ports of the sources they cite** (see below) -- this
+surfaced that those sources are themselves broken against this repo's
+data, so all four panels are now BLOCKED rather than producing (possibly
+subtly wrong) output.
 
-**Figure 7c (myCAF KM) -- threshold discrepancy, not yet resolved.**
-`figure7c_myCAF_km.R` still implements `000_paper/11_niches/113_survival/label_kaplan_meier_binary.R`'s
-threshold (75th percentile, deliberately, per that script's own docstring).
-Its now-cited source, `000_paper/sync_paper/03_survival/celltype_km.R`, is
-the same analysis at the same `level = "label"` granularity (confirmed via
-diff: identical frequency/quantile/binary-split/KM structure, only
-clinical-loading and path-setup boilerplate differs) -- but uses
-`threshold <- "50%"` (median), not 75th percentile. This changes who falls
-into the "high myCAF" group and could change the reported HR/p-value. Not
-changed pending a decision on which threshold the published Figure 7c
-actually used (paper Methods text, if it states a percentile, would settle
-this).
+**Figure 7c / 6b / 7b / S6bc -- RESOLVED (now genuinely verbatim, but BLOCKED at runtime).**
+All four scripts were rewritten as real verbatim ports of their cited
+`sync_paper` sources (`celltype_km.R`, `niche_km.R`), trimmed to the
+relevant label/niche(s) only. This surfaced why the older implementation
+had drifted in the first place -- the current sources are not simply
+"the same logic plus BH q-values," they're broken as literally written
+against this repo's data:
+- `niche_km.R` reads `paths$cell_annotations` (this repo's `metadata.parquet`),
+  which has no `niche` column (that only exists in `clusters_annotated_v2.parquet`);
+  fails inside `compute_label_frequency()` before reaching any KM code. All
+  three niche scripts (6b/7b/S6bc) fail here identically.
+- Separately, every plot-saving call in `niche_km.R` is commented out
+  regardless (`#print(p_os)`, `#print(p_prog)`, and even its one
+  conditional `ggsave()` for specific niches) -- only two aggregate CSVs
+  with BH-adjusted q-values would ever be written, and only if the script
+  got past the missing-column failure above.
+- `celltype_km.R` has its own, unrelated bug: `dir.create(figures, ...)`
+  references an undefined `figures` variable (the defined one is
+  `figures_dir`) -- fails immediately, before touching any data.
+  `figure7c_myCAF_km.R` now fails here, matching exactly.
 
-**Figure 6b / 7b / S6bc (niche KM) -- newer source adds BH-adjusted q-values, not yet resolved.**
-`figure6_km_niche6.R`/`figure7b_niche9_km.R`/`figureS6bc_niche_km.R` all
-still implement `000_paper/11_niches/113_survival/niche_kaplan_meier_binary.R`'s
-logic (threshold = 50th percentile, `conf.int = FALSE`). Their now-cited
-source, `000_paper/sync_paper/03_survival/niche_km.R`, runs the identical
-per-niche binary-split KM logic (same 50% threshold) but additionally: loops
-over *all* niches in one pass and aggregates a `coxph()` p-value/coefficient
-per niche into `overall_survival_analysis_results.csv`/
-`progression_free_survival_analysis_results.csv`, each with a
-Benjamini-Hochberg-adjusted q-value column (`p.adjust(..., method = "BH")`)
-on top of the raw log-rank p-value; and uses `conf.int = TRUE` in
-`ggsurvplot()`, vs `FALSE` in our scripts. The underlying per-niche KM
-curve/threshold logic is unchanged, so this doesn't affect which curves get
-drawn -- but if the published p-values for Fig 6b/7b/S6bc are BH/FDR-adjusted
-across all 18 niches rather than raw log-rank p-values, our current scripts
-(which only ever compute one niche's raw p-value, never adjusted across
-niches) would report the wrong significance value. Not implemented pending
-confirmation of whether the paper's reported p-values are raw or
-multiple-testing-corrected.
+So the original threshold/BH-adjustment questions (75th vs 50th percentile,
+raw vs FDR-corrected p-values) are moot for now -- none of these four
+scripts can produce any output at all as genuinely-verbatim ports of their
+current sources. Revisit if the underlying data gap (a `niche`-bearing
+per-cell table under `EXPORT_DIR`, or a fixed `dir.create` typo upstream)
+is ever resolved.
 
 **Checked and confirmed identical / no logic change needed:**
 - Figure 6e: sibling `03_survival/inflammatory_niche_risk_group.R` is
