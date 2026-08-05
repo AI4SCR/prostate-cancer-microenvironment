@@ -28,12 +28,14 @@
 # correct, but will fail at the `read_parquet()` call below until that file
 # turns up staged somewhere. See data/assets.md and open-questions.md.
 #
-# Disclosed fix: legacy comments `tma_id` out of `df_metadata`'s `select()`
-# but still references `df_metadata$tma_id` two lines later
-# (`matrix[as.character(df_metadata$tma_id), ]`) -- as literally written
-# this produces a 0-row heatmap (a bug, not intent, given `tma_id` is
-# obviously required to reorder the matrix). Fixed by keeping `tma_id` in
-# the select.
+# Legacy bug, preserved verbatim per explicit user instruction (no fix,
+# strict 1:1 port): `tma_id` is commented out of `df_metadata`'s `select()`
+# but still referenced two lines later (`matrix[as.character(df_metadata$tma_id), ]`).
+# Since `df_metadata$tma_id` doesn't exist, that indexing expression
+# evaluates to `character(0)`, so `matrix[character(0), ]` produces a
+# 0-row matrix -- this script currently cannot produce a non-empty heatmap
+# even once its input data exists, matching legacy's own literal behavior
+# exactly.
 #
 # Reads $EXPORT_DIR/clinical.parquet, LEGACY_DATA_DIR's
 # niche_frequencies_per_tma_id.parquet (currently missing, see above), and
@@ -92,7 +94,7 @@ df_metadata <- clinical %>%
     # d_amico_risk,
     # glandular_atrophy_pin,
     # ln_status,
-    tma_id
+    # tma_id
   ) %>%
   distinct()
 
