@@ -1,28 +1,3 @@
-# %%
-"""Export the common per-cell / per-patient tables that every R script needs.
-
-R has no ai4bmr-datasets binding, so every R script in this repo reads Parquet
-files from `EXPORT_DIR` instead. This script produces the tables shared across
-figure branches: `metadata.parquet` (per-cell labels), `clinical.parquet`
-(per-ROI/patient clinical annotations), `intensity.parquet` (raw marker
-intensities), and `intensity_normalized.parquet` (arcsinh + 99.9th-percentile
-censor, zeros excluded from the censoring threshold, + min-max). Figure-
-specific score tables (e.g. `scores.parquet`, `survival-*.parquet`, niche
-abundance tables) are produced by each figure branch's own scripts, not here.
-
-This is a 1:1 port (paths only changed) of the original publication's export
-script, `000_paper/0-export/data.py` in the pre-migration repo -- see
-REPRODUCIBILITY.md for why: `src/prostate_cancer/utils.py:prepare_data()`
-looked like the right helper to call (same name as this repo's own dead-code
-duplicate in the old repo) but is NOT what produced the published
-`intensity_normalized.parquet` -- that came from `utils.normalize(...,
-exclude_zeros=True)`, called directly from the export script, never from
-`prepare_data()`. Confirmed byte-identical against the legacy export; see
-REPRODUCIBILITY.md Known discrepancies.
-
-Requires the full labeling pipeline to have already run (see
-REPRODUCIBILITY.md) so that `01_raw/annotations/labels.parquet` exists.
-"""
 from pathlib import Path
 
 from jsonargparse import CLI
@@ -47,11 +22,7 @@ from prostate_cancer.utils import (
 EXPECTED_CELL_COUNT = 2_191_967
 EXPECTED_PATIENT_COUNT = 195  # initial TMA cohort
 EXPECTED_TUMOR_PATIENT_COUNT = 190  # final analytical cohort (is_tumor == "yes")
-EXPECTED_ROI_COUNT = 515  # unique physical cores (tma_id), clinical restricted to
-# sample_ids present in both metadata and clinical (matching the original
-# 000_paper/0-export/data.py's `sample_ids = ... & ...` restriction) --
-# confirmed against the legacy clinical.parquet. The previous 523 counted
-# clinical rows before that restriction, a different (and never-produced) universe.
+EXPECTED_ROI_COUNT = 515  # unique physical cores (tma_id), clinical restricted to sample_ids present in both metadata and clinical
 EXPECTED_TUMOR_ROI_COUNT = 459  # unique tma_id, restricted to labeled cells + is_tumor == "yes"
 
 
@@ -129,10 +100,7 @@ def main(base_dir: Path | None = None, export_dir: Path | None = None):
         f"{n_tumor_rois} unique is_tumor=='yes' tma_id with labeled cells, expected {EXPECTED_TUMOR_ROI_COUNT}"
     )
 
-    # %% normalized intensities: arcsinh + 99.9th-pct censor (zeros excluded
-    # from the censoring threshold) + min-max -- exactly what
-    # 000_paper/0-export/data.py called, confirmed byte-identical against the
-    # legacy export. NOT prepare_data(), which never produced this table.
+    # %% normalized intensities: arcsinh + 99.9th-pct censor (zeros excluded from the censoring threshold) + min-max
     intensity_normalized = normalize(intensity, exclude_zeros=True)
 
     # %%

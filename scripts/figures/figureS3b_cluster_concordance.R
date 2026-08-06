@@ -145,6 +145,6 @@ g_strip <- pat_order %>%
 
 # save as pdf
 plot_name <- "heatmap_cluster_group_tma_by_patient_cluster_group.pdf"
-plot_path <- file.path(save_dir, plot_name)
+plot_path <- file.path(figures_dir, plot_name)
 ggsave(plot_path, (g_strip + g_main) + plot_layout(widths = c(1, 10)), width = 10, height = 20)
 cat("Saved Supplementary Figure 3b to", plot_path, "\n")

@@ -1,27 +1,3 @@
-# %%
-"""Reproduce Supplementary Figure 3a: TMA (core)-level cell-type composition
-stacked barplot -- the `group_var == 'tma_id'` sibling of Figure 4a's
-`pat_id` branch.
-
-1:1 port of the old repo's
-`000_paper/sync_paper/05-heterogeneity/stacked-frequencies-label.py`'s
-`group_var == 'tma_id'` branch only -- not the `pat_id` branch (already
-`figure4_patient_clustering.py`) and not the tail metagroup-averaging block
-(only reachable for `pat_id`, already `figure4_metagroup_barplot.py`).
-Duplicates the same helper functions
-(`get_order`/`add_col_annotations`/`add_dendrogram_top`/
-`get_label_frequency_table`) already in `figure4_patient_clustering.py`
-rather than importing them, per this repo's own anti-pattern rule (no
-cross-script imports of reusable logic) -- both copies are intentionally
-identical.
-
-Computes fresh (does not read the precomputed `LEGACY_DATA_DIR` ground
-truth), matching Figure 4a's established pattern; nothing downstream reads
-this script's own dendrogram-leaf-color output.
-
-Reads from `$EXPORT_DIR` and `resources/colormaps.yaml`. Writes to
-`$OUTPUT_FIGURES_DIR/figureS3/`.
-"""
 from pathlib import Path
 
 import colorcet as cc
@@ -45,7 +21,6 @@ DISTANCE_THRESHOLD = 0.4  # height cut, per stacked-frequencies-label.py
 
 
 def compute_label_frequency(data: pd.DataFrame, level: str, pseudocount: int = 1, group_vars: list[str] = ["sample_id"]) -> pd.Series:
-    """1:1 port of datamodules/utils.py:compute_label_frequency()."""
     data[level] = data[level].astype("category")
     if pseudocount > 0:
         pdat = data.groupby(group_vars, observed=False)[level].value_counts()
@@ -58,7 +33,6 @@ def compute_label_frequency(data: pd.DataFrame, level: str, pseudocount: int = 1
 
 
 def get_label_frequency_table(data: pd.DataFrame, level: str, group_vars: list[str] = ["sample_id"]) -> pd.DataFrame:
-    """1:1 port of datamodules/utils.py:get_label_frequency_table()."""
     props = compute_label_frequency(data=data, level=level, pseudocount=1, group_vars=group_vars)
     props = props.reset_index().pivot(index=group_vars, columns=level, values="proportion")
     props.columns = props.columns.astype(str)
@@ -156,7 +130,7 @@ def main(export_dir: Path | None = None):
     fixed_clusters = fcluster(Z, t=thresh, criterion="distance")
 
     df_freqs, metadata = df_freqs.align(metadata, join="inner", axis=0)
-    metadata["cluster"] = fixed_clusters  # computed, unused downstream -- kept verbatim per legacy source
+    metadata["cluster"] = fixed_clusters
 
     cols_to_plot = ["gleason_grp", "pat_id"]
     mdat = metadata.loc[order]

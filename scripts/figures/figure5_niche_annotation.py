@@ -1,30 +1,3 @@
-# %%
-"""Reproduce Figure 5's niche naming/annotation step.
-
-1:1 port of the old repo's `000_paper/11_niches/110_analysis/01_annotation_v2.py`
-(paths only changed; see `figure_script_mapping.md`) -- maps each of the 24
-raw k-means cluster IDs (`figure5_niche_clustering.py`'s output) to a
-human-readable niche name and a meta-niche grouping, via a manually-curated
-lookup table.
-
-That lookup table, `niche_annotations_revised.xlsx`, was genuinely missing
-for a long time -- absent from every location checked (the live but
-inaccessible `/users/mensmeng/...` path, the consolidated `LEGACY_DATA_DIR`
-copy, the pre-migration repo, and the shared `/work/.../prometex/data/PCa/`
-tree). RESOLVED 2026-07-31: supplied directly by the user and staged at
-`$LEGACY_DATA_DIR/PCA_NHOODs_clean/niche_annotations_revised.xlsx`. Verified
-against the precomputed reference this script's output was already staged
-under (`$LEGACY_DATA_DIR/5-niches/annotation/{niche_annotations_v2.csv,
-clusters_annotated_v2.parquet}`, presumably produced by whoever originally
-had access to the xlsx): zero mismatches across all 2,051,915 cells' `niche`
-and `meta_niche` assignments, and the CSV is byte-identical after sorting --
-confirms this is the correct file.
-
-Downstream figure scripts (heatmap, correlation, Figure 6/7) still read the
-precomputed `LEGACY_DATA_DIR` copy directly rather than this script's own
-output, since that dependency predates this fix and there's no reason to
-churn it now that both are confirmed identical.
-"""
 from pathlib import Path
 
 import pandas as pd
@@ -66,9 +39,6 @@ def main(export_dir: Path | None = None, legacy_dir: Path | None = None):
     df_annotation_niche["meta_niche_color"] = df_annotation_niche["meta_niche"].map(color_dict_meta_niche).fillna("#7f7f7f")
     df_annotation_niche.to_csv(save_dir / "niche_annotations_v2.csv", index=False)
 
-    # %% legacy repeats this exact assignment a second time (its lines 134-136,
-    # byte-identical to the one above) before the final save -- reproduced
-    # here even though idempotent, for strict fidelity to the original script.
     cluster_name = df_clusters.columns[0]
     df_clusters[cluster_name] = df_clusters[cluster_name].astype(str)
     df_clusters["niche"] = df_clusters[cluster_name].map(annotation_dict_niche).fillna("unassigned")

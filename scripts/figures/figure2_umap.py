@@ -1,36 +1,3 @@
-# %%
-"""Reproduce Figure 2b: UMAP of all cells colored by compartment/cell type/patient/markers.
-
-1:1 port of the old repo's `000_paper/02_umaps/0-umaps.py` (see
-`figure_script_mapping.md`). That script explores a `params` sweep
-(`engine` x `n_neighbors` x `min_dist` x `exclude_markers`) but only ever
-actually runs ONE active configuration (line 27 of the original --
-everything else is commented out): `engine='umap-learn'`, `n_neighbors=50`,
-`min_dist=0.1`, excluding the same non-marker channels this repo calls
-`NON_MARKER_CHANNELS`. That config is hardcoded here rather than ported as
-a sweep, since the sweep was never actually exercised.
-
-Differences from the legacy script, all disclosed:
-- Loads `intensity_normalized.parquet` from `$EXPORT_DIR` directly, instead
-  of loading raw intensities via a live `ai4bmr_datasets.PCa()` call and
-  then calling `normalize(data, exclude_zeros=True)`. This repo's
-  `intensity_normalized.parquet` (via `export.py`) IS
-  `normalize(raw_intensity, exclude_zeros=True)` -- confirmed byte-identical
-  to the legacy export (see REPRODUCIBILITY.md) -- so this is the same
-  values, not a different computation, just reading a cache of it that
-  already exists instead of recomputing it.
-- The UMAP fit itself (data-loading/export mechanics only, not logic) now
-  lives in `scripts/data/figure2_umap_embedding.py`, which computes it on
-  the FULL dataset (no subsampling before `reducer.fit()`), matching legacy
-  exactly -- a slow, full-dataset UMAP.fit() on ~2.19M cells, not a quick
-  50k-cell demo. This script only reads that cached embedding and subsamples
-  for the scatter plots via `sample_min_per_group_then_uniform`, exactly as
-  legacy does after its own (inline) fit.
-
-Reads from `$EXPORT_DIR`, requires `scripts/data/figure2_umap_embedding.py`
-to have already produced `$EXPORT_DIR/figures/figure2/reducer_embedding.parquet`.
-Writes all plot panels to `$EXPORT_DIR/figures/figure2/`.
-"""
 from pathlib import Path
 
 import matplotlib
@@ -45,7 +12,7 @@ from matplotlib.colors import Normalize, to_rgba
 
 from prostate_cancer.utils import get_colormap_dict, resolve_export_dir, resolve_output_figures_dir
 
-NUM_SAMPLES_PER_PLOT = 100_000  # legacy's num_samples for sample_min_per_group_then_uniform
+NUM_SAMPLES_PER_PLOT = 100_000
 
 
 def plot_points(

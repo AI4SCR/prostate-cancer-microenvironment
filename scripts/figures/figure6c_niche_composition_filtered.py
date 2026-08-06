@@ -1,25 +1,3 @@
-# %%
-"""Reproduce Figure 6c's "top" panel: mean cell-type composition across
-cores of niches 6, 16, 17, and 18.
-
-1:1 port of the old repo's
-`000_paper/sync_paper/06-spatial-niches/composition/niche_composition.py`'s
-"MEAN COMPOSITION BARPLOT" section, same as `figureS4b_niche_mean_composition.py`
-(see that script's docstring for the shared source and the parts of
-`niche_composition.py` NOT ported), but with the `niche_order` list
-restricted to the 4 niches this panel names -- a disclosed, parameter-only
-filter of the same verbatim code, not a logic change (same permitted
-category as e.g. `figure6_km_niche6.R` scanning a different niche each
-time).
-
-Only the "top" mean-composition panel is produced here. Figure 6c's
-"bottom" panel ("two example cores") is NOT code-derived -- no legacy
-script plots per-core composition bars, only the corpus-wide mean shown
-here -- and is flagged as a gap in open-questions.md rather than attempted.
-
-Reads `clusters_annotated_v2.parquet` from `LEGACY_DATA_DIR` and
-`resources/colormaps.yaml`. Writes to `$OUTPUT_FIGURES_DIR/figure6/`.
-"""
 from pathlib import Path
 
 import matplotlib
@@ -33,9 +11,6 @@ from prostate_cancer.utils import resolve_legacy_dir, resolve_output_figures_dir
 
 matplotlib.use("Agg")
 
-# Restricted to niches 6/16/17/18 (Figure 6c), per the same fixed niche_order
-# list used throughout the legacy niche-visualization scripts -- see
-# figureS4b_niche_mean_composition.py's NICHE_ORDER for the full 18-niche list.
 NICHE_ORDER = [
     "tumorERG+p53+_ProlifLuminal",  # niche 6
     "immune_bloodvessels_CAF1(CD105-)",  # niche 16

@@ -1,31 +1,3 @@
-# Reproduce Figure 3b: heatmap of z-scored mean marker expression per CAF subcluster.
-#
-# 1:1 port of the old repo's 000_paper/04_heatmaps/2-cell-types-heatmap.R
-# (see figure_script_mapping.md) -- specifically its `heatmap.caf()`
-# function, called under its "# %% CAFs" section.
-#
-# REPLACES an earlier, non-faithful version of this script that filtered
-# `main_group == "stromal"` and used all 34 markers -- the same class of bug
-# already found and fixed in figure3_caf_umap.py, just never audited here
-# until now. Legacy's actual filter is `grepl("CAF", label)` (label string
-# match, not main_group), NOT `main_group == "stromal"` (broader, includes
-# pericytes and other non-CAF stromal cells legacy explicitly does not
-# include here -- it even has a commented-out `filter3 =
-# grepl('stromal-', meta$label)` alternative it chose not to use).
-#
-# Marker list: confirmed against the published figure to be 12 markers, not
-# the 9 in this file's original source (000_paper/04_heatmaps/
-# 2-cell-types-heatmap.R) nor the 13 in a newer sibling variant
-# (2-1-cell-types-heatmap.R, pulled in later) -- the true set is that
-# newer 13-marker list with `pdpn` uncommented (it's commented out there)
-# and `c_casp3`/`ki_67` removed. Confirmed by the user directly reading off
-# the published panel's marker order.
-#
-# Reads the tables scripts/data/export.py produces in
-# EXPORT_DIR (never BASE_DIR -- see REPRODUCIBILITY.md), plus
-# resources/colormaps.yaml (ported from a personal-machine path). Writes to
-# EXPORT_DIR/figures/figure3/.
-
 library(dotenv)
 load_dot_env()
 

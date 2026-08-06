@@ -1,25 +1,3 @@
-# %%
-"""Reproduce Figure 5's upstream niche clustering (k-means, k=24).
-
-1:1 port of the old repo's `000_paper/11_niches/110_analysis/00_kmeans_clustering.py`
-(paths only changed; see `figure_script_mapping.md`) -- clusters each cell's
-neighborhood-composition vector (radius=32 cell-cell neighborhood graph,
-frequency-normalized) into 24 k-means niches, then drops niches with too few
-cells/patients to be meaningful.
-
-Inputs are the pre-computed neighborhood-graph data, staged at
-`$LEGACY_DATA_DIR/PCa_NHood/CellCellNeighborhoods/` (not reproduced by any
-script in this repo -- computing the neighborhood graph itself is a
-separate, undocumented upstream step; copied in-repo for self-containment,
-originally read live off shared storage at
-`/work/.../prometex/data/PCa_NHood/...`), and the `utils.clustering`/
-`utils.visualization` code staged at `$LEGACY_DATA_DIR/PCA_NHOODs_clean/`
-(the original import path, `/users/mensmeng/workspace/...`, is not
-accessible to this account -- see missing_files.md).
-
-Writes `clusters.parquet` (per-cell niche assignment) and the raw z-scored
-niche-composition heatmap to `$EXPORT_DIR/figures/figure5/`.
-"""
 import sys
 from pathlib import Path
 

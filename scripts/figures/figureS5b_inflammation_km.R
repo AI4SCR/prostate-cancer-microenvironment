@@ -18,6 +18,7 @@ dir.create(figures_dir, showWarnings = FALSE, recursive = TRUE)
 clinical <- read_parquet(file.path(export_dir, "clinical.parquet"))
 
 dir_inflam <- file.path(figures_dir, "inflammation")
+dir.create(dir_inflam, showWarnings = FALSE, recursive = TRUE)
 df_inflam <- clinical %>%
   select(pat_id, inflammation) %>%
   filter(!is.na(inflammation)) %>%

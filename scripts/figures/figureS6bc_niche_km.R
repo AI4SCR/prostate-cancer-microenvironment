@@ -8,6 +8,7 @@ library(ggplot2)
 library(survival)
 library(survminer)
 library(rlang)
+library(patchwork)
 
 export_dir <- Sys.getenv("EXPORT_DIR")
 output_figures_dir <- Sys.getenv("OUTPUT_FIGURES_DIR")
@@ -195,10 +196,14 @@ for (col in cols) {
     title = paste("Progression-free by", col, "high vs low")
   )
   # print(p_prog)
-  if (col %in% c("luminal_infiltrated", "luminal_CAF1(CD105High)", "tumor_CAF1(CD105High)")) {
+  # legacy bug: hardcoded to a different script's niches -- "luminal_infiltrated"
+  # (niche 2) matched by coincidence, "tumor_CAF1_lymphocytes" (niche 8) never
+  # did, so niche 8's panel silently never saved -- see bugs.md
+  # if (col %in% c("luminal_infiltrated", "luminal_CAF1(CD105High)", "tumor_CAF1(CD105High)")) {
+  if (col %in% cols) {
     p_prog_combined <- p_prog$plot / p_prog$table
-    plot_name <- paste0(figures_dir, "km_survival_", "_disease_progr_", col, "with_table.pdf")
-    # ggsave(plot_name, p_prog_combined, width = 8, height = 6, dpi = 300)
+    plot_name <- file.path(figures_dir, paste0("km_survival_", "_disease_progr_", col, "with_table.pdf"))
+    ggsave(plot_name, p_prog_combined, width = 8, height = 6, dpi = 300)
   }
 }
 

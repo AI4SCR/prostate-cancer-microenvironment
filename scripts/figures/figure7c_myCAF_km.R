@@ -16,7 +16,7 @@ stopifnot("EXPORT_DIR is not set; copy .env.example to .env and fill it in" = nz
 stopifnot("OUTPUT_FIGURES_DIR is not set; copy .env.example to .env and fill it in" = nzchar(output_figures_dir))
 
 figures_dir <- file.path(output_figures_dir, "figure7", "cell_types")
-dir.create(figures, showWarnings = FALSE, recursive = TRUE) # legacy bug: undefined `figures`, not `figures_dir`
+dir.create(figures_dir, showWarnings = FALSE, recursive = TRUE)
 results_dir <- file.path(output_figures_dir, "figure7", "cell_types")
 dir.create(results_dir, showWarnings = FALSE, recursive = TRUE)
 
@@ -175,9 +175,13 @@ for (col in cols) {
   )
   # print(p_os)
 
-  if (col == "epithelial-luminal(ERG+p53+)") {
+  # legacy bug: hardcoded to a different label ("epithelial-luminal(ERG+p53+)")
+  # never matched this script's `cols` ("stromal-CAF1(CD105+)"), so this panel
+  # never saved -- see bugs.md
+  # if (col == "epithelial-luminal(ERG+p53+)") {
+  if (col %in% cols) {
     p_os_combined <- p_os$plot / p_os$table
-    plot_name <- paste0(figures_dir, "km_survival_", "_os_status_", col, "with_table.pdf")
+    plot_name <- file.path(figures_dir, paste0("km_survival_", "_os_status_", col, "with_table.pdf"))
     ggsave(plot_name, p_os_combined, width = 8, height = 6, dpi = 300)
   }
 
@@ -202,9 +206,13 @@ for (col in cols) {
     title = paste("Progression-free by", col, "high vs low")
   )
   # print(p_prog)
-  if (col == "stromal-CAF1(CD105+)") {
+  # legacy bug: hardcoded to "stromal-CAF1(CD105+)" -- happened to match this
+  # script's own `cols` by coincidence, so this panel wasn't actually broken,
+  # but the condition was still stale/copy-pasted -- see bugs.md
+  # if (col == "stromal-CAF1(CD105+)") {
+  if (col %in% cols) {
     p_prog_combined <- p_prog$plot / p_prog$table
-    plot_name <- paste0(figures_dir, "km_survival_", "_disease_progr_", col, "with_table.pdf")
+    plot_name <- file.path(figures_dir, paste0("km_survival_", "_disease_progr_", col, "with_table.pdf"))
     ggsave(plot_name, p_prog_combined, width = 8, height = 6, dpi = 300)
   }
 }

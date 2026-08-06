@@ -91,9 +91,9 @@ g_strip <- pat_order %>%
     panel.grid = element_blank()
   )
 
-(g_strip + g_main) + plot_layout(widths = c(1, 10))
+p <- (g_strip + g_main) + plot_layout(widths = c(1, 10))
 plot_name <- "heatmap_gleason_grp_by_gs_grp.pdf"
-plot_path <- file.path(save_dir, plot_name)
+plot_path <- file.path(figures_dir, plot_name)
 
 ggsave(plot_path, p, width = 10, height = 20)
 cat("Saved Supplementary Figure 1b to", plot_path, "\n")

@@ -66,5 +66,5 @@ p_prog <- ggsurvplot(
 p_prog$plot
 
 plot_name <- "progr_patient_cluster_group_final_all.pdf"
-plot_path <- file.path(result_dir, plot_name)
-# ggsave(plot_path, p_prog$plot, width = 10, height = 6)
+plot_path <- file.path(figures_dir, plot_name)
+ggsave(plot_path, p_prog$plot, width = 10, height = 6)

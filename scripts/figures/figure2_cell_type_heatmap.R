@@ -1,31 +1,3 @@
-# Reproduce Figure 2a: clustered heatmap of mean marker expression per cell type.
-#
-# 1:1 port of the old repo's 000_paper/04_heatmaps/2-cell-types-heatmap.R
-# (see figure_script_mapping.md) -- specifically its `heatmap.agg()`
-# function, called as its "heatmap-cluster=true-agg=true-split-false"
-# invocation (aggregate_by='label', cluster_rows=TRUE, column_split=FALSE).
-# That legacy file actually defines FIVE different heatmap variants
-# (heatmap/heatmap.agg/group_heatmap/heatmap.caf, several call sites each),
-# including TWO heatmap.agg() calls differing only in column_split
-# ("heatmap-cluster=true-agg=true" with column_split=TRUE, and
-# "...-split-false" with column_split=FALSE). The published Figure 2a
-# heatmap is NOT column-split by compartment -- confirmed against the
-# actual figure -- so this uses the split-false call site. An earlier
-# version of this script used column_split=TRUE, an unconfirmed guess that
-# turned out wrong.
-#
-# Correction vs. an earlier, non-faithful version of this script: legacy
-# excludes the row where label == 'mix-vessels-PMN-MDSCs', NOT 'undefined'
-# -- these are two different labels (both exist in the data, 35 total
-# labels; excluding either alone leaves 34, so the count check alone
-# doesn't distinguish them -- only reading the actual legacy code does).
-# 'undefined' cells remain included here, matching legacy exactly.
-#
-# Reads the tables scripts/data/export.py produces in
-# EXPORT_DIR (never BASE_DIR -- see REPRODUCIBILITY.md), plus
-# resources/colormaps.yaml (ported from a personal-machine path). Writes to
-# EXPORT_DIR/figures/figure2/.
-
 library(dotenv)
 load_dot_env()
 
