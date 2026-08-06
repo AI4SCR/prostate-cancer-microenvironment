@@ -115,25 +115,24 @@ no legacy script does.
 
 # Issue: Figure 6d/7a — significance stats are manually annotated, from a separate script
 
-**Confirmed by Melissa (paper co-author)**: our existing citations were
-already correct — `stromogenic_vis.R` (Fig 7a) and `inflammation_vis.R`
-(Fig 6d) are the right violin-plot sources. Separately, the significance
-stars/p-values visible in the published panels come from
-`pairwise_testing_niches.R` (per-niche Wilcoxon test + BH adjustment, for
-both `stromogenic_smc_loss_reactive_stroma_present` and `inflammation`) —
+Confirmed: our existing citations were already correct —
+`stromogenic_vis.R` (Fig 7a) and `inflammation_vis.R` (Fig 6d) are the
+right violin-plot sources. Separately, the significance stars/p-values
+visible in the published panels come from `pairwise_testing_niches.R`
+(per-niche Wilcoxon test + BH adjustment, for both
+`stromogenic_smc_loss_reactive_stroma_present` and `inflammation`) —
 computed independently and added to the plots by hand, same
 "manual annotation" pattern as the KM q-value substitution documented
 below. Neither violin script computes or displays any stats itself,
 matching the source scripts exactly.
 
-Checked Melissa's specific concern that `pairwise_testing_niches.R` "only
-has stromogenic set as target col, needs a loop for both": not true of the
+Checked the specific concern that `pairwise_testing_niches.R` "only has
+stromogenic set as target col, needs a loop for both": not true of the
 version we have (`sync_paper`, latest commit `aa8a8b5`, 2026-04-23) — it
-already contains complete, separate blocks for both variables. Likely a
-stale local copy on her end; nothing to fix in our port.
-`pairwise_testing_niches.R` itself has not been ported into this repo —
-citation-only for now, not run or empirically verified against the paper's
-displayed significance stars.
+already contains complete, separate blocks for both variables. Nothing to
+fix in our port. `pairwise_testing_niches.R` itself has not been ported
+into this repo — citation-only for now, not run or empirically verified
+against the paper's displayed significance stars.
 
 # Issue: Supplementary Figure 4b — proportions don't exactly match the paper
 
@@ -198,21 +197,20 @@ project's rule against writing new, non-ported plotting code.
 
 # Issue: S5a — one open discrepancy (bar count), pat_id colors don't match the paper
 
-Source identified by Melissa (paper co-author):
-`stacked_frequencies.py`'s `group_var == 'tma_id'` branch (x=TMA core,
-stacked by niche, filtered to cores with high niche-6 abundance) —
+Source: `stacked_frequencies.py`'s `group_var == 'tma_id'` branch (x=TMA
+core, stacked by niche, filtered to cores with high niche-6 abundance) —
 confirmed by direct visual match against the paper (niche legend circles
 1-18, same annotation rows). Ported to `figureS5a_p53_niche_barplot.py`.
 
-Two disclosed deviations, both per Melissa's direct guidance: (1) the
-source's `ann_rows = ["disease_progr", "gleason_grp"]` is genuinely broken
-as literally written — `tma_cols` never includes `disease_progr`, a
-`KeyError` waiting to happen — fixed by adding `disease_progr` to
-`tma_cols`. (2) Extended `ann_rows` to `["pat_id", "disease_progr",
-"gleason_grp", "inflammation"]` per Melissa's note that a `pat_id` row was
-added manually — `pat_id` merged in from `clinical.parquet` via `tma_id`,
-colors reused from `resources/colormaps.yaml`'s existing sections (not
-invented).
+Two disclosed deviations: (1) the source's `ann_rows = ["disease_progr",
+"gleason_grp"]` is genuinely broken as literally written — `tma_cols`
+never includes `disease_progr`, a `KeyError` waiting to happen — fixed by
+adding `disease_progr` to `tma_cols`. (2) Extended `ann_rows` to
+`["pat_id", "disease_progr", "gleason_grp", "inflammation"]` to match the
+4-row annotation (PatID, Disease progr, Gleason grp, Inflammation) visible
+in the published panel — `pat_id` merged in from `clinical.parquet` via
+`tma_id`, colors reused from `resources/colormaps.yaml`'s existing
+sections (not invented).
 
 Also found and fixed while running it: the same YAML-boolean-key gotcha as
 `figure6_niche_abundance_heatmap.R` (`yaml.safe_load()` parses bareword
@@ -225,9 +223,10 @@ two bars' niche-6 proportion match the paper almost exactly, ~69% and
 row's specific colors don't match the paper's — checked directly, not a
 lookup bug (every value resolves correctly, same patient consistently gets
 the same color across cores); the hex value assigned in `colormaps.yaml`
-just isn't the one the published figure uses, consistent with Melissa's
-own uncertainty about how that color assignment was originally generated.
-Marked `Validated = true` overall — panel structure, niche stacking, and
+just isn't the one the published figure uses. The process that generated
+the original per-patient color assignment is unknown, so the exact hex
+values aren't reproducible; only the same-patient-same-color property is,
+and that already holds. Marked `Validated = true` overall — panel structure, niche stacking, and
 annotation rows all match; only the bar count and exact patient hex values
 remain open.
 
