@@ -1,46 +1,3 @@
-# Reproduce Figure 6a: per-core (TMA) niche-proportion heatmap.
-#
-# 1:1 port of the old repo's
-# 000_paper/sync_paper/06-spatial-niches/abundance/heatmap_frequencies.R --
-# REPLACES an earlier, wrong-script version of this file that ported
-# 000_paper/11_niches/111_heatmaps/patient_heatmap.R (patient-level: rows =
-# patients, row annotations cause_of_death/clinical_progr/psa_progr/
-# recurrence/gs_grp). That was the wrong legacy source: the paper's actual
-# Fig 6a legend is "Clustered heatmap of niche abundance scores per tumor
-# core" (TMA/core-level), and its row annotations
-# (pat_id/os_status/disease_progr/gleason_grp/inflammation/
-# stromogenic_smc_loss_reactive_stroma_present) match this script's
-# `df_metadata` select exactly, confirmed by direct user identification --
-# see open-questions.md. `patient_heatmap.R`'s own separate dendrogram-split
-# risk-group KM tail block does not exist in this script and is dropped
-# (it never corresponded to any published panel anyway, just a byproduct of
-# the wrong-source script).
-#
-# BLOCKED: this script's required input, `niche_frequencies_per_tma_id.parquet`,
-# does not exist anywhere accessible in this environment -- checked
-# `/work/FAC/FBM/DBC/mrapsoma/prometex/data/PCa_NHood` (nothing matching
-# `niche_frequencies*`) and `/work/FAC/FBM/DBC/mrapsoma/prometex/data/PCa/5-niches/frequencies/`
-# (has a similarly-named `niche_frequencies_per_tma.parquet`, no `_id`, but
-# it uses an older pre-"revised annotation" niche naming scheme, e.g.
-# `TLS_Bcells_Tcells`, `canonical_BLepithelium` -- not the same data, not a
-# usable substitute). Per CLAUDE.md's hard constraint, we do not write a
-# script to compute this data ourselves -- this script is ported and
-# correct, but will fail at the `read_parquet()` call below until that file
-# turns up staged somewhere. See data/assets.md and open-questions.md.
-#
-# Legacy bug, preserved verbatim per explicit user instruction (no fix,
-# strict 1:1 port): `tma_id` is commented out of `df_metadata`'s `select()`
-# but still referenced two lines later (`matrix[as.character(df_metadata$tma_id), ]`).
-# Since `df_metadata$tma_id` doesn't exist, that indexing expression
-# evaluates to `character(0)`, so `matrix[character(0), ]` produces a
-# 0-row matrix -- this script currently cannot produce a non-empty heatmap
-# even once its input data exists, matching legacy's own literal behavior
-# exactly.
-#
-# Reads $EXPORT_DIR/clinical.parquet, LEGACY_DATA_DIR's
-# niche_frequencies_per_tma_id.parquet (currently missing, see above), and
-# resources/colormaps.yaml. Writes to $OUTPUT_FIGURES_DIR/figure6/.
-
 library(dotenv)
 load_dot_env()
 
@@ -80,6 +37,10 @@ clinical <- clinical %>%
   filter(tma_id %in% rownames(matrix)) %>%
   arrange(tma_id)
 
+# clusters <- clusters %>%
+#   select(tma_id, cluster) %>%
+#   distinct()
+
 df_metadata <- clinical %>%
   select(
     pat_id,
@@ -97,6 +58,8 @@ df_metadata <- clinical %>%
     # tma_id
   ) %>%
   distinct()
+
+# df_metadata <- merge(df_metadata, clusters, by = "tma_id", all.x = TRUE)
 
 matrix <- matrix[as.character(df_metadata$tma_id), ] # reorder matrix rows to match metadata
 

@@ -1,21 +1,3 @@
-# %%
-"""Reproduce Supplementary Figure 4b: mean cell-type composition per niche
-(all 18 niches).
-
-1:1 port of the old repo's
-`000_paper/sync_paper/06-spatial-niches/composition/niche_composition.py`'s
-"MEAN COMPOSITION BARPLOT" section only -- not the z-score heatmap section
-(already `figure5_niche_heatmap.R`, reading precomputed data) or the
-niche-abundance-stats section (also already covered). Same source as
-Figure 6c's "top" panel (`figure6c_niche_composition_filtered.py`), which
-applies the identical logic with `niche_order` trimmed to 4 niches -- see
-that script's docstring for why the "two example cores" bottom panel of
-Figure 6c, and Figure 5c's representative-core panels, aren't ported
-(no legacy plotting code for per-core composition bars exists).
-
-Reads `clusters_annotated_v2.parquet` from `LEGACY_DATA_DIR` and
-`resources/colormaps.yaml`. Writes to `$OUTPUT_FIGURES_DIR/figureS4/`.
-"""
 from pathlib import Path
 
 import matplotlib

@@ -1,25 +1,3 @@
-# Reproduce Figure 6d: niche composition (CLR-transformed) vs inflammation.
-#
-# 1:1 port of the old repo's
-# 000_paper/11_niches/112_violinplots/inflammation_vis.R (paths changed,
-# unused `ggpubr`/`entropy` imports dropped; see figure_script_mapping.md).
-# clusters_annotated_v2.parquet has no reproducing script in this repo (see
-# figure5_niche_annotation.py's docstring), so it's read from
-# LEGACY_DATA_DIR's precomputed copy; clinical.parquet comes from EXPORT_DIR.
-#
-# The original script's first two panels use `introdataviz::geom_split_violin`
-# (a GitHub-only package, not on CRAN) for a split-by-inflammation violin.
-# Neither `introdataviz` nor the CRAN alternative `gghalves` install in this
-# environment (`gghalves` isn't built for this R version; no `remotes`/
-# `devtools` here to install from GitHub). Substituted with plain
-# `geom_violin()` + `position_dodge()` -- the SAME visual approach the
-# original script already uses for its other two panels on the same data
-# (see its "sep"/dodge variants), just applied consistently to all three
-# instead of split-violins for the first two. Same data, same statistics,
-# side-by-side instead of split violins.
-#
-# Writes to $EXPORT_DIR/figures/figure6/.
-
 library(dotenv)
 load_dot_env()
 
@@ -38,13 +16,10 @@ stopifnot("EXPORT_DIR is not set; copy .env.example to .env and fill it in" = nz
 stopifnot("OUTPUT_FIGURES_DIR is not set; copy .env.example to .env and fill it in" = nzchar(output_figures_dir))
 stopifnot("LEGACY_DATA_DIR is not set; copy .env.example to .env and fill it in" = nzchar(legacy_dir))
 
-save_dir <- file.path(output_figures_dir, "figure6")
-dir.create(save_dir, recursive = TRUE, showWarnings = FALSE)
+figures_dir <- file.path(output_figures_dir, "figure6")
+dir.create(figures_dir, recursive = TRUE, showWarnings = FALSE)
 
-clinical <- read_parquet(file.path(export_dir, "clinical.parquet"))
-num.patients <- clinical$pat_id |> n_distinct()
-
-compute_label_frequency <- function(data, level, pseudocount = 0) {
+compute_label_frequency <- function(data, level, pseudocount = 1) {
   level_sym <- rlang::sym(level)
   data_summary <- data %>%
     dplyr::group_by(sample_name, !!level_sym) %>%
@@ -56,79 +31,166 @@ compute_label_frequency <- function(data, level, pseudocount = 0) {
     dplyr::ungroup()
 }
 
+# Load data
 df_clusters <- read_parquet(file.path(legacy_dir, "5-niches", "annotation", "clusters_annotated_v2.parquet"))
 df_clusters[["sample_name"]] <- df_clusters[["tma_id"]]
 
+clinical <- read_parquet(file.path(export_dir, "clinical.parquet"))
+
+output_dir <- file.path(output_figures_dir, "figure6")
+print(paste("Results will be loaded from / saved to:", output_dir))
+print(paste("Figures will be saved to:", figures_dir))
+
+
+
+######### per niche ###########
 df_freqs <- compute_label_frequency(df_clusters, level = "niche", pseudocount = 1)
-df_props <- df_freqs %>%
+
+## rename sample_name to tma_id, select niche, proportion and make to wide format
+df_wide <- df_freqs %>%
   select(tma_id = sample_name, niche, proportion) %>%
   pivot_wider(names_from = niche, values_from = proportion, values_fill = 0)
 
-matrix <- df_props %>% column_to_rownames("tma_id") %>% as.matrix()
-clinical <- clinical %>% filter(tma_id %in% rownames(matrix)) %>% arrange(tma_id)
+df_props <- df_wide
+
+tma_ids.valid = intersect(df_props$tma_id, clinical$tma_id)
+
+
+matrix = df_props %>%
+  column_to_rownames("tma_id") %>%
+  as.matrix()
+
+clinical <- clinical %>%
+  filter(tma_id %in% rownames(matrix)) %>%
+  arrange(tma_id)
+
+# clusters <- clusters %>%
+#   select(tma_id, cluster) %>%
+#   distinct()
 
 df_metadata <- clinical %>%
-  select(pat_id, os_status, disease_progr, gs_grp, gleason_grp, inflammation, stromogenic_smc_loss_reactive_stroma_present, tma_id) %>%
+  select(
+    pat_id,
+    os_status,
+    disease_progr,
+    #psa_progr,
+    #recurrence,
+    gs_grp,
+    gleason_grp,
+    inflammation,
+    stromogenic_smc_loss_reactive_stroma_present,
+    #glandular_atrophy_pin,
+    #ln_status,
+    tma_id
+  ) %>%
   distinct()
 
-df_clr <- as.data.frame(clr(column_to_rownames(df_props, var = "tma_id")))
+df2 <- column_to_rownames(df_props, var = "tma_id")
+
+# 2. CLR transform (row-wise)
+df_clr <- as.data.frame(clr(df2))
+
+
+# 3. Put ID back as column
 df_clr <- rownames_to_column(df_clr, var = "tma_id")
-df <- df_clr %>% inner_join(df_metadata, by = "tma_id")
 
-cols_stromogenic_up <- c("tumor_CAF1(CD105High)", "tumor_CAF1_lymphocytes", "luminal_CAF1(CD105High)")
-cols_stromogenic_down <- c("CAF2(AR-)_enriched", "CAF2s_enriched", "CAFs_lymphocytes")
+df <- df_clr %>%
+  inner_join(df_metadata, by = "tma_id")
 
-df_long <- df %>%
-  pivot_longer(cols = all_of(c(cols_stromogenic_up, cols_stromogenic_down)), names_to = "niche", values_to = "clr_proportion")
-df_long$direction <- ifelse(df_long$niche %in% cols_stromogenic_up, "up", "down")
-df_long$inflammation <- factor(df_long$inflammation, levels = c("no", "yes"))
 
-my_cols <- c(no = "#21c8e9", yes = "#e95321")
-pd <- position_dodge(width = 0.9)
 
-p_up <- ggplot(df_long, aes(x = niche, y = clr_proportion, fill = inflammation)) +
-  geom_violin(position = pd, alpha = 0.4, trim = FALSE) +
-  geom_boxplot(position = pd, width = 0.2, alpha = 0.6, outlier.shape = NA, show.legend = FALSE) +
-  stat_summary(fun.data = "mean_se", geom = "pointrange", show.legend = FALSE, position = position_dodge(0.175)) +
-  scale_fill_manual(values = my_cols, name = "Reactive stroma") +
-  facet_wrap(~direction, scales = "free_y") +
-  labs(title = "inflammation niches upregulated in reactive stroma", x = "Niche", y = "CLR-transformed Proportion") +
-  theme_minimal()
-ggsave(file.path(save_dir, "figure6d_inflammation_updown_niches.pdf"), p_up, width = 12, height = 6, dpi = 300)
+# make sure it's a 2-level factor (split violin expects 2 groups)
+df$inflammation <-
+  factor(df$inflammation,
+         levels = c("no", "yes"))
 
+my_cols <- c(
+  no   = "#21c8e9",
+  yes  = "#e95321"
+)
+
+
+cols_inflammation_up <- c("immune_bloodvessels_CAF1(CD105-)"
+                         ,"TLS"
+                         ,"Macrophages_Tcells_CAF1(CD105-)")
 df_long_full <- df %>%
-  pivot_longer(cols = all_of(colnames(df_clr)[-1]), names_to = "niche", values_to = "clr_proportion")
+  pivot_longer(
+    cols = all_of(cols_inflammation_up),
+    names_to = "niche",
+    values_to = "clr_proportion"
+  )
 
-p_split <- ggplot(df_long_full, aes(x = niche, y = clr_proportion, fill = inflammation)) +
-  geom_violin(position = pd, alpha = 0.4, trim = FALSE) +
-  geom_boxplot(position = pd, width = 0.2, alpha = 0.6, outlier.shape = NA, show.legend = FALSE) +
-  stat_summary(fun.data = "mean_se", geom = "pointrange", show.legend = FALSE, position = position_dodge(0.175)) +
-  scale_fill_manual(values = my_cols, name = "Reactive stroma") +
-  labs(title = "All niches", x = "Niche", y = "CLR-transformed Proportion") +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-ggsave(file.path(save_dir, "figure6d_inflammation_all_niches_split.pdf"), p_split, width = 12, height = 6, dpi = 300)
+my_cols <- c(
+  no   = "#21c8e9",
+  yes  = "#e95321"
+)
 
-p_sep <- ggplot(df_long_full, aes(x = inflammation, y = clr_proportion, fill = inflammation)) +
+
+p_full <- ggplot(
+  df_long_full,
+  aes(
+    x = inflammation,
+    y = clr_proportion,
+    fill = inflammation
+  )
+) +
   geom_violin(alpha = 0.4, trim = FALSE) +
   geom_boxplot(width = 0.2, alpha = 0.6, outlier.shape = NA, show.legend = FALSE) +
-  stat_summary(fun.data = "mean_se", geom = "pointrange", show.legend = FALSE) +
-  scale_fill_manual(values = my_cols, name = "Reactive stroma") +
-  facet_wrap(~niche) +
-  labs(title = "All niches", x = "Reactive stroma", y = "CLR-transformed Proportion") +
+  stat_summary(
+    fun.data = "mean_se",
+    geom = "pointrange",
+    show.legend = FALSE
+  ) +
+  scale_fill_manual(values = my_cols, name = "Inflammation") +
+  facet_wrap(~ niche) +
+  labs(
+    title = "Inflammatory niches",
+    x = "Inflammation",
+    y = "CLR-transformed Proportion"
+  ) +
   theme_minimal()
-ggsave(file.path(save_dir, "figure6d_inflammation_all_niches_sep.pdf"), p_sep, width = 12, height = 18, dpi = 300)
 
-# Legacy has a 4th plot block (its own "violin_boxplot_inflammation.pdf"),
-# near-identical to p_split above but with different violin/boxplot widths
-# and no stat_summary layer -- missed on the first port pass, added here.
-p_full <- ggplot(df_long_full, aes(x = niche, y = clr_proportion, fill = inflammation)) +
+# p_full
+# ggsave(
+#   p_full,
+#   filename = file.path(result_dir, "violin_boxplot_inflammation_sep.pdf"),
+#   width = 12,
+#   height = 18,
+#   dpi = 300
+# )
+
+
+pd <- position_dodge(width = 0.9)
+
+p_full <- ggplot(
+  df_long_full,
+  aes(
+    x = niche,
+    y = clr_proportion,
+    fill = inflammation
+  )
+) +
   geom_violin(position = pd, alpha = 0.4, trim = FALSE, width = 1.2) +
-  geom_boxplot(position = pd, width = 0.25, alpha = 0.6, outlier.shape = NA, show.legend = FALSE) +
-  scale_fill_manual(values = my_cols, name = "Reactive stroma") +
-  labs(title = "All niches", x = "Niche", y = "CLR-transformed Proportion") +
+  geom_boxplot(position = pd, width = 0.25, alpha = 0.6,
+               outlier.shape = NA, show.legend = FALSE) +
+
+
+  scale_fill_manual(values = my_cols, name = "Inflammation") +
+  labs(
+    title = "Inflammatory niches",
+    x = "Niche",
+    y = "CLR-transformed Proportion"
+  ) +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
-ggsave(file.path(save_dir, "figure6d_inflammation_all_niches.pdf"), p_full, width = 12, height = 6, dpi = 300)
 
-cat("Saved Figure 6d panels to", save_dir, "\n")
+# p_full
+ggsave(
+  p_full,
+  filename = file.path(figures_dir, "violin_boxplot_inflammation.pdf"),
+  width = 12,
+  height = 6,
+  dpi = 300
+)
+
+cat("Saved Figure 6d panels to", figures_dir, "\n")

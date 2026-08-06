@@ -18,6 +18,7 @@ dir.create(figures_dir, showWarnings = FALSE, recursive = TRUE)
 clinical <- read_parquet(file.path(export_dir, "clinical.parquet"))
 
 dir_stromo <- file.path(figures_dir, "stromogenic")
+dir.create(dir_stromo, showWarnings = FALSE, recursive = TRUE)
 df_stromo <- clinical %>%
   select(pat_id, stromogenic_smc_loss_reactive_stroma_present) %>%
   filter(!is.na(stromogenic_smc_loss_reactive_stroma_present)) %>%

@@ -1,16 +1,28 @@
-# %%
-"""Compute and cache the two UMAP embeddings `scripts/figures/figure3_caf_umap.py` plots.
-
-Split out of the original combined fit+plot script so the (fast) plotting
-script can be re-run for styling changes without re-triggering these slow
-UMAP fits. Pure data-loading/export mechanics reorganization -- see
-`scripts/figures/figure3_caf_umap.py`'s docstring for the full port
-provenance (cell filter, per-config normalization, both marker configs); the
-fits themselves are unchanged.
-
-Reads from $EXPORT_DIR. Writes each config's embedding to
-$EXPORT_DIR/figures/figure3/{config_name}/umap_embedding.parquet.
 """
+This script fits a fresh UMAP, which is NOT reproducible against the
+published Figure 3a -- `UMAP.fit()` is never seeded anywhere in the legacy
+pipeline, so each fit gives a geometrically different (if topologically
+similar) embedding. The actual ground-truth embeddings for Figure 3a are
+ported from the legacy `reducer.pkl` files via
+`scripts/port/port_umap_reducer.py` (run from that script's own pinned pixi
+env, NOT this repo's `.venv`):
+
+    cd scripts/port
+    # "excl_markers" config
+    pixi run python port_umap_reducer.py \\
+      "/work/FAC/FBM/DBC/mrapsoma/prometex/data/PCa/0-paper/2-umaps/1-cafs/n_neighbors=50-min_dist=0.1-engine=umap-learn-excl_markers=dna1_dna2_fap_icsk1_icsk2_icsk3/reducer.pkl" \\
+      ../../data/figures/figure3_caf_umap/excl_markers/umap_embeddings.parquet
+    # "caf_markers_only" config
+    pixi run python port_umap_reducer.py \\
+      "/work/FAC/FBM/DBC/mrapsoma/prometex/data/PCa/0-paper/2-umaps/1-cafs/n_neighbors=50-min_dist=0.1-engine=umap-learn-excl_markers=beta_catenin_c_casp3_cd11b_cd20_cd3_cd31_cd4_cd44_cd45_cd66b_cd68_cd8a_dna1_dna2_e_cadherin/reducer.pkl" \\
+      ../../data/figures/figure3_caf_umap/caf_markers_only/umap_embeddings.parquet
+
+(params match this script's own N_NEIGHBORS/MIN_DIST/CONFIGS, confirmed
+against `archive/scripts/02-umaps/0-umaps-cafs.py`'s `params` list -- the
+legacy dir names truncate the marker list to 150 chars, hence the shorter
+`caf_markers_only` name above despite excluding more markers.)
+"""
+
 from pathlib import Path
 
 import pandas as pd

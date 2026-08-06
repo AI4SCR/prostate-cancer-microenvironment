@@ -1,39 +1,3 @@
-# %%
-"""Reproduce Figure 3a: UMAP of CAF cells colored by subcluster.
-
-1:1 port of the old repo's `000_paper/02_umaps/0-umaps-cafs.py` (see
-`figure_script_mapping.md`). Legacy's active `params` sweep has TWO
-configs, not one (both n_neighbors=50, min_dist=0.1, engine='umap-learn'):
-(a) excluding only the standard non-marker channels (`NON_MARKER_CHANNELS`)
--- i.e. essentially all markers, and (b) excluding every marker except the
-9 CAF-relevant ones the paper's Methods names. Both are computed here;
-config (b) is the one this repo's earlier notes identified as producing the
-actual Fig 3a panel ("UMAP ... computed using CAF-relevant markers").
-
-Cell filter: legacy selects `metadata.label.str.contains('CAF')` -- NOT
-`main_group == 'stromal'` (stromal includes non-CAF cells like pericytes;
-an earlier, non-faithful version of this script used the broader filter --
-see discrepancies.md).
-
-Normalization: legacy calls `normalize(df, exclude_zeros=True)` on the
-CAF-filtered, marker-subsetted RAW data, per config -- i.e. the min-max/
-censoring statistics are computed on that specific filtered population and
-marker subset, not globally. This is NOT the same computation as this
-repo's `intensity_normalized.parquet` (which normalizes ALL cells x ALL
-markers together), so that cache can't be reused here -- this script loads
-`intensity.parquet` (raw) instead and normalizes it itself, matching legacy.
-
-Both UMAP fits (data-loading/export mechanics only, not logic) now live in
-`scripts/data/figure3_caf_umap_embedding.py`. This script only reads those
-cached embeddings and plots -- it still loads and normalizes the raw
-CAF-filtered intensity table itself, since the intensity panels need it for
-coloring (a cheap, non-UMAP step) independent of the cached embeddings.
-
-Reads from `$EXPORT_DIR`, requires
-`scripts/data/figure3_caf_umap_embedding.py` to have already produced
-`$EXPORT_DIR/figures/figure3/{config_name}/umap_embedding.parquet` for both
-configs. Writes all plot panels to `$EXPORT_DIR/figures/figure3/`.
-"""
 from pathlib import Path
 
 import matplotlib

@@ -1,14 +1,3 @@
-# Reproduce Figure 5a: z-scored niche x cell-type composition heatmap.
-#
-# 1:1 port of the old repo's 000_paper/11_niches/111_heatmaps/z_score_heatmap.R
-# (paths only changed; see figure_script_mapping.md). All inputs here are
-# precomputed composition/annotation tables with no reproducing script in
-# this repo (figure5_niche_annotation.py is blocked on the missing
-# niche_annotations_revised.xlsx -- see that script's docstring), so they're
-# read from LEGACY_DATA_DIR rather than regenerated.
-#
-# Writes to $EXPORT_DIR/figures/figure5/.
-
 library(dotenv)
 load_dot_env()
 
@@ -136,11 +125,6 @@ medians <- medians[rownames(matrix)]
 presence <- df_stats$num_samples
 names(presence) <- df_stats$niche
 presence <- presence[rownames(matrix)]
-# Legacy uses TWO separate color functions here, not one: `col_fun` (no
-# na.rm) feeds the annotation fill (my_colors) below; `col_fun_presence`
-# (with na.rm=TRUE) is defined later and used only for the legend. An
-# earlier version of this port incorrectly merged them into one variable
-# with na.rm applied to both uses -- restored as two, matching legacy.
 col_fun <- colorRamp2(range(presence), c("lightyellow", "darkred"))
 my_colors <- col_fun(presence)
 
@@ -189,10 +173,6 @@ lgd_presence <- Legend(
 
 plot_path <- file.path(save_dir, "figure5a_niche_zscore_heatmap.pdf")
 pdf(plot_path, width = 18, height = 14)
-# Legacy's actual saved-to-pdf draw() call omits annotation_legend_list
-# (its two earlier, unused debug draw() calls before opening the pdf device
-# DID include it -- likely an authoring slip in the original, but matched
-# here literally rather than "corrected").
 draw(h, heatmap_legend_side = "right", annotation_legend_side = "right")
 dev.off()
 cat("Saved Figure 5a to", plot_path, "\n")

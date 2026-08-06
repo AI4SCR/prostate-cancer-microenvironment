@@ -1,15 +1,3 @@
-# Reproduce Supplementary Figure 1a: EMPaCT cohort description (patient
-# metadata/follow-up variable distributions).
-#
-# 1:1 port of the old repo's 000_paper/01_clinical_metadata/clinical.r
-# (paths only changed; see figures.md). One stacked bar plot per categorical
-# variable (TMA-level and patient-level), one violin+boxplot+jitter plot per
-# continuous variable; the three progression-time variables are restricted
-# to patients with an event, matching legacy exactly.
-#
-# Reads $EXPORT_DIR/clinical.parquet. Writes to
-# $OUTPUT_FIGURES_DIR/figureS1/{tma-level,patient-level}/{var_name}.pdf.
-
 library(dotenv)
 load_dot_env()
 

@@ -1,97 +1,176 @@
-# Logic-fidelity audit: `scripts/figures/*` vs. legacy (old repo) sources
+# Discrepancies: reproduced figures vs. published paper
 
-Each `scripts/figures/figureN_*` file is supposed to be a faithful port of an
-old-repo script (`000_paper/...`), changing **only** hardcoded paths,
-uninstallable-package substitutions (documented), and cosmetic cleanup — no
-computational logic. This audit (11 parallel sub-agents, one per script pair)
-checked that claim file by file. Status below reflects findings at audit
-time; ✅ = fixed since, ⬜ = not yet fixed.
+Visual comparison of `output/figures/*` against the published panels in
+`paper.pdf`, done by the user directly. "OK" = visually matches. Items
+marked **OPEN QUESTION** need investigation before any fix is attempted --
+not yet resolved, not yet guessed at.
 
-## Summary
+## Figure 2
 
-| Script | Verdict | Real discrepancies | Status |
-|---|---|---|---|
-| `figure5_niche_correlation.R` | PASS | 0 | — |
-| `figure6_km_niche6.R` | PASS | 0 (disclosed CSV additions only) | — |
-| `figure4_survival.R` | PASS | 0 | — |
-| `figure5_niche_clustering.py` | FAIL | 2 minor | ⬜ |
-| `figure5_niche_annotation.py` | FAIL | 2 minor + 1 trivial | ⬜ |
-| `figure5_niche_heatmap.R` | FAIL | 2 real | ⬜ |
-| `figure6_niche_abundance_heatmap.R` | FAIL | 2 real, 1 cosmetic | ⬜ |
-| `figure6_inflammation_violin.R` | FAIL | 1 real (missing layer, 2 plots) | ⬜ |
-| `figure2_umap.py` | **FAIL** | **6 major** | ⬜ |
-| `figure2_cell_type_heatmap.R` | **FAIL** | **8 major** | ⬜ |
-| `figure3_caf_umap.py` | **FAIL** | **3 major** | ⬜ |
+- **2a** (`figure2/figure2a_cell_type_heatmap.pdf`): missing the metagroup
+  column annotation present in the paper's version.
+- **2b**: OK.
 
-The Figure 2/3 failures are the most serious: those scripts were reported
-as "validated against real data" in earlier work on this repo, but
-"validated" only meant *ran without error and produced a plot* — nobody had
-checked the actual computation against the old repo's script line-by-line
-until now. They do not currently reproduce the paper's method.
+## Figure 3
 
----
+- **3b**: pericytes are not plotted in yellow (color mismatch vs. paper).
+  Not row-clustered, unlike the paper. Overall a different-looking heatmap
+  from the published one -- bigger discrepancy than just color/clustering.
 
-## `figure2_umap.py` — 6 major discrepancies
+## Figure 4
 
-vs. `000_paper/02_umaps/0-umaps.py` (+ `0-umaps-main-types.py`, not otherwise used)
+- **4a, 4b, 4c, 4d, 4e**: all OK.
 
-1. **UMAP `n_neighbors`: 50 → 15.** Legacy passes `50`; new script defaults to `15`. Changes the embedding.
-2. **Normalization step removed entirely.** Legacy calls `normalize(data, exclude_zeros=True)` before UMAP; new script has no equivalent call.
-3. **Marker exclusion removed.** Legacy excludes `{dna1, dna2, icsk1, icsk2, icsk3, fap}` before computing the embedding; new script uses `marker_columns(cells)` with no such exclusion.
-4. **`metric="euclidean"` added.** Not present in the legacy call; UMAP's own default differs from an explicit euclidean setting in some configurations.
-5. **Marker plotting scope narrowed.** Legacy plots every marker column; new script hardcodes 4 markers (`cd45`, `pan_keratin`, `cd31`, `vimentin`).
-6. **Data source changed.** Legacy loads via `PCa()` + `normalize()`; new script uses `load_exported_cells(export_dir, exclude_undefined=False)` — plausibly equivalent in principle but not verified equivalent, and moot given (2) above (the normalization this alternate path would need is simply missing).
+## Figure 5
 
-## `figure2_cell_type_heatmap.R` — 8 major discrepancies
+- **5a**: OK, but the column annotation is placed at the top of the
+  heatmap; the paper has it at the bottom.
+- **5b**: OK, but the paper's heatmap has no numbers printed in the cells
+  (ours does), and the row order differs from the paper.
 
-vs. `000_paper/04_heatmaps/2-cell-types-heatmap.R` (the `heatmap()`/`heatmap.agg()` functions)
+## Figure 6
 
-1. **Filter target differs.** New filters `label != "undefined"` (a disclosed, git-logged fix); legacy's `heatmap.agg()` instead filters out `label == 'mix-vessels-PMN-MDSCs'` — these are different cell populations, not the same fix expressed differently.
-2. **No subsampling.** Legacy subsamples to 2000 cells when not aggregating; new script has no sampling step (though it does always aggregate, see #7, which may make this moot — needs a decision, not an assumption).
-3. **Matrix orientation flipped.** Legacy transposes so markers are rows; new script keeps cell types as rows, markers as columns.
-4. **Explicit clustering method/distance added.** New hardcodes `clustering_method_rows = "average"`, `clustering_distance_rows = "euclidean"`; legacy leaves these at ComplexHeatmap defaults (which may differ).
-5. **Fewer annotations.** New shows only `main_group` as a `right_annotation`; legacy's `heatmap()` shows `label`, `main_group`, AND `patient` as `top_annotation`.
-6. **Color source changed.** New generates `main_group` colors via `circlize::rand_color()` (non-deterministic across runs unless seeded); legacy loads fixed colors from `colormaps.yaml`.
-7. **Aggregation always on.** New always does `group_by(label)`; legacy's `heatmap()` only aggregates conditionally (`aggregate_by != NULL`), otherwise plots individual subsampled cells.
-8. **New output added.** New writes `figure2a_mean_expression.parquet`, which legacy never did — likely fine as a disclosed addition, but wasn't disclosed as such.
+- **6a**: **OPEN ISSUE again as of 2026-08-06 -- currently BROKEN.** A fix
+  was found and verified on 2026-08-05 (see below), but the script was
+  then reverted to the pure verbatim legacy version (per explicit user
+  instruction, to diagnose the underlying crash from first principles) and
+  was never re-fixed afterward. As currently committed,
+  `scripts/figures/figure6_niche_abundance_heatmap.R` crashes with `Error:
+  The color mapping should be a named vector or a function.` and cannot
+  produce output. The PDF currently sitting at
+  `output/figures/figure6/figure6a_niche_proportion_heatmap_tma.pdf` is
+  **stale** (left over from the fixed version, before the revert) -- it
+  still visually matches the paper, but the current script cannot
+  reproduce it.
 
-## `figure3_caf_umap.py` — 3 major discrepancies
+  Fix found 2026-08-05 (not currently applied): confirmed via direct
+  visual comparison (paper page rendered with `pymupdf`) that the paper
+  shows no `tma_id` row-annotation track. Root cause of both the missing
+  row and the "clustering doesn't look the same" observations at once: an
+  earlier fix (uncommenting `tma_id` back into `select()`, to stop a
+  genuine 0-row-matrix crash) correctly restored the right row count (459,
+  not the 346 you get if `tma_id` is dropped and `distinct()` collapses
+  duplicate-clinical-value TMA cores from the same patient) but also left
+  `tma_id` visible as a row annotation, which the paper doesn't show. The
+  verified fix: keep `tma_id` for indexing only, excluded from the
+  displayed annotation data frame. Re-rendered and compared against the
+  paper at the time -- row count and overall dendrogram/cluster block
+  structure matched closely (same 5 main row clusters, same general niche
+  groupings). This fix needs to be re-applied to the current script.
+- **6b** (`figure6/niches/km_survival__disease_progr_tumorERG+p53+_ProlifLuminalwith_table.pdf`):
+  shows a confidence interval band; the paper's panel does not show a CI.
+- **6d**: OK.
 
-vs. `000_paper/02_umaps/0-umaps-cafs.py`
+## Figure 7
 
-1. **Cell filter differs.** New: `cells["main_group"] == "stromal"` (all stromal cells). Legacy: `metadata.label.str.contains('CAF')` (only labels containing "CAF" — a narrower, different set; stromal includes non-CAF stromal cells like pericytes).
-2. **UMAP `n_neighbors`: 50 → 15.** Same issue as `figure2_umap.py`.
-3. **Normalization removed.** Legacy calls `normalize(df, exclude_zeros=True)` before `compute_umap()`; new script feeds raw marker values directly to UMAP.
+- **7a**: unclear which script should actually produce this panel --
+  current mapping in `figures.md`/`table.md` needs re-checking.
+- **7b**: **REPRODUCED, RESOLVED 2026-08-05.** Direct visual comparison
+  against the published panel (paper page rendered via `pymupdf`) confirms
+  the number-at-risk table matches almost exactly: paper shows low
+  75/54/20/0, high 115/58/13/0 at t=0/50/100/150; our output
+  (`figure7/niches/km_survival__disease_progr_luminal_CAF1(CD105High)with_table.pdf`)
+  shows the identical 75/54/20/0 and 115/58/13/0. P-value mismatch
+  resolved: the legacy `niche_km.R` (as literally written, un-trimmed
+  source) always displays the RAW, unadjusted log-rank p-value on the KM
+  plot itself (`ggsurvplot(..., pval = TRUE, ...)`) -- it separately
+  computes a BH-adjusted `qval` across ALL niches in one pass (`cols <-
+  colnames(df_props)[2:ncol(df_props)]`), but only ever writes that to a
+  CSV, never back into the plot. Verified empirically: re-running the KM
+  analysis for the full niche family (not just this panel's trimmed 1-2
+  niches) reproduces the paper's displayed p-values almost exactly (see
+  S6b/S6c below for the confirming numbers). The paper's authors evidently
+  substituted the adjusted `qval` into the published panel by hand -- a
+  step that exists nowhere in any script. Not a bug in our port; accepted
+  as-is per user decision ("as long as the curves match, this is good
+  enough").
+- **7c** (myCAF): **REPRODUCED, RESOLVED 2026-08-05.** "Not reproduced at all" was
+  stale -- predates the stale-save-gate fix made later in the session that
+  unblocked this panel; it now saves
+  (`figure7/cell_types/km_survival__disease_progr_stromal-CAF1(CD105+)with_table.pdf`).
+  Label correctness confirmed directly from the paper's own text (not
+  assumed): page 8 states "CD105high are annotated as myCAFs," matching
+  our script's `cols <- "stromal-CAF1(CD105+)"` exactly (CD105+ = CD105
+  high in this repo's label naming). P-value mismatch resolved by the same
+  mechanism as Fig 7b/S6b/S6c below: our raw progression-free p-value is
+  0.0137; re-running the full 35-label family (matching legacy
+  `celltype_km.R`'s own un-trimmed `cols <- colnames(df_props)[2:ncol(df_props)]`)
+  and BH-adjusting jointly gives qval = 0.2389, matching the paper's
+  reported p = 0.24 almost exactly.
+- **7d, 7e, 7f**: OK.
 
----
+## Supplementary Figure 1
 
-## Minor/real issues in Figure 5/6 scripts
+- **S1a, S1b**: OK.
 
-### `figure5_niche_clustering.py`
-- Output PNG filename hardcoded (`figure5_niche_kmeans_raw_heatmap.png`) instead of derived from `final_cluster_name` like legacy's `f"{nhood}_heatmap.png"`. Cosmetic but not disclosed.
-- `engine="fastparquet"` dropped from the final `to_parquet()` call (legacy specifies it explicitly).
+## Supplementary Figure 2
 
-### `figure5_niche_annotation.py`
-- `engine="fastparquet"` dropped from both `read_parquet()` and `to_parquet()` calls.
-- Legacy repeats the exact same niche-mapping assignment twice (lines 56-58 and again 134-136, byte-identical, clearly redundant); new script does it once. Almost certainly harmless (idempotent), but is technically a removed step under a strict reading.
+- **S2a, S2b, S2c**: OK.
 
-### `figure5_niche_heatmap.R`
-- `my_colors`/`col_fun_presence` computation adds `na.rm = TRUE` to `range(presence, ...)` — legacy's `range(presence)` has no NA handling. Only matters if `presence` actually contains NAs.
-- New script's final `draw()` call includes `annotation_legend_list = list(lgd_presence)`; legacy's real (uncommented, inside-pdf) `draw()` call omits it — legacy has two earlier debug `draw()` calls (before opening the pdf device) that DO include it, so the omission in legacy's actual saved output looks like a legacy bug, not intent. New script's behavior matches legacy's evident intent, not its literal final line.
+## Supplementary Figure 3
 
-### `figure6_niche_abundance_heatmap.R`
-- Legacy's heatmap `pdf()`/`dev.off()` calls are commented out — the legacy script, as written, never actually saves this heatmap to disk. New script enables saving. Given the entire point of a figure-reproduction script is to produce the figure, this is very likely a legacy authoring artifact (script left mid-edit) rather than intentional suppression — but it's still a literal behavior change from "no file written" to "file written."
-- Progression-plot y-axis label: legacy says `"Survival probability"` for the progression panel too (an apparent legacy copy-paste bug, since it's plotting `clinical_progr`); new script corrects it to `"Progression-free survival probability"`.
-- Output filename changed (organizational, matches this repo's `figureN*` naming convention elsewhere — low concern).
+- **S3a, S3b, S3c**: OK.
 
-### `figure6_inflammation_violin.R`
-- **Real, unexplained omission**: legacy's `p_up` and `p_split` plots both include a `stat_summary(fun.data = "mean_se", geom = "pointrange", ...)` layer (mean ± SE marker on top of the violin/boxplot); the new script's equivalent two plots drop this layer entirely, even though the new script's own header comment claims "same statistics." The third plot (`p_sep`) does keep it. This is a straightforward bug in the port, not a considered substitution.
+## Supplementary Figure 4
 
----
+- **S4b**: **INVESTIGATED 2026-08-05, not a data bug.** Spot-checked
+  several niches' segment proportions against the paper (rendered via
+  `pymupdf`) and they match closely (e.g. niche 1 "luminal" ~85-90%
+  epithelial-luminal in both; niche 4 "tumor(ERG+)" ~75-95%
+  epithelial-luminal(ERG+) in both). The real difference is orientation:
+  the paper's panel b is a horizontal stacked bar (niches as rows), ours is
+  vertical (niches as columns) -- harder to compare precisely by eye across
+  the two orientations, which is likely why this looked like a proportions
+  mismatch. Checked the legacy source directly
+  (`000_paper/11_niches/111_heatmaps/visualize_composition.py`): it also
+  calls `df_comp_mean.plot(kind='bar', ...)` -- vertical, same as our port.
+  So our script is a faithful, verbatim port; the paper's horizontal
+  orientation isn't produced by any script found -- almost certainly a
+  manual post-processing/rotation step before publication, same category
+  as the p-value substitution found for Fig 6b/7b/7c/S6b/S6c. Not fixed
+  (would be a disclosed cosmetic deviation from the verbatim `kind='bar'`
+  call); flagged here, pending a decision on whether to add it.
 
-## Fix plan
+## Supplementary Figure 5
 
-All of the above will be corrected to match the legacy scripts exactly,
-except where a deviation is already required and disclosed (survminer →
-ggsurvfit, introdataviz → geom_violin+dodge, missing packages). Tracked and
-applied in the commits immediately following this document.
+- **S5a**: not produced. **Investigated 2026-08-05, reconfirmed genuine
+  gap**: re-searched `000_paper/sync_paper/06-spatial-niches/`,
+  `000_paper/11_niches/`, and `archive/scripts/11_niches/` (including
+  `111_heatmaps/visualize_composition.py`, not previously checked) for any
+  script producing the paper's actual S5a panel ("stacked barplot of cell
+  type composition of niche 6 ordered by its proportion in each core") --
+  found nothing new. `visualize_composition.py` turned out to compute the
+  same corpus-wide mean-per-niche composition already ported as
+  `figureS4b_niche_mean_composition.py`/`figure6c_niche_composition_filtered.py`,
+  not the per-core, niche-6-ordered arrangement S5a's legend describes. No
+  legacy script anywhere plots per-core composition this way -- confirmed
+  genuinely unimplemented, not an overlooked port. Not attempted, per this
+  project's rule against writing new, non-ported plotting code.
+- **S5b**: correction -- earlier note in this file that S5b's curves were
+  wrong was itself mistaken; user confirmed S5b is correct as produced.
+
+## Supplementary Figure 6
+
+- **S6a**: OK.
+- **S6b**: events match the paper; p-value discrepancy **RESOLVED
+  2026-08-05**, same finding as Fig 7b above. Empirically confirmed: our
+  script's raw displayed p-value for niche 2 (`luminal_infiltrated`,
+  progression-free) is 0.393 (matches what was observed, "0.39"); running
+  the full 19-niche family and BH-adjusting jointly gives qval = 0.6812,
+  matching the paper's reported 0.68 almost exactly. Paper's lack of a CI
+  band remains unexplained but accepted (cosmetic, not a data
+  discrepancy).
+- **S6c**: same mechanism, same full-family qval (0.6812, BH ties at that
+  rank) -- consistent with niche 8 (`tumor_CAF1_lymphocytes`) showing the
+  same pattern.
+
+## Supplementary Figure 7
+
+- **S7**: **REPRODUCED 2026-08-05.** Source identified earlier this session
+  (`sync_paper/06-spatial-niches/construction/kmeans_clustering.py`'s
+  ARI-robustness section, `n_runs=50`, `RandomState(42)`, same file as
+  Figure 5a's clustering step but a different section), ported to
+  `scripts/figures/figureS7_ari_robustness.py`, and run end-to-end
+  successfully (~2h15m, 50 k-means(k=24) fits on the 2,051,915-row
+  neighborhood graph). No bugs found in this section. Output:
+  `output/figures/figureS7/ari_boxplot.png`.

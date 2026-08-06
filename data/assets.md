@@ -136,18 +136,24 @@ dataset from an earlier/different processing run; not what legacy's own
 path structure points to, and not needed now that the correct location is
 identified.
 
-## Missing data assets (blocked panels)
+## Missing data assets -- resolved 2026-08-05
 
-Per `CLAUDE.md`'s hard constraint: when a script's required input doesn't
-exist anywhere accessible, report the gap and leave the panel unfixed
-rather than computing the missing data ourselves. Two assets confirmed
-genuinely absent, searched across all locations listed at the top of this
-file (not just the two originally checked):
+Both previously-missing assets were supplied by Melissa in
+`data/melissa-transfer/` along with the identification that each is the
+same data as an already-staged file under a different name (not a separate
+computation) -- verified by `md5sum` (byte-identical) before wiring in, per
+`CLAUDE.md`'s hard constraint against computing missing data ourselves.
 
-| Asset | Needed by | Status |
+| Asset | Needed by | Resolution |
 |---|---|---|
-| `5-niches/frequencies/niche_frequencies_per_tma_id.parquet` | `figure6_niche_abundance_heatmap.R`, ported from `000_paper/sync_paper/06-spatial-niches/abundance/heatmap_frequencies.R` (the correct Figure 6a source, row annotations confirmed matching the published figure exactly) | **Not found anywhere**, including the newer `5-niches/frequencies/` tree checked this pass (which has `props_niche_tma.parquet`/`props_niche_pat_id.parquet`/etc., but no `_tma_id` variant, and all of them use an older, pre-"revised annotation" niche naming scheme, e.g. `TLS_Bcells_Tcells` -- confirmed not usable, same issue as the old `PCa/5-niches/frequencies/` copy). `figure6_niche_abundance_heatmap.R` is a strict verbatim port and fails at exactly this `read_parquet()` call. |
-| `cell_annotations` / `cell_annotation.parquet` (sync_paper's raw per-cell input, distinct from `clusters_annotated_v2.parquet` -- described in `sync_paper/config/paths.yaml` as "Cell annotations" vs. clusters_annotated's "Annotated cell clusters") | `figure6e_immune_risk_score_km.R`, `figure6_km_niche6.R`, `figure7b_niche9_km.R`, `figureS6bc_niche_km.R`, `figure7c_myCAF_km.R` (all read `paths$cell_annotations` in their `sync_paper` sources) | **Not found anywhere**, including both `PCa_NHood` trees and `PCA_NHOODs_clean`. This repo's `EXPORT_DIR/metadata.parquet` is used as the closest analog (same conceptual role: raw per-cell `label`/`main_group` table) -- confirmed it lacks the `niche` column these scripts need, so all five scripts fail inside `compute_label_frequency()`, matching what the actual `cell_annotation.parquet` (if it lacks `niche` too, as its "raw annotations" vs. "annotated clusters" naming suggests) would also do. |
+| `5-niches/frequencies/niche_frequencies_per_tma_id.parquet` | `figure6_niche_abundance_heatmap.R`, ported from `000_paper/sync_paper/06-spatial-niches/abundance/heatmap_frequencies.R` | **Resolved**: identical to already-staged `5-niches/frequencies/stacked_barplots/props_niche_tma_id.parquet` (confirmed byte-identical `md5sum` against Melissa's copy). Copied to `data/legacy/5-niches/frequencies/niche_frequencies_per_tma_id.parquet` (the exact path the verbatim-ported script expects). The script still fails, but now on a separate, non-obvious bug -- see `bugs.md`. |
+| `cell_annotations` / `cell_annotation.parquet` (sync_paper's raw per-cell input, distinct in name from `clusters_annotated_v2.parquet`) | `figure6e_immune_risk_score_km.R`, `figure6_km_niche6.R`, `figure7b_niche9_km.R`, `figureS6bc_niche_km.R`, `figure7c_myCAF_km.R` | **Resolved**: identical to already-staged `5-niches/annotation/clusters_annotated_v2.parquet` (confirmed byte-identical `md5sum` against Melissa's copy) -- despite the different name in `sync_paper/config/paths.yaml`, it's the same file. Copied to `data/cell_annotation.parquet` (under `$EXPORT_DIR`, the exact path the scripts expect). All five scripts now run end-to-end, surfacing and fixing three further bugs along the way -- see `bugs.md`. |
+
+`clinical.parquet` was also supplied by Melissa and compared against this
+repo's `data/clinical.parquet`: same 534 rows x 56 columns, identical cell
+values after aligning on `sample_id` -- the only difference is the
+pyarrow/pandas writer version embedded in the file metadata (19.0.1/2.3.2
+vs. 23.0.1/2.3.3), not the data itself. No action needed.
 
 ## Recovered legacy UMAP embeddings (`data/figures/`)
 

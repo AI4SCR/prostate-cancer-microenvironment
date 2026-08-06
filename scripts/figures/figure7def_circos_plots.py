@@ -1,37 +1,3 @@
-# %%
-"""Reproduce Figure 7d-f: circos plots of cell-cell interactions within
-niches 2, 8, and 9.
-
-1:1 port of the old repo's
-`000_paper/11_niches/114_interactions/visualize_circos_plot.py`, trimmed to
-niches 2/8/9 only (the paper text: "we compared cell-cell interaction
-patterns within niches 2, 8, and 9 (Fig. 7d-f)") -- not the full 18-niche
-loop. `circos_plots.py`'s functions (`get_color_map`, `data_for_circos_plot`,
-`get_circos`, `plot_circos_plot`, `check_triangular_zero_xor`) are inlined
-here rather than imported, since it has exactly one consumer in the legacy
-repo (this script) -- same convention as this repo's other single-consumer
-helper functions (e.g. `figure4_patient_clustering.py`'s `get_order`).
-`utils_colors.py`'s `color_dict_label`/`color_dict_niche` are
-`resources/colormaps.yaml`'s `label`/`niche` keys, already used the same
-way throughout this repo (confirmed `color_dict_niche` there is itself
-built from `niche_annotations_v2.csv`'s `niche`/`niche_color` columns, the
-same source `colormaps.yaml`'s `niche` key came from).
-
-Upstream pipeline note (NOT ported): `compute_interactions.py` and
-`visualize_interactions_lfc.py` (the two stages that compute this script's
-per-niche input from raw per-cell anndata) don't themselves produce any
-paper panel -- they're intermediate data-generation steps. Per direct user
-instruction, skipped since their output already exists precomputed at the
-exact path legacy's own `visualize_circos_plot.py` reads
-(`.../5-niches/visualization/interactions/redo/per_niche_lfc_above_median/dataframes_v2/{niche}.parquet`,
-confirmed present for niches 2/8/9, schema-verified against what this
-script expects) -- staged into `LEGACY_DATA_DIR` for self-containment, same
-convention as other precomputed legacy assets in this repo (see
-`data/assets.md`).
-
-Reads LEGACY_DATA_DIR's staged per-niche LFC parquet files and
-resources/colormaps.yaml. Writes to $OUTPUT_FIGURES_DIR/figure7/.
-"""
 from pathlib import Path
 from typing import Dict
 
