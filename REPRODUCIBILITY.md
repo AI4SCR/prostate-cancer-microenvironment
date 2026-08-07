@@ -11,22 +11,22 @@ silently patched, per this project's conventions (see `CLAUDE.md`).
 ## Setup
 
 ```bash
-cp .env.example .env   # fill in BASE_DIR and EXPORT_DIR
+cp .env.example .env   # fill in BASE_DIR and DATA_DIR
 uv sync
 ```
 
 `BASE_DIR` (the `ai4bmr_datasets.PCa` staging root) is **read-only** — no
 script in this repo may ever write there, and `assert_outside_base_dir()` /
-`resolve_export_dir()` in `src/prostate_cancer/utils.py` enforce that at
+`resolve_data_dir()` in `src/prostate_cancer/utils.py` enforce that at
 runtime (checked via `os.path.realpath`, so a symlinked alias into the same
-tree is caught too — not just the literal `BASE_DIR` path). `EXPORT_DIR` is
-where every generated table and figure goes instead; point it somewhere
-inside this repo (e.g. `data/0-export`, the `.env.example` default) so
-everything produced by these scripts lives together and is easy to inspect
-or delete.
+tree is caught too — not just the literal `BASE_DIR` path). `DATA_DIR` is
+where every generated table and every staged legacy input lives instead
+(defaults to `data/` in this repo, the `.env.example` default) — see
+`data/assets.md` for the per-file provenance and which figure scripts
+consume what.
 
 R scripts load the same `.env` via `dotenv::load_dot_env()` and
-`Sys.getenv("BASE_DIR")` / `Sys.getenv("EXPORT_DIR")`. Required R packages:
+`Sys.getenv("BASE_DIR")` / `Sys.getenv("DATA_DIR")`. Required R packages:
 `dotenv`, `arrow`, `tidyverse`, `survival`, `survminer`, `gtsummary`,
 `compositions`, `coxme`, `ComplexHeatmap`. No `renv.lock` is maintained —
 package versions aren't pinned on the R side.
@@ -85,13 +85,17 @@ $BASE_DIR/
     └── features/{intensity,spatial}/{image_version}-{mask_version}/*.parquet
 ```
 
-Everything this repo generates goes to `$EXPORT_DIR` instead (outside
-`$BASE_DIR`):
+Everything this repo generates or stages goes to `$DATA_DIR` instead
+(outside `$BASE_DIR`); generated figures go to the separate
+`$OUTPUT_FIGURES_DIR`:
 
 ```
-$EXPORT_DIR/
-├── metadata.parquet, clinical.parquet, intensity_normalized.parquet   # export.py
-└── figures/figureN/*.png                                             # scripts/figures/figureN_*.py
+$DATA_DIR/
+├── clinical.parquet, cells/{metadata,intensity,intensity_normalized}.parquet   # export.py
+├── cells/cell_annotation.parquet                                              # staged legacy, no reproducing script
+├── umap/*.parquet                                                             # staged legacy (ported reducer.pkl), no reproducing script
+├── niches/, neighborhoods/                                                    # staged legacy, no reproducing script (see data/assets.md)
+└── assets.md                                                                  # full per-file provenance + consumers
 ```
 
 ## Pipeline: raw acquisitions → labeled cells (run once, in order)
@@ -129,9 +133,9 @@ before step 2 below.
    and `02_processed/metadata/filtered-annotated/`) that every figure script
    consumes.
 7. `python scripts/data/export.py` — writes
-   `metadata.parquet`, `clinical.parquet`, `intensity.parquet`,
-   `intensity_normalized.parquet` to `$EXPORT_DIR` for the R scripts (see
-   below). This is a 1:1 port of the original publication's own export
+   `metadata.parquet`, `intensity.parquet`, `intensity_normalized.parquet`
+   to `$DATA_DIR/cells/` and `clinical.parquet` to `$DATA_DIR/` for the R
+   scripts (see below). This is a 1:1 port of the original publication's own export
    script (see "Normalization: `prepare_data()` vs `normalize()`" below) —
    verified byte-identical against the legacy exports.
 8. Figure branches (Fig 2–7) consume the outputs of steps 6–7.

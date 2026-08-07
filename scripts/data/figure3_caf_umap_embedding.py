@@ -2,24 +2,13 @@
 This script fits a fresh UMAP, which is NOT reproducible against the
 published Figure 3a -- `UMAP.fit()` is never seeded anywhere in the legacy
 pipeline, so each fit gives a geometrically different (if topologically
-similar) embedding. The actual ground-truth embeddings for Figure 3a are
-ported from the legacy `reducer.pkl` files via
-`scripts/port/port_umap_reducer.py` (run from that script's own pinned pixi
-env, NOT this repo's `.venv`):
-
-    cd scripts/port
-    # "excl_markers" config (CAF cells only, 1-cafs reducer)
-    pixi run python port_umap_reducer.py \\
-      "/work/FAC/FBM/DBC/mrapsoma/prometex/data/PCa/0-paper/2-umaps/1-cafs/n_neighbors=50-min_dist=0.1-engine=umap-learn-excl_markers=dna1_dna2_fap_icsk1_icsk2_icsk3/reducer.pkl" \\
-      ../../data/figures/figure3_caf_umap/excl_markers/umap_embeddings.parquet
-    # "caf_markers_only" config (CAF cells only, 1-cafs reducer)
-    pixi run python port_umap_reducer.py \\
-      "/work/FAC/FBM/DBC/mrapsoma/prometex/data/PCa/0-paper/2-umaps/1-cafs/n_neighbors=50-min_dist=0.1-engine=umap-learn-excl_markers=beta_catenin_c_casp3_cd11b_cd20_cd3_cd31_cd4_cd44_cd45_cd66b_cd68_cd8a_dna1_dna2_e_cadherin/reducer.pkl" \\
-      ../../data/figures/figure3_caf_umap/caf_markers_only/umap_embeddings.parquet
-    # "stromal" config (full stromal compartment incl. pericytes, 2-main_groups reducer)
-    pixi run python port_umap_reducer.py \\
-      "/work/FAC/FBM/DBC/mrapsoma/prometex/data/PCa/0-paper/2-umaps/2-main_groups/n_neighbors=50-min_dist=0.1-engine=umap-learn-main_group=stromal-excl_markers=dna1_dna2_fap_icsk1_icsk2_icsk3/reducer.pkl" \\
-      ../../data/figures/figure3_caf_umap/stromal/umap_embeddings.parquet
+similar) embedding. The actual ground-truth embeddings for Figure 3a were
+ported once from the legacy `reducer.pkl` files and are staged at
+`DATA_DIR/umap/caf_{excl_markers,markers_only,stromal}.parquet` -- copy the
+relevant one to `OUTPUT_FIGURES_DIR/figure3/<config>/umap_embedding.parquet`
+before running `figure3_caf_umap.py`, or this script will fit (and cache) a
+fresh, non-reproducible embedding instead. See `data/assets.md` and
+REPRODUCIBILITY.md for how the ported embeddings were produced.
 
 (params match this script's own N_NEIGHBORS/MIN_DIST/CONFIGS, confirmed
 against `archive/scripts/02-umaps/0-umaps-cafs.py`'s `params` list -- the
@@ -41,7 +30,7 @@ import pandas as pd
 from jsonargparse import CLI
 from loguru import logger
 
-from prostate_cancer.utils import NON_MARKER_CHANNELS, normalize, resolve_export_dir, resolve_output_figures_dir
+from prostate_cancer.utils import NON_MARKER_CHANNELS, normalize, resolve_data_dir, resolve_output_figures_dir
 
 ALL_MARKERS = [
     "smooth_muscle_actin", "prostate_specific_antigen", "vimentin", "collagen1", "synaptophysin", "keratin5",
@@ -61,10 +50,10 @@ N_NEIGHBORS = 50
 MIN_DIST = 0.1
 
 
-def main(export_dir: Path | None = None):
+def main(data_dir: Path | None = None):
     import umap
 
-    export_dir = export_dir or resolve_export_dir()
+    data_dir = data_dir or resolve_data_dir()
     save_dir = resolve_output_figures_dir() / "figure3"
     save_dir.mkdir(parents=True, exist_ok=True)
 
@@ -82,8 +71,8 @@ def main(export_dir: Path | None = None):
 
         if metadata is None:
             logger.info("loading exported tables")
-            metadata = pd.read_parquet(export_dir / "metadata.parquet")
-            raw_intensity = pd.read_parquet(export_dir / "intensity.parquet")
+            metadata = pd.read_parquet(data_dir / "cells" / "metadata.parquet")
+            raw_intensity = pd.read_parquet(data_dir / "cells" / "intensity.parquet")
             metadata, raw_intensity = metadata.align(raw_intensity, axis=0, join="inner")
 
         population_filter = metadata["label"].str.contains("CAF") if population == "caf" else metadata["main_group"] == "stromal"

@@ -8,22 +8,20 @@ library(tibble)
 library(ggplot2)
 library(patchwork)
 
-export_dir <- Sys.getenv("EXPORT_DIR")
-legacy_dir <- Sys.getenv("LEGACY_DATA_DIR")
+data_dir <- Sys.getenv("DATA_DIR")
 output_figures_dir <- Sys.getenv("OUTPUT_FIGURES_DIR")
-stopifnot("EXPORT_DIR is not set; copy .env.example to .env and fill it in" = nzchar(export_dir))
+stopifnot("DATA_DIR is not set; copy .env.example to .env and fill it in" = nzchar(data_dir))
 stopifnot("OUTPUT_FIGURES_DIR is not set; copy .env.example to .env and fill it in" = nzchar(output_figures_dir))
-stopifnot("LEGACY_DATA_DIR is not set; copy .env.example to .env and fill it in" = nzchar(legacy_dir))
 
 figures_dir <- file.path(output_figures_dir, "figureS3")
 dir.create(figures_dir, recursive = TRUE, showWarnings = FALSE)
 
-clinical <- read_parquet(file.path(export_dir, "clinical.parquet"))
+clinical <- read_parquet(file.path(data_dir, "clinical.parquet"))
 num.patients <- clinical$pat_id |> n_distinct()
 cat("Number of patients:", num.patients, "\n")
 
 ## read patient-level and core-level cluster group
-barplot_data_dir <- file.path(legacy_dir, "5-niches", "barplot_data")
+barplot_data_dir <- file.path(data_dir, "niches", "patient_clustering")
 
 path_patient <- file.path(barplot_data_dir, "metadata_with_dendrogram_colors_label_pat_id.parquet")
 df_patient <- read_parquet(path_patient)

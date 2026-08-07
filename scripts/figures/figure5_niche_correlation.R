@@ -7,20 +7,18 @@ library(circlize)
 library(dplyr)
 library(tibble)
 
-export_dir <- Sys.getenv("EXPORT_DIR")
-legacy_dir <- Sys.getenv("LEGACY_DATA_DIR")
+data_dir <- Sys.getenv("DATA_DIR")
 output_figures_dir <- Sys.getenv("OUTPUT_FIGURES_DIR")
-stopifnot("EXPORT_DIR is not set; copy .env.example to .env and fill it in" = nzchar(export_dir))
+stopifnot("DATA_DIR is not set; copy .env.example to .env and fill it in" = nzchar(data_dir))
 stopifnot("OUTPUT_FIGURES_DIR is not set; copy .env.example to .env and fill it in" = nzchar(output_figures_dir))
-stopifnot("LEGACY_DATA_DIR is not set; copy .env.example to .env and fill it in" = nzchar(legacy_dir))
 
 save_dir <- file.path(output_figures_dir, "figure5")
 dir.create(save_dir, recursive = TRUE, showWarnings = FALSE)
 
-niches_dir <- file.path(legacy_dir, "5-niches")
+niches_dir <- file.path(data_dir, "niches")
 
-df_props <- read_parquet(file.path(niches_dir, "frequencies", "stacked_barplots", "props_niche_tma_id.parquet"))
-clinical <- read_parquet(file.path(export_dir, "clinical.parquet"))
+df_props <- read_parquet(file.path(niches_dir, "niche_frequencies_per_tma_id_stacked.parquet"))
+clinical <- read_parquet(file.path(data_dir, "clinical.parquet"))
 
 matrix <- df_props %>%
   column_to_rownames("tma_id") %>%

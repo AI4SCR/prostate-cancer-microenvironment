@@ -34,7 +34,7 @@ import yaml
 from jsonargparse import CLI
 from loguru import logger
 
-from prostate_cancer.utils import resolve_export_dir, resolve_legacy_dir, resolve_output_figures_dir
+from prostate_cancer.utils import resolve_data_dir, resolve_output_figures_dir
 
 NICHE_OF_INTEREST = "tumorERG+p53+_ProlifLuminal"  # niche 6
 THRESHOLD = 0.05
@@ -59,9 +59,8 @@ def get_label_frequency_table(data: pd.DataFrame, level: str, group_vars: list[s
     return props.astype(float)
 
 
-def main(export_dir: Path | None = None, legacy_dir: Path | None = None):
-    export_dir = export_dir or resolve_export_dir()
-    legacy_dir = legacy_dir or resolve_legacy_dir()
+def main(data_dir: Path | None = None):
+    data_dir = data_dir or resolve_data_dir()
     figures_dir = resolve_output_figures_dir() / "figureS5"
     figures_dir.mkdir(parents=True, exist_ok=True)
     resources_dir = Path(__file__).resolve().parents[2] / "resources"
@@ -69,10 +68,10 @@ def main(export_dir: Path | None = None, legacy_dir: Path | None = None):
     var_name = "niche"
     group_var = "tma_id"
 
-    df_clusters = pd.read_parquet(legacy_dir / "5-niches" / "annotation" / "clusters_annotated_v2.parquet")
+    df_clusters = pd.read_parquet(data_dir / "niches" / "clusters_annotated.parquet")
     logger.info(f"clusters shape: {df_clusters.shape}")
 
-    clinical = pd.read_parquet(export_dir / "clinical.parquet")
+    clinical = pd.read_parquet(data_dir / "clinical.parquet")
 
     valid_tma_ids = df_clusters["tma_id"].unique().tolist()
     df_metadata = clinical[clinical["tma_id"].isin(valid_tma_ids)].copy()

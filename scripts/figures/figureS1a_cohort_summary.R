@@ -5,9 +5,9 @@ library(arrow)
 library(tidyverse)
 library(rlang)
 
-export_dir <- Sys.getenv("EXPORT_DIR")
+data_dir <- Sys.getenv("DATA_DIR")
 output_figures_dir <- Sys.getenv("OUTPUT_FIGURES_DIR")
-stopifnot("EXPORT_DIR is not set; copy .env.example to .env and fill it in" = nzchar(export_dir))
+stopifnot("DATA_DIR is not set; copy .env.example to .env and fill it in" = nzchar(data_dir))
 stopifnot("OUTPUT_FIGURES_DIR is not set; copy .env.example to .env and fill it in" = nzchar(output_figures_dir))
 
 outputs_dir <- file.path(output_figures_dir, "figureS1")
@@ -57,7 +57,7 @@ get_violin_plot <- function(data, var_name) {
 
 set.seed(1)
 
-clinical <- read_parquet(file.path(export_dir, "clinical.parquet"))
+clinical <- read_parquet(file.path(data_dir, "clinical.parquet"))
 clinical <- clinical[order(clinical$sample_id), ]
 
 filter_ <- duplicated(clinical$tma_id)

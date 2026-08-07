@@ -8,23 +8,21 @@ library(survminer)
 library(patchwork)
 
 base_dir <- Sys.getenv("BASE_DIR")
-export_dir <- Sys.getenv("EXPORT_DIR")
-legacy_dir <- Sys.getenv("LEGACY_DATA_DIR")
+data_dir <- Sys.getenv("DATA_DIR")
 output_figures_dir <- Sys.getenv("OUTPUT_FIGURES_DIR")
-stopifnot("EXPORT_DIR is not set; copy .env.example to .env and fill it in" = nzchar(export_dir))
+stopifnot("DATA_DIR is not set; copy .env.example to .env and fill it in" = nzchar(data_dir))
 stopifnot("OUTPUT_FIGURES_DIR is not set; copy .env.example to .env and fill it in" = nzchar(output_figures_dir))
-stopifnot("LEGACY_DATA_DIR is not set; copy .env.example to .env and fill it in" = nzchar(legacy_dir))
 stopifnot(
-  "refusing to treat BASE_DIR as writable" = !startsWith(normalizePath(export_dir, mustWork = FALSE), normalizePath(base_dir, mustWork = FALSE))
+  "refusing to treat BASE_DIR as writable" = !startsWith(normalizePath(data_dir, mustWork = FALSE), normalizePath(base_dir, mustWork = FALSE))
 )
 
 save_dir <- file.path(output_figures_dir, "figure4")
 dir.create(save_dir, recursive = TRUE, showWarnings = FALSE)
 
-clinical <- read_parquet(file.path(export_dir, "clinical.parquet"))
+clinical <- read_parquet(file.path(data_dir, "clinical.parquet"))
 num.patients <- clinical$pat_id |> n_distinct()
 
-group.path <- file.path(legacy_dir, "5-niches", "barplot_data", "metadata_with_dendrogram_colors_label_pat_id.parquet")
+group.path <- file.path(data_dir, "niches", "patient_clustering", "metadata_with_dendrogram_colors_label_pat_id.parquet")
 df_patient <- read_parquet(group.path)
 
 df <- df_patient |> filter(leaf_color_group != "black")

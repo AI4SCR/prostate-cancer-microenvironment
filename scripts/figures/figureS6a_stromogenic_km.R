@@ -7,15 +7,15 @@ library(survival)
 library(survminer)
 library(patchwork)
 
-export_dir <- Sys.getenv("EXPORT_DIR")
+data_dir <- Sys.getenv("DATA_DIR")
 output_figures_dir <- Sys.getenv("OUTPUT_FIGURES_DIR")
-stopifnot("EXPORT_DIR is not set; copy .env.example to .env and fill it in" = nzchar(export_dir))
+stopifnot("DATA_DIR is not set; copy .env.example to .env and fill it in" = nzchar(data_dir))
 stopifnot("OUTPUT_FIGURES_DIR is not set; copy .env.example to .env and fill it in" = nzchar(output_figures_dir))
 
 figures_dir <- file.path(output_figures_dir, "figureS6")
 dir.create(figures_dir, showWarnings = FALSE, recursive = TRUE)
 
-clinical <- read_parquet(file.path(export_dir, "clinical.parquet"))
+clinical <- read_parquet(file.path(data_dir, "clinical.parquet"))
 
 dir_stromo <- file.path(figures_dir, "stromogenic")
 dir.create(dir_stromo, showWarnings = FALSE, recursive = TRUE)

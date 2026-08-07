@@ -11,22 +11,20 @@ library(ggplot2)
 library(entropy)
 library(yaml)
 
-export_dir <- Sys.getenv("EXPORT_DIR")
-legacy_dir <- Sys.getenv("LEGACY_DATA_DIR")
+data_dir <- Sys.getenv("DATA_DIR")
 output_figures_dir <- Sys.getenv("OUTPUT_FIGURES_DIR")
-stopifnot("EXPORT_DIR is not set; copy .env.example to .env and fill it in" = nzchar(export_dir))
+stopifnot("DATA_DIR is not set; copy .env.example to .env and fill it in" = nzchar(data_dir))
 stopifnot("OUTPUT_FIGURES_DIR is not set; copy .env.example to .env and fill it in" = nzchar(output_figures_dir))
-stopifnot("LEGACY_DATA_DIR is not set; copy .env.example to .env and fill it in" = nzchar(legacy_dir))
 
 save_dir <- file.path(output_figures_dir, "figure6")
 dir.create(save_dir, recursive = TRUE, showWarnings = FALSE)
 resources_dir <- file.path(dirname(dirname(output_figures_dir)), "resources")
 colormaps_path <- file.path(resources_dir, "colormaps.yaml")
 
-freq_path <- file.path(legacy_dir, "5-niches", "frequencies", "niche_frequencies_per_tma_id.parquet")
+freq_path <- file.path(data_dir, "niches", "niche_frequencies_per_tma_id.parquet")
 df_props <- read_parquet(freq_path)
 
-clinical <- read_parquet(file.path(export_dir, "clinical.parquet"))
+clinical <- read_parquet(file.path(data_dir, "clinical.parquet"))
 num.patients <- clinical$pat_id |> n_distinct()
 
 matrix <- df_props %>%
@@ -151,7 +149,7 @@ niche_colors <- unlist(colormap_niche)
 # version regressed to sourcing niche colors from colormaps.yaml directly,
 # which still lists "unassigned" and reintroduces it as a spurious 19th
 # column not present in the published panel.
-info_niches <- read.csv(file.path(legacy_dir, "5-niches", "annotation", "niche_annotations_v2.csv"))
+info_niches <- read.csv(file.path(data_dir, "niches", "niche_annotations.csv"))
 info_niches <- info_niches %>%
   select(-cluster) %>%
   distinct() %>%

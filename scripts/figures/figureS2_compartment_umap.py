@@ -12,16 +12,11 @@ each) -- confirmed via `archive/scripts/02-umaps/0-umaps-main-types.py`'s
 different thing (Figure 2b's own main_group breakdown, not this
 supplementary figure) and are not touched by this script.
 
-Each compartment's embedding is ported from its own legacy `reducer.pkl`
-via `scripts/port/port_umap_reducer.py` (that script's own pinned pixi env,
-NOT this repo's `.venv` -- see its docstring):
-
-    cd scripts/port
-    for mg in immune epithelial endothelial; do
-      pixi run python port_umap_reducer.py \\
-        "/work/FAC/FBM/DBC/mrapsoma/prometex/data/PCa/0-paper/2-umaps/2-main_groups/n_neighbors=50-min_dist=0.1-engine=umap-learn-main_group=${mg}-excl_markers=dna1_dna2_fap_icsk1_icsk2_icsk3/reducer.pkl" \\
-        "../../data/figures/figureS2_main_groups_umap/${mg}/umap_embeddings.parquet"
-    done
+Each compartment's embedding was ported once from its own legacy
+`reducer.pkl` (`UMAP.fit()` was never seeded upstream, so it's not
+reproducible by re-fitting) and is staged at
+`DATA_DIR/umap/compartment_{immune,epithelial,endothelial}.parquet` -- see
+`data/assets.md` and REPRODUCIBILITY.md for how it was produced.
 
 (legacy also fit `stromal`/`undefined` compartments, not part of this
 supplementary figure per its legend, so not ported here.)
@@ -39,7 +34,7 @@ from matplotlib import pyplot as plt
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import Normalize, to_rgba
 
-from prostate_cancer.utils import get_colormap_dict, resolve_export_dir, resolve_output_figures_dir
+from prostate_cancer.utils import get_colormap_dict, resolve_data_dir, resolve_output_figures_dir
 
 NUM_SAMPLES_PER_PLOT = 100_000
 MAIN_GROUPS = ["immune", "epithelial", "endothelial"]
@@ -67,8 +62,9 @@ def plot_points(
         raise ValueError("Must provide labels or values")
 
     if shuffle:
-        order = np.arange(len(x))
-        np.random.shuffle(order)
+        # seeded so the draw order (and which overlapping points land on top) is
+        # reproducible across runs, not just topologically similar
+        order = np.random.RandomState(0).permutation(len(x))
         x, y = x[order], y[order]
         c = c[order]
 
@@ -83,24 +79,21 @@ def plot_points(
     return ax
 
 
-def main(export_dir: Path | None = None):
-    export_dir = export_dir or resolve_export_dir()
+def main(data_dir: Path | None = None):
+    data_dir = data_dir or resolve_data_dir()
     save_dir = resolve_output_figures_dir() / "figureS2"
     save_dir.mkdir(parents=True, exist_ok=True)
 
     logger.info("loading exported tables")
-    metadata = pd.read_parquet(export_dir / "metadata.parquet")
-    data = pd.read_parquet(export_dir / "intensity_normalized.parquet")
+    metadata = pd.read_parquet(data_dir / "cells" / "metadata.parquet")
+    data = pd.read_parquet(data_dir / "cells" / "intensity_normalized.parquet")
     metadata, data = metadata.align(data, axis=0, join="inner")
 
-    ported_dir = Path(__file__).resolve().parents[2] / "data" / "figures" / "figureS2_main_groups_umap"
+    umap_dir = data_dir / "umap"
 
     for main_group in MAIN_GROUPS:
-        reducer_path = ported_dir / main_group / "umap_embeddings.parquet"
-        assert reducer_path.exists(), (
-            f"{reducer_path} missing -- run scripts/port/port_umap_reducer.py "
-            f"for main_group={main_group} first, see this script's docstring"
-        )
+        reducer_path = umap_dir / f"compartment_{main_group}.parquet"
+        assert reducer_path.exists(), f"{reducer_path} missing -- see data/assets.md for provenance"
         embedding_df = pd.read_parquet(reducer_path).set_index(["sample_id", "object_id"])
         index = embedding_df.index
         embedding = embedding_df[["umap_1", "umap_2"]].values

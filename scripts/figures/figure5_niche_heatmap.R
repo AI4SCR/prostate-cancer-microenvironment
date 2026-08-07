@@ -7,20 +7,18 @@ library(circlize)
 library(dplyr)
 library(tibble)
 
-export_dir <- Sys.getenv("EXPORT_DIR")
-legacy_dir <- Sys.getenv("LEGACY_DATA_DIR")
+data_dir <- Sys.getenv("DATA_DIR")
 output_figures_dir <- Sys.getenv("OUTPUT_FIGURES_DIR")
-stopifnot("EXPORT_DIR is not set; copy .env.example to .env and fill it in" = nzchar(export_dir))
+stopifnot("DATA_DIR is not set; copy .env.example to .env and fill it in" = nzchar(data_dir))
 stopifnot("OUTPUT_FIGURES_DIR is not set; copy .env.example to .env and fill it in" = nzchar(output_figures_dir))
-stopifnot("LEGACY_DATA_DIR is not set; copy .env.example to .env and fill it in" = nzchar(legacy_dir))
 
 save_dir <- file.path(output_figures_dir, "figure5")
 dir.create(save_dir, recursive = TRUE, showWarnings = FALSE)
 
-niches_dir <- file.path(legacy_dir, "5-niches")
-composition_dir <- file.path(niches_dir, "visualization", "composition")
+niches_dir <- file.path(data_dir, "niches")
+composition_dir <- file.path(niches_dir, "composition")
 
-df_annotated <- read_parquet(file.path(niches_dir, "annotation", "clusters_annotated_v2.parquet"))
+df_annotated <- read_parquet(file.path(niches_dir, "clusters_annotated.parquet"))
 df_zscore <- read_parquet(file.path(composition_dir, "niche_heatmap_data.parquet"))
 df_means <- read_parquet(file.path(composition_dir, "mean_celltype_composition_per_niche.parquet"))
 df_medians <- read_parquet(file.path(composition_dir, "median_celltype_composition_per_niche.parquet"))
@@ -29,7 +27,7 @@ matrix <- df_zscore %>%
   column_to_rownames("niche") %>%
   as.matrix()
 
-info_niches <- read.csv(file.path(niches_dir, "annotation", "niche_annotations_v2.csv"))
+info_niches <- read.csv(file.path(niches_dir, "niche_annotations.csv"))
 
 info_niches <- info_niches %>%
   select(-cluster) %>%

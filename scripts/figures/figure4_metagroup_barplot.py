@@ -7,14 +7,13 @@ from jsonargparse import CLI
 from loguru import logger
 from matplotlib import pyplot as plt
 
-from prostate_cancer.utils import resolve_export_dir, resolve_legacy_dir, resolve_output_figures_dir
+from prostate_cancer.utils import resolve_data_dir, resolve_output_figures_dir
 
 matplotlib.use("Agg")
 
 
-def main(export_dir: Path | None = None, legacy_dir: Path | None = None):
-    export_dir = export_dir or resolve_export_dir()
-    legacy_dir = legacy_dir or resolve_legacy_dir()
+def main(data_dir: Path | None = None):
+    data_dir = data_dir or resolve_data_dir()
     save_dir = resolve_output_figures_dir() / "figure4"
     save_dir.mkdir(parents=True, exist_ok=True)
     resources_dir = Path(__file__).resolve().parents[2] / "resources"
@@ -22,7 +21,7 @@ def main(export_dir: Path | None = None, legacy_dir: Path | None = None):
     df_freqs = pd.read_parquet(save_dir / "figure4a_patient_composition.parquet").set_index("pat_id")
 
     patient_clusters = pd.read_parquet(
-        legacy_dir / "5-niches" / "barplot_data" / "metadata_with_dendrogram_colors_label_pat_id.parquet"
+        data_dir / "niches" / "patient_clustering" / "metadata_with_dendrogram_colors_label_pat_id.parquet"
     )
     patient_clusters = patient_clusters[patient_clusters["leaf_color_group"] != "black"]
 

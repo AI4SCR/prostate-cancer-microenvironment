@@ -1,6 +1,6 @@
 # prostate-cancer-microenvironment
 
-**HARD CONSTRAINT, applies to every `scripts/figures/*` and `scripts/data/*` file: we do not write scripts that compute new data. Every input a figure script reads must either (a) already be produced by an existing script in this repo, or (b) be legacy data already staged under `LEGACY_DATA_DIR`/read live from a legacy path. If the data a figure needs doesn't exist yet in one of those two forms, do not write a script to compute/derive it — report the gap and stop.** This is separate from and in addition to the verbatim-port discipline below (which governs how a script is written once its data exists); this rule governs whether a script should be written at all.
+**HARD CONSTRAINT, applies to every `scripts/figures/*` and `scripts/data/*` file: we do not write scripts that compute new data. Every input a figure script reads must either (a) already be produced by an existing script in this repo, or (b) be legacy data already staged under `DATA_DIR` (see `data/assets.md`)/read live from a legacy path. If the data a figure needs doesn't exist yet in one of those two forms, do not write a script to compute/derive it — report the gap and stop.** This is separate from and in addition to the verbatim-port discipline below (which governs how a script is written once its data exists); this rule governs whether a script should be written at all.
 
 Research workspace for prostate cancer microenvironment literature curation, report generation, and project-specific draft manuscript review.
 

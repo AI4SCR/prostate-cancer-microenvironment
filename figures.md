@@ -51,7 +51,16 @@ or a confirmed gap, see Issues). All `sync_paper` paths are relative to
 | S6 | b-c | `figureS6bc_niche_km.R` | `sync_paper/03_survival/niche_km.R` (niches 2/8) | clinical.parquet, cell_annotation.parquet | `figureS6/niches/km_survival__disease_progr_luminal_infiltratedwith_table.pdf` (S6b), `..._tumor_CAF1_lymphocyteswith_table.pdf` (S6c) | true | true |
 | S7 | a | `figureS7_ari_robustness.py` | `sync_paper/06-spatial-niches/construction/kmeans_clustering.py` (ARI robustness section) | `PCa_NHood/CellCellNeighborhoods/{cell_metadata,metadata}.parquet`, `graph_type=radius-radius=32/data.parquet` | `figureS7/ari_boxplot.png` | true | false |
 
-Assets are relative to `LEGACY_DATA_DIR` unless otherwise noted; `metadata.parquet`/`clinical.parquet`/`intensity(_normalized).parquet`/`cell_annotation.parquet` are relative to `EXPORT_DIR`. A second script, `figure7_full_circos_plots.py` (ported from the newer `sync_paper/06-spatial-niches/interactions/interaction_compute_circos.py`), exists alongside `figure7def_circos_plots.py` for Fig 7d-f — see Issue below.
+Asset paths below are historical (pre-restructure legacy sub-paths, e.g.
+`5-niches/...`, `PCa_NHood/...`) and describe lineage, not current on-disk
+location — see `data/assets.md` for where each file actually lives under
+`DATA_DIR` now (`cells/`, `niches/`, `neighborhoods/`, `umap/`,
+`clinical.parquet`). `figure7_full_circos_plots.py` (ported from the newer
+`sync_paper/06-spatial-niches/interactions/interaction_compute_circos.py`),
+which used to exist alongside `figure7def_circos_plots.py` for Fig 7d-f, is
+no longer supported — its data was dropped from `DATA_DIR` (see
+`data/assets.md`); `figure7def_circos_plots.py` remains the source for Fig
+7d-f. See Issue below for background.
 
 # Issue: Figure 2a — missing metagroup column annotation
 
