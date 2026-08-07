@@ -49,7 +49,7 @@ All **staged legacy, no reproducing script** unless noted.
 | `niche_annotations_source.xlsx` | `figure5_niche_annotation.py` (reproducing script for `clusters_annotated.parquet`, given the raw clustering output + this annotation source) |
 | `niche_frequencies_per_tma_id.parquet` | `figure6_niche_abundance_heatmap.R` |
 | `niche_frequencies_per_tma_id_stacked.parquet` | `figure5_niche_correlation.R` |
-| `composition/*.parquet` | `figure5_niche_heatmap.R` |
+| `composition/*.parquet` (`niche_heatmap_data`, `mean_celltype_composition_per_niche`, `median_celltype_composition_per_niche`, `niche_abundance_stats`) | `figure5_niche_heatmap.R` |
 | `patient_clustering/*.parquet` | figure4c, figureS3b, figureS3c, `figure4_metagroup_barplot.py` |
 | `interactions/*.parquet` | `figure7def_circos_plots.py` |
 | `robustness/` | legacy **code** (not data), `sys.path`-imported by `figure5_niche_clustering.py` and `figureS7_ari_robustness.py` for their k-means clustering/ARI utilities |

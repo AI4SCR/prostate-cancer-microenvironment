@@ -37,7 +37,7 @@ df_metadata <- clinical %>%
 
 matrix <- matrix[as.character(df_metadata$tma_id), ]
 
-info_niches <- read.csv(file.path(niches_dir, "annotation", "niche_annotations_v2.csv"))
+info_niches <- read.csv(file.path(niches_dir, "niche_annotations.csv"))
 info_niches <- info_niches %>%
   select(-cluster) %>%
   distinct() %>%
