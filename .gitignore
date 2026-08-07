@@ -22,6 +22,7 @@ figures/*
 *.xlsx
 *.xls
 *.json
+!scripts/regression/baseline.json
 *.xml
 # *.yaml
 *.pickle
