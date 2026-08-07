@@ -14,20 +14,20 @@ library(yaml)
 library(viridisLite)
 
 base_dir <- Sys.getenv("BASE_DIR")
-export_dir <- Sys.getenv("EXPORT_DIR")
+data_dir <- Sys.getenv("DATA_DIR")
 output_figures_dir <- Sys.getenv("OUTPUT_FIGURES_DIR")
-stopifnot("EXPORT_DIR is not set; copy .env.example to .env and fill it in" = nzchar(export_dir))
+stopifnot("DATA_DIR is not set; copy .env.example to .env and fill it in" = nzchar(data_dir))
 stopifnot("OUTPUT_FIGURES_DIR is not set; copy .env.example to .env and fill it in" = nzchar(output_figures_dir))
 stopifnot(
-  "refusing to treat BASE_DIR as writable" = !startsWith(normalizePath(export_dir, mustWork = FALSE), normalizePath(base_dir, mustWork = FALSE))
+  "refusing to treat BASE_DIR as writable" = !startsWith(normalizePath(data_dir, mustWork = FALSE), normalizePath(base_dir, mustWork = FALSE))
 )
 
 save_dir <- file.path(output_figures_dir, "figure2")
 dir.create(save_dir, recursive = TRUE, showWarnings = FALSE)
 
-data_path <- file.path(export_dir, "intensity_normalized.parquet")
-metadata_path <- file.path(export_dir, "metadata.parquet")
-colormap_path <- file.path(dirname(export_dir), "resources", "colormaps.yaml")
+data_path <- file.path(data_dir, "cells", "intensity_normalized.parquet")
+metadata_path <- file.path(data_dir, "cells", "metadata.parquet")
+colormap_path <- file.path(dirname(data_dir), "resources", "colormaps.yaml")
 index_names <- c("sample_id", "object_id")
 exclude_channels <- c("fap", "dna1", "dna2", "icsk1", "icsk2", "icsk3")
 

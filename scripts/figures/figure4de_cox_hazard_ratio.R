@@ -12,12 +12,12 @@ library(tibble)
 library(readr)
 
 base_dir <- Sys.getenv("BASE_DIR")
-export_dir <- Sys.getenv("EXPORT_DIR")
+data_dir <- Sys.getenv("DATA_DIR")
 output_figures_dir <- Sys.getenv("OUTPUT_FIGURES_DIR")
-stopifnot("EXPORT_DIR is not set; copy .env.example to .env and fill it in" = nzchar(export_dir))
+stopifnot("DATA_DIR is not set; copy .env.example to .env and fill it in" = nzchar(data_dir))
 stopifnot("OUTPUT_FIGURES_DIR is not set; copy .env.example to .env and fill it in" = nzchar(output_figures_dir))
 stopifnot(
-  "refusing to treat BASE_DIR as writable" = !startsWith(normalizePath(export_dir, mustWork = FALSE), normalizePath(base_dir, mustWork = FALSE))
+  "refusing to treat BASE_DIR as writable" = !startsWith(normalizePath(data_dir, mustWork = FALSE), normalizePath(base_dir, mustWork = FALSE))
 )
 
 save_dir <- file.path(output_figures_dir, "figure4")
@@ -27,7 +27,7 @@ score_type <- "proportion_tma"
 aggregation <- "max"
 tumors_only <- TRUE
 
-clinical_full <- read_parquet(file.path(export_dir, "clinical.parquet"))
+clinical_full <- read_parquet(file.path(data_dir, "clinical.parquet"))
 num.patients <- clinical_full$pat_id |> n_distinct()
 
 clinical.names <- c("sample_id", "pat_id", "tma_id", "last_fu", "os_status", "disease_progr", "disease_progr_time")
@@ -35,7 +35,7 @@ clinical <- clinical_full |> select(any_of(clinical.names))
 
 # %% per-tma_id cell-type composition, restricted to tumor cores (tumors_only=TRUE),
 # then max-pooled per patient (aggregation='max') -- see docstring
-metadata <- read_parquet(file.path(export_dir, "metadata.parquet"))
+metadata <- read_parquet(file.path(data_dir, "cells", "metadata.parquet"))
 sample_tma <- clinical_full |>
   select(sample_id, tma_id, pat_id, is_tumor) |>
   distinct()

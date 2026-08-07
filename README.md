@@ -19,7 +19,7 @@ port of the original analysis code.
   rule, etc.).
 
 > **Note on data provenance**: this repo currently reads from data staged
-> locally on this machine (`BASE_DIR`, `LEGACY_DATA_DIR` below) rather than
+> locally on this machine (`BASE_DIR`, `DATA_DIR` below) rather than
 > downloading a single self-contained archive. A consolidated Zenodo release
 > that makes the whole pipeline runnable end-to-end from one download
 > (`zenodo download → uv sync → run scripts`) is planned but not yet
@@ -31,12 +31,12 @@ port of the original analysis code.
 ```text
 prostate-cancer-microenvironment/
 ├── scripts/
-│   ├── data/              # export.py (raw → EXPORT_DIR tables) + UMAP reducer ports
-│   ├── figures/           # one script per figure/panel — see figures.md
-│   └── port/              # port_umap_reducer.py, its own pinned pixi env
+│   ├── data/              # export.py (raw → DATA_DIR tables) + UMAP reducer embedding scripts
+│   └── figures/           # one script per figure/panel — see figures.md
 ├── src/prostate_cancer/    # shared utilities (colormaps, normalization, plotting helpers)
 ├── resources/              # colormaps.yaml, metalabels.yaml, non_marker_channels.txt
 ├── data/                   # generated + staged legacy tables (gitignored, machine-specific)
+│   └── assets.md            # tracked data dictionary: file → provenance → consumers
 ├── output/figures/         # generated figure PDFs/PNGs (gitignored)
 ├── figures.md               # figure → script mapping + validation status
 ├── REPRODUCIBILITY.md       # full pipeline, environment notes, known discrepancies
@@ -56,14 +56,12 @@ each one is for and why it's separate from the others):
 
 - `BASE_DIR` — root of the staged `ai4bmr-datasets` `PCa` layout (read-only,
   reproduces the published Zenodo dataset `10.5281/zenodo.19552665`).
-- `EXPORT_DIR` — where generated intermediate tables go (defaults to
-  `data/` inside this repo).
+- `DATA_DIR` — every input a figure/data script reads and everywhere
+  `export.py` writes (defaults to `data/` inside this repo). Holds both
+  reproducible exports and staged legacy tables with no reproducing script
+  side by side — see `data/assets.md` for the per-file provenance.
 - `OUTPUT_FIGURES_DIR` — where generated figure files go (defaults to
   `output/figures/` inside this repo).
-- `LEGACY_DATA_DIR` — consolidated, in-repo copy of pre-migration legacy data
-  that has no reproducing script here yet (niche-neighborhood graph data,
-  precomputed niche annotation/composition tables). See `REPRODUCIBILITY.md`
-  for what's in it and why.
 
 ### 2. Python environment
 
@@ -97,23 +95,18 @@ module load r-light/4.4.1
 Rscript scripts/figures/figure2_cell_type_heatmap.R
 ```
 
-### 4. UMAP reducer porting (one-time, only if regenerating UMAP-based figures)
+### 4. UMAP embeddings (already staged, no action needed)
 
-Figures 2b, 3a, S2, and S7 read pre-computed UMAP embeddings rather than
+Figures 2b, 3a, and S2 read pre-computed UMAP embeddings rather than
 re-fitting UMAP (the legacy pipeline never seeded `UMAP.fit()`, so a fresh
-fit is not reproducible against the published panels). These embeddings are
-ported once from legacy `reducer.pkl` files using a separately pinned
-environment (older `numba`/`umap-learn` stack required to unpickle them):
-
-```bash
-cd scripts/port
-pixi run python port_umap_reducer.py <path/to/reducer.pkl> <out_path.parquet>
-```
-
-See each figure's own `scripts/data/figureN_*_embedding.py` docstring for
-the exact `reducer.pkl` paths and output locations — the ported parquet
-files are cached under `data/figures/`, so this only needs to run once per
-config. `figures.md` lists which figures need this.
+fit is not reproducible against the published panels). These embeddings
+were ported once from legacy `reducer.pkl` files and are staged at
+`DATA_DIR/umap/*.parquet` — see `data/assets.md` for which file feeds which
+figure, and REPRODUCIBILITY.md for how they were originally produced.
+`figure2_umap.py`/`figure3_caf_umap.py` expect their embedding copied into
+`OUTPUT_FIGURES_DIR` first (see each script's own
+`scripts/data/figureN_*_embedding.py` docstring); `figureS2_compartment_umap.py`
+reads straight from `DATA_DIR/umap/`.
 
 ## Running the figures
 

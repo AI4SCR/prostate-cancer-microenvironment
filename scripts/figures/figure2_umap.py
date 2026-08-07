@@ -10,7 +10,7 @@ from matplotlib import pyplot as plt
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import Normalize, to_rgba
 
-from prostate_cancer.utils import get_colormap_dict, resolve_export_dir, resolve_output_figures_dir
+from prostate_cancer.utils import get_colormap_dict, resolve_data_dir, resolve_output_figures_dir
 
 NUM_SAMPLES_PER_PLOT = 100_000
 
@@ -47,8 +47,9 @@ def plot_points(
         raise ValueError("Must provide labels or values")
 
     if shuffle:
-        order = np.arange(len(x))
-        np.random.shuffle(order)
+        # seeded so the draw order (and which overlapping points land on top) is
+        # reproducible across runs, not just topologically similar
+        order = np.random.RandomState(0).permutation(len(x))
         x, y = x[order], y[order]
         c = c[order]
 
@@ -63,8 +64,8 @@ def plot_points(
     return ax
 
 
-def main(export_dir: Path | None = None):
-    export_dir = export_dir or resolve_export_dir()
+def main(data_dir: Path | None = None):
+    data_dir = data_dir or resolve_data_dir()
     save_dir = resolve_output_figures_dir() / "figure2"
     save_dir.mkdir(parents=True, exist_ok=True)
 
@@ -76,10 +77,10 @@ def main(export_dir: Path | None = None):
 
     # %% load exported cells (== ds.intensity/ds.metadata + normalize(exclude_zeros=True), see docstring)
     logger.info("loading exported tables")
-    metadata = pd.read_parquet(export_dir / "metadata.parquet")
-    data = pd.read_parquet(export_dir / "intensity_normalized.parquet")
+    metadata = pd.read_parquet(data_dir / "cells" / "metadata.parquet")
+    data = pd.read_parquet(data_dir / "cells" / "intensity_normalized.parquet")
     metadata, data = metadata.align(data, axis=0, join="inner")
-    clinical = pd.read_parquet(export_dir / "clinical.parquet")
+    clinical = pd.read_parquet(data_dir / "clinical.parquet")
     sid_to_pid = clinical["pat_id"].to_dict()
 
     # %% label/main_group/pat_id panels

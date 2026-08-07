@@ -1,5 +1,6 @@
 # Project-specific: keep directory stubs, ignore contents
 data/*
+data.bk/
 results/*
 figures/*
 !data/.gitkeep

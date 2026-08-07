@@ -22,8 +22,8 @@ INDEX_COLUMNS = ["sample_id", "object_id", "slide_code", "donor_block_id", "pat_
 LABEL_COLUMNS = ["label", "main_group", "label_id", "main_group_id", "meta_label", "meta_label_id"]
 
 
-def load_exported_cells(export_dir: Path, exclude_undefined: bool = False) -> pd.DataFrame:
-    """Load and merge the per-cell tables `export.py` writes to `EXPORT_DIR`.
+def load_exported_cells(data_dir: Path, exclude_undefined: bool = False) -> pd.DataFrame:
+    """Load and merge the per-cell tables `export.py` writes to `DATA_DIR/cells/`.
 
     One row per cell, combining `metadata.parquet` (labels) and
     `intensity_normalized.parquet` (markers), used by every figure script
@@ -36,8 +36,8 @@ def load_exported_cells(export_dir: Path, exclude_undefined: bool = False) -> pd
     states it covers all 2,191,967 cells. Decide per figure, don't default
     to filtering.
     """
-    metadata = pd.read_parquet(export_dir / "metadata.parquet").reset_index()
-    intensity = pd.read_parquet(export_dir / "intensity_normalized.parquet").reset_index()
+    metadata = pd.read_parquet(data_dir / "cells" / "metadata.parquet").reset_index()
+    intensity = pd.read_parquet(data_dir / "cells" / "intensity_normalized.parquet").reset_index()
     cells = intensity.merge(metadata, on=["sample_id", "object_id"], validate="one_to_one")
     if exclude_undefined:
         cells = cells[cells["label"] != "undefined"]
@@ -72,26 +72,29 @@ def resolve_base_dir() -> Path:
     return Path(base_dir).expanduser()
 
 
-def resolve_export_dir() -> Path:
-    """Load `.env` and return `EXPORT_DIR` as a `Path`, guaranteed outside `BASE_DIR`.
+def resolve_data_dir() -> Path:
+    """Load `.env` and return `DATA_DIR` as a `Path`, guaranteed outside `BASE_DIR`.
 
     `BASE_DIR` (the PCa dataset folder) is read-only for every script in this
-    repo — nothing may ever write there. `EXPORT_DIR` is where generated
-    tables/figures go instead. See REPRODUCIBILITY.md.
+    repo — nothing may ever write there. `DATA_DIR` (default: `data/` in this
+    repo) holds every reproducible export (`cells/`, `clinical.parquet`) and
+    every staged legacy table with no reproducing script (`niches/`,
+    `neighborhoods/`, `umap/`) side by side -- see `data/assets.md` for the
+    per-file provenance. See REPRODUCIBILITY.md.
     """
     import os
     from dotenv import load_dotenv
 
     load_dotenv()
-    export_dir = os.environ.get("EXPORT_DIR")
-    assert export_dir, "EXPORT_DIR is not set; copy .env.example to .env and fill it in"
-    return assert_outside_base_dir(Path(export_dir).expanduser())
+    data_dir = os.environ.get("DATA_DIR")
+    assert data_dir, "DATA_DIR is not set; copy .env.example to .env and fill it in"
+    return assert_outside_base_dir(Path(data_dir).expanduser())
 
 
 def resolve_output_figures_dir() -> Path:
     """Load `.env` and return `OUTPUT_FIGURES_DIR` as a `Path`.
 
-    Where figure scripts write generated plots, separate from `EXPORT_DIR`
+    Where figure scripts write generated plots, separate from `DATA_DIR`
     (which holds intermediate data tables/caches, not deliverables). See
     REPRODUCIBILITY.md.
     """
@@ -102,26 +105,6 @@ def resolve_output_figures_dir() -> Path:
     output_dir = os.environ.get("OUTPUT_FIGURES_DIR")
     assert output_dir, "OUTPUT_FIGURES_DIR is not set; copy .env.example to .env and fill it in"
     return Path(output_dir).expanduser()
-
-
-def resolve_legacy_dir() -> Path:
-    """Load `.env` and return `LEGACY_DATA_DIR` as a `Path`.
-
-    Consolidated, in-repo copy (`data/legacy/`) of pre-migration data with no
-    reproducing script in this repo (niche-neighborhood raw graph data, the
-    PCA_NHOODs_clean code some figure scripts import, precomputed niche
-    annotation/composition tables). Never use this for
-    metadata/clinical/intensity(_normalized).parquet -- those come from
-    `resolve_export_dir()` instead. See REPRODUCIBILITY.md and
-    figure_script_mapping.md.
-    """
-    import os
-    from dotenv import load_dotenv
-
-    load_dotenv()
-    legacy_dir = os.environ.get("LEGACY_DATA_DIR")
-    assert legacy_dir, "LEGACY_DATA_DIR is not set; copy .env.example to .env and fill it in"
-    return Path(legacy_dir).expanduser()
 
 
 def assert_outside_base_dir(path: Path) -> Path:

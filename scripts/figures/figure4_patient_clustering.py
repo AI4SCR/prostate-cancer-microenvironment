@@ -13,7 +13,7 @@ from matplotlib.lines import Line2D
 from scipy.cluster.hierarchy import dendrogram, fcluster, leaves_list, linkage
 from scipy.spatial.distance import pdist
 
-from prostate_cancer.utils import resolve_export_dir, resolve_output_figures_dir
+from prostate_cancer.utils import resolve_data_dir, resolve_output_figures_dir
 
 matplotlib.use("Agg")
 
@@ -88,15 +88,15 @@ def add_dendrogram_top(ax, Z, thres: float = 0, y0: float = 1.01, height: float 
     return dend_ax, dendro
 
 
-def main(export_dir: Path | None = None):
-    export_dir = export_dir or resolve_export_dir()
+def main(data_dir: Path | None = None):
+    data_dir = data_dir or resolve_data_dir()
     save_dir = resolve_output_figures_dir() / "figure4"
     save_dir.mkdir(parents=True, exist_ok=True)
     resources_dir = Path(__file__).resolve().parents[2] / "resources"
 
     logger.info("loading exported tables")
-    df_labels = pd.read_parquet(export_dir / "metadata.parquet").reset_index()
-    df_metadata = pd.read_parquet(export_dir / "clinical.parquet")
+    df_labels = pd.read_parquet(data_dir / "cells" / "metadata.parquet").reset_index()
+    df_metadata = pd.read_parquet(data_dir / "clinical.parquet")
 
     # %% filter to tumor samples only
     df_sample_id = df_metadata.reset_index()

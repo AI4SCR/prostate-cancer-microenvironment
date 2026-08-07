@@ -2,14 +2,13 @@
 This script fits a fresh UMAP, which is NOT reproducible against the
 published Figure 2b -- `UMAP.fit()` is never seeded anywhere in the legacy
 pipeline, so each fit gives a geometrically different (if topologically
-similar) embedding. The actual ground-truth embedding for Figure 2b is
-ported from the legacy `reducer.pkl` via `scripts/port/port_umap_reducer.py`
-(run from that script's own pinned pixi env, NOT this repo's `.venv`):
-
-    cd scripts/port
-    pixi run python port_umap_reducer.py \\
-      "/work/FAC/FBM/DBC/mrapsoma/prometex/data/PCa/0-paper/2-umaps/0-all-cells/n_neighbors=50-min_dist=0.1-engine=umap-learn-excl_markers=dna1_dna2_icsk1_icsk2_icsk3_fap/reducer.pkl" \\
-      ../../data/figures/figure2_umap/umap_embeddings.parquet
+similar) embedding. The actual ground-truth embedding for Figure 2b was
+ported once from the legacy `reducer.pkl` and is staged at
+`DATA_DIR/umap/all_cells.parquet` -- copy it to
+`OUTPUT_FIGURES_DIR/figure2/reducer_embedding.parquet` before running
+`figure2_umap.py`, or this script will fit (and cache) a fresh,
+non-reproducible embedding instead. See `data/assets.md` and
+REPRODUCIBILITY.md for how the ported embedding was produced.
 
 (params match this script's own N_NEIGHBORS/MIN_DIST/NON_MARKER_CHANNELS,
 confirmed against `archive/scripts/02-umaps/0-umaps.py`'s `params` list.)
@@ -21,16 +20,16 @@ import pandas as pd
 from jsonargparse import CLI
 from loguru import logger
 
-from prostate_cancer.utils import NON_MARKER_CHANNELS, resolve_export_dir, resolve_output_figures_dir
+from prostate_cancer.utils import NON_MARKER_CHANNELS, resolve_data_dir, resolve_output_figures_dir
 
 N_NEIGHBORS = 50
 MIN_DIST = 0.1
 
 
-def main(export_dir: Path | None = None):
+def main(data_dir: Path | None = None):
     import umap
 
-    export_dir = export_dir or resolve_export_dir()
+    data_dir = data_dir or resolve_data_dir()
     save_dir = resolve_output_figures_dir() / "figure2"
     save_dir.mkdir(parents=True, exist_ok=True)
     reducer_path = save_dir / "reducer_embedding.parquet"
@@ -40,7 +39,7 @@ def main(export_dir: Path | None = None):
         return
 
     logger.info("loading exported tables")
-    data = pd.read_parquet(export_dir / "intensity_normalized.parquet")
+    data = pd.read_parquet(data_dir / "cells" / "intensity_normalized.parquet")
     fit_data = data.loc[:, ~data.columns.isin(NON_MARKER_CHANNELS)]
 
     logger.info(

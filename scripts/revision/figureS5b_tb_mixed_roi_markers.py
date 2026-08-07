@@ -29,7 +29,7 @@ from loguru import logger
 from skimage.morphology import dilation, disk
 from skimage.segmentation import find_boundaries
 
-from prostate_cancer.utils import normalize_img, resolve_base_dir, resolve_export_dir, resolve_output_figures_dir
+from prostate_cancer.utils import normalize_img, resolve_base_dir, resolve_data_dir, resolve_output_figures_dir
 
 TB_MIXED_LABEL = "immune-T-helper-B-cells"
 T_LABELS = {
@@ -75,12 +75,12 @@ def categorize_label(label: str) -> int:
     return OTHER
 
 
-def load_cells(export_dir: Path):
+def load_cells(data_dir: Path):
     # cell_annotation.parquet's embedded pandas column-index metadata is
     # stale (predates the sample_id/object_id columns), which makes plain
     # `pd.read_parquet` silently drop them -- ignore_metadata=True forces a
     # column-name-based reconstruction instead.
-    cells = pq.read_table(export_dir / "cell_annotation.parquet").to_pandas(ignore_metadata=True)
+    cells = pq.read_table(data_dir / "cells" / "cell_annotation.parquet").to_pandas(ignore_metadata=True)
     return cells[["sample_id", "object_id", "label"]]
 
 
@@ -168,13 +168,13 @@ def plot_roi(sample_id: str, rgb: np.ndarray, mask: np.ndarray, category_lookup:
     plt.close(fig)
 
 
-def main(base_dir: Path | None = None, export_dir: Path | None = None):
+def main(base_dir: Path | None = None, data_dir: Path | None = None):
     base_dir = base_dir or resolve_base_dir()
-    export_dir = export_dir or resolve_export_dir()
+    data_dir = data_dir or resolve_data_dir()
     save_dir = resolve_output_figures_dir().parent / "revision" / "figureS5b_tb_mixed_roi_markers"
     save_dir.mkdir(parents=True, exist_ok=True)
 
-    cells = load_cells(export_dir)
+    cells = load_cells(data_dir)
     sample_ids = rank_rois_by_tb_mixed_proportion(cells)
 
     dataset = PCa(base_dir=base_dir, image_version="filtered", mask_version="annotated", load_intensity=False, load_metadata=False, align=False)

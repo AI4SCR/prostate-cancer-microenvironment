@@ -10,9 +10,9 @@ library(survminer)
 library(rlang)
 library(patchwork)
 
-export_dir <- Sys.getenv("EXPORT_DIR")
+data_dir <- Sys.getenv("DATA_DIR")
 output_figures_dir <- Sys.getenv("OUTPUT_FIGURES_DIR")
-stopifnot("EXPORT_DIR is not set; copy .env.example to .env and fill it in" = nzchar(export_dir))
+stopifnot("DATA_DIR is not set; copy .env.example to .env and fill it in" = nzchar(data_dir))
 stopifnot("OUTPUT_FIGURES_DIR is not set; copy .env.example to .env and fill it in" = nzchar(output_figures_dir))
 
 results_dir <- file.path(output_figures_dir, "figure7", "niches")
@@ -43,12 +43,12 @@ compute_label_frequency <- function(data, level, pseudocount = 1) {
 }
 
 ### read clinical metadata
-clinical <- read_parquet(file.path(export_dir, "clinical.parquet"))
+clinical <- read_parquet(file.path(data_dir, "clinical.parquet"))
 num.patients <- clinical$pat_id |> n_distinct()
 print(paste("Number of patients:", num.patients))
 
 ### read cell annotation data
-df_cells <- read_parquet(file.path(export_dir, "cell_annotation.parquet"))
+df_cells <- read_parquet(file.path(data_dir, "cells", "cell_annotation.parquet"))
 
 sample_col <- "tma_id"
 df_cells[["sample_name"]] <- df_cells[[sample_col]]

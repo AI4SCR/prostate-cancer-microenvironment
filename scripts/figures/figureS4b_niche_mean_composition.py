@@ -7,7 +7,7 @@ from jsonargparse import CLI
 from loguru import logger
 from matplotlib import pyplot as plt
 
-from prostate_cancer.utils import resolve_legacy_dir, resolve_output_figures_dir
+from prostate_cancer.utils import resolve_data_dir, resolve_output_figures_dir
 
 matplotlib.use("Agg")
 
@@ -34,8 +34,8 @@ NICHE_ORDER = [
 MIN_CELLS_PER_NICHE_SAMPLE = 15
 
 
-def main(legacy_dir: Path | None = None):
-    legacy_dir = legacy_dir or resolve_legacy_dir()
+def main(data_dir: Path | None = None):
+    data_dir = data_dir or resolve_data_dir()
     save_dir = resolve_output_figures_dir() / "figureS4"
     save_dir.mkdir(parents=True, exist_ok=True)
     resources_dir = Path(__file__).resolve().parents[2] / "resources"
@@ -43,7 +43,7 @@ def main(legacy_dir: Path | None = None):
     celltype_col = "label"
     niche_col = "niche"
     group_var = "sample_id"
-    cluster_path = legacy_dir / "5-niches" / "annotation" / "clusters_annotated_v2.parquet"
+    cluster_path = data_dir / "niches" / "clusters_annotated.parquet"
     df_clusters = pd.read_parquet(cluster_path)
     logger.info(f"clusters shape: {df_clusters.shape}")
 

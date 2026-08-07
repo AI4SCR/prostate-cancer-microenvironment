@@ -4,12 +4,11 @@ import pandas as pd
 from jsonargparse import CLI
 from loguru import logger
 
-from prostate_cancer.utils import resolve_export_dir, resolve_legacy_dir, resolve_output_figures_dir
+from prostate_cancer.utils import resolve_data_dir, resolve_output_figures_dir
 
 
-def main(export_dir: Path | None = None, legacy_dir: Path | None = None):
-    export_dir = export_dir or resolve_export_dir()
-    legacy_dir = legacy_dir or resolve_legacy_dir()
+def main(data_dir: Path | None = None):
+    data_dir = data_dir or resolve_data_dir()
     save_dir = resolve_output_figures_dir() / "figure5"
     save_dir.mkdir(parents=True, exist_ok=True)
 
@@ -18,7 +17,7 @@ def main(export_dir: Path | None = None, legacy_dir: Path | None = None):
     logger.info(f"clusters shape: {df_clusters.shape}")
 
     # %% GENUINELY MISSING -- see module docstring and missing_files.md
-    annot_excel = legacy_dir / "PCA_NHOODs_clean" / "niche_annotations_revised.xlsx"
+    annot_excel = data_dir / "niches" / "niche_annotations_source.xlsx"
     df_anno = pd.read_excel(annot_excel)
 
     annotation_dict_niche = dict(zip(df_anno["cluster"].astype(str), df_anno["niche"]))

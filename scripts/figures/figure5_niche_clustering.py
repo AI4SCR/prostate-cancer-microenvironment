@@ -5,7 +5,7 @@ import pandas as pd
 from jsonargparse import CLI
 from loguru import logger
 
-from prostate_cancer.utils import resolve_export_dir, resolve_legacy_dir, resolve_output_figures_dir
+from prostate_cancer.utils import resolve_data_dir, resolve_output_figures_dir
 
 K = 24
 SEED = 686
@@ -15,21 +15,20 @@ MIN_CELLS_PER_NICHE = 15
 MIN_PATIENTS_PER_NICHE = 5
 
 
-def main(export_dir: Path | None = None, legacy_dir: Path | None = None):
-    export_dir = export_dir or resolve_export_dir()
-    legacy_dir = legacy_dir or resolve_legacy_dir()
-    count_base_dir = legacy_dir / "PCa_NHood" / "CellCellNeighborhoods"
+def main(data_dir: Path | None = None):
+    data_dir = data_dir or resolve_data_dir()
+    neighborhoods_dir = data_dir / "neighborhoods"
     save_dir = resolve_output_figures_dir() / "figure5"
     save_dir.mkdir(parents=True, exist_ok=True)
 
-    sys.path.append(str(legacy_dir / "PCA_NHOODs_clean" / "robustness"))
+    sys.path.append(str(data_dir / "niches" / "robustness"))
     from utils.clustering import perform_kmeans_clustering, wrapper_nhood_filtering
     from utils.visualization import calculate_freqs, calculate_zscore, create_plot, transform_for_heatmap
 
     # %% load the neighborhood-composition graph
-    data_path = count_base_dir / f"graph_type=radius-radius={GRAPH_RADIUS}" / "data.parquet"
-    cell_metadata = pd.read_parquet(count_base_dir / "cell_metadata.parquet", engine="fastparquet")
-    metadata = pd.read_parquet(count_base_dir / "metadata.parquet", engine="fastparquet")
+    data_path = neighborhoods_dir / f"radius{GRAPH_RADIUS}_data.parquet"
+    cell_metadata = pd.read_parquet(neighborhoods_dir / "cell_metadata.parquet", engine="fastparquet")
+    metadata = pd.read_parquet(neighborhoods_dir / "metadata.parquet", engine="fastparquet")
 
     data = pd.read_parquet(data_path, engine="fastparquet")
     data_filt = data[data.sum(axis=1) > NEIGHBOR_COUNT_THRESHOLD]

@@ -19,12 +19,12 @@ library(tibble)
 library(readr)
 
 base_dir <- Sys.getenv("BASE_DIR")
-export_dir <- Sys.getenv("EXPORT_DIR")
+data_dir <- Sys.getenv("DATA_DIR")
 output_figures_dir <- Sys.getenv("OUTPUT_FIGURES_DIR")
-stopifnot("EXPORT_DIR is not set; copy .env.example to .env and fill it in" = nzchar(export_dir))
+stopifnot("DATA_DIR is not set; copy .env.example to .env and fill it in" = nzchar(data_dir))
 stopifnot("OUTPUT_FIGURES_DIR is not set; copy .env.example to .env and fill it in" = nzchar(output_figures_dir))
 stopifnot(
-  "refusing to treat BASE_DIR as writable" = !startsWith(normalizePath(export_dir, mustWork = FALSE), normalizePath(base_dir, mustWork = FALSE))
+  "refusing to treat BASE_DIR as writable" = !startsWith(normalizePath(data_dir, mustWork = FALSE), normalizePath(base_dir, mustWork = FALSE))
 )
 
 save_dir <- file.path(dirname(output_figures_dir), "revision", "figure6_niche6")
@@ -32,7 +32,7 @@ dir.create(save_dir, recursive = TRUE, showWarnings = FALSE)
 
 niche_col <- "tumorERG+p53+_ProlifLuminal" # niche 6
 
-clinical_full <- read_parquet(file.path(export_dir, "clinical.parquet"))
+clinical_full <- read_parquet(file.path(data_dir, "clinical.parquet"))
 num.patients <- clinical_full$pat_id |> n_distinct()
 
 clinical.names <- c("sample_id", "pat_id", "tma_id", "last_fu", "os_status", "disease_progr", "disease_progr_time", "gs_grp")
@@ -42,7 +42,7 @@ clinical <- clinical_full |> select(any_of(clinical.names))
 # patient -- same pipeline as figure4de_cox_hazard_ratio.R applied to cell
 # types, here applied to `cell_annotation.parquet`'s `niche` column instead of
 # `metadata.parquet`'s `label` column
-cells_niche <- read_parquet(file.path(export_dir, "cell_annotation.parquet")) |>
+cells_niche <- read_parquet(file.path(data_dir, "cells", "cell_annotation.parquet")) |>
   select(sample_id, object_id, niche)
 sample_tma <- clinical_full |>
   select(sample_id, tma_id, pat_id, is_tumor) |>

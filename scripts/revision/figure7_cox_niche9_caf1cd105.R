@@ -20,12 +20,12 @@ library(tibble)
 library(readr)
 
 base_dir <- Sys.getenv("BASE_DIR")
-export_dir <- Sys.getenv("EXPORT_DIR")
+data_dir <- Sys.getenv("DATA_DIR")
 output_figures_dir <- Sys.getenv("OUTPUT_FIGURES_DIR")
-stopifnot("EXPORT_DIR is not set; copy .env.example to .env and fill it in" = nzchar(export_dir))
+stopifnot("DATA_DIR is not set; copy .env.example to .env and fill it in" = nzchar(data_dir))
 stopifnot("OUTPUT_FIGURES_DIR is not set; copy .env.example to .env and fill it in" = nzchar(output_figures_dir))
 stopifnot(
-  "refusing to treat BASE_DIR as writable" = !startsWith(normalizePath(export_dir, mustWork = FALSE), normalizePath(base_dir, mustWork = FALSE))
+  "refusing to treat BASE_DIR as writable" = !startsWith(normalizePath(data_dir, mustWork = FALSE), normalizePath(base_dir, mustWork = FALSE))
 )
 
 save_dir <- file.path(dirname(output_figures_dir), "revision", "figure7_niche9")
@@ -34,7 +34,7 @@ dir.create(save_dir, recursive = TRUE, showWarnings = FALSE)
 niche_col <- "luminal_CAF1(CD105High)" # niche 9
 cell_type_col <- "stromal-CAF1(CD105+)" # CAF1 CD105-high
 
-clinical_full <- read_parquet(file.path(export_dir, "clinical.parquet"))
+clinical_full <- read_parquet(file.path(data_dir, "clinical.parquet"))
 num.patients <- clinical_full$pat_id |> n_distinct()
 
 clinical.names <- c("sample_id", "pat_id", "tma_id", "last_fu", "os_status", "disease_progr", "disease_progr_time")
@@ -69,7 +69,7 @@ clr_composition <- function(cells, level_col) {
 }
 
 # %% niche composition (from cell_annotation.parquet)
-cells_niche <- read_parquet(file.path(export_dir, "cell_annotation.parquet")) |>
+cells_niche <- read_parquet(file.path(data_dir, "cells", "cell_annotation.parquet")) |>
   select(sample_id, object_id, niche) |>
   inner_join(sample_tma, by = "sample_id") |>
   filter(!is.na(is_tumor), is_tumor == "yes")
@@ -78,7 +78,7 @@ stopifnot("niche 9 column not found in niche composition" = niche_col %in% colna
 niche_data <- niche_composition |> select(pat_id, niche9_clr = all_of(niche_col))
 
 # %% cell-type composition (from metadata.parquet)
-metadata <- read_parquet(file.path(export_dir, "metadata.parquet"))
+metadata <- read_parquet(file.path(data_dir, "cells", "metadata.parquet"))
 cells_label <- metadata |>
   select(sample_id, object_id, label) |>
   inner_join(sample_tma, by = "sample_id") |>

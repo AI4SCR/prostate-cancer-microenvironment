@@ -10,7 +10,7 @@ from loguru import logger
 from matplotlib import cm, colors
 from pycirclize import Circos
 
-from prostate_cancer.utils import resolve_legacy_dir, resolve_output_figures_dir
+from prostate_cancer.utils import resolve_data_dir, resolve_output_figures_dir
 
 matplotlib.use("Agg")
 
@@ -154,8 +154,8 @@ def plot_circos_plot(df: pd.DataFrame, color="aggregated_interaction", color_map
     return fig
 
 
-def main(legacy_dir: Path | None = None):
-    legacy_dir = legacy_dir or resolve_legacy_dir()
+def main(data_dir: Path | None = None):
+    data_dir = data_dir or resolve_data_dir()
     save_dir = resolve_output_figures_dir() / "figure7"
     save_dir.mkdir(parents=True, exist_ok=True)
     resources_dir = Path(__file__).resolve().parents[2] / "resources"
@@ -164,10 +164,10 @@ def main(legacy_dir: Path | None = None):
         colormaps = yaml.safe_load(f)
     color_dict_label = colormaps["label"]
 
-    data_dir = legacy_dir / "5-niches" / "visualization" / "interactions" / "redo" / "per_niche_lfc_above_median" / "dataframes_v2"
+    interactions_dir = data_dir / "niches" / "interactions"
 
     for panel, niche in NICHES.items():
-        df_path = data_dir / f"{niche}.parquet"
+        df_path = interactions_dir / f"{niche}.parquet"
         df_example = pd.read_parquet(df_path)
         df_example = df_example.dropna()
 

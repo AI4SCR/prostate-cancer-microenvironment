@@ -8,7 +8,7 @@ from prostate_cancer.utils import (
     assert_outside_base_dir,
     normalize,
     resolve_base_dir,
-    resolve_export_dir,
+    resolve_data_dir,
 )
 
 # The counts below are fixed properties of the specific, already-published
@@ -26,12 +26,13 @@ EXPECTED_ROI_COUNT = 515  # unique physical cores (tma_id), clinical restricted 
 EXPECTED_TUMOR_ROI_COUNT = 459  # unique tma_id, restricted to labeled cells + is_tumor == "yes"
 
 
-def main(base_dir: Path | None = None, export_dir: Path | None = None):
+def main(base_dir: Path | None = None, data_dir: Path | None = None):
     from ai4bmr_datasets import PCa
 
     base_dir = Path(base_dir).expanduser() if base_dir else resolve_base_dir()
-    export_dir = assert_outside_base_dir(Path(export_dir).expanduser()) if export_dir else resolve_export_dir()
-    export_dir.mkdir(parents=True, exist_ok=True)
+    data_dir = assert_outside_base_dir(Path(data_dir).expanduser()) if data_dir else resolve_data_dir()
+    cells_dir = data_dir / "cells"
+    cells_dir.mkdir(parents=True, exist_ok=True)
 
     # %% per-cell labels + per-ROI clinical annotations + intensities, exactly
     # as the original 000_paper/0-export/data.py loaded them (paths only changed)
@@ -104,20 +105,20 @@ def main(base_dir: Path | None = None, export_dir: Path | None = None):
     intensity_normalized = normalize(intensity, exclude_zeros=True)
 
     # %%
-    metadata.to_parquet(export_dir / "metadata.parquet")
-    clinical.to_parquet(export_dir / "clinical.parquet")
-    intensity.to_parquet(export_dir / "intensity.parquet")
-    intensity_normalized.to_parquet(export_dir / "intensity_normalized.parquet")
+    metadata.to_parquet(cells_dir / "metadata.parquet")
+    clinical.to_parquet(data_dir / "clinical.parquet")
+    intensity.to_parquet(cells_dir / "intensity.parquet")
+    intensity_normalized.to_parquet(cells_dir / "intensity_normalized.parquet")
 
     # R has no equivalent of `prostate_cancer.utils.NON_MARKER_CHANNELS` to
     # import, so hand it the same list as a plain-text sidecar (one per line)
     # instead of letting each R figure script hardcode its own copy. This is
     # a fixed constant, not data derived from a dataset, so it's written to
-    # resources/ rather than EXPORT_DIR.
+    # resources/ rather than DATA_DIR.
     resources_dir = Path(__file__).resolve().parents[2] / "resources"
     (resources_dir / "non_marker_channels.txt").write_text("\n".join(NON_MARKER_CHANNELS) + "\n")
 
-    logger.info(f"Exported metadata/clinical/intensity/intensity_normalized to {export_dir}")
+    logger.info(f"Exported metadata/intensity/intensity_normalized to {cells_dir}, clinical to {data_dir}")
 
 
 if __name__ == "__main__":
