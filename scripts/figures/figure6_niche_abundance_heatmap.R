@@ -55,7 +55,10 @@ df_metadata <- clinical %>%
     # d_amico_risk,
     # glandular_atrophy_pin,
     # ln_status,
-    # tma_id
+    # DISCLOSED DEVIATION from the verbatim source: tma_id is commented out
+    # here in the legacy script, but matrix indexing below (`df_metadata$tma_id`)
+    # requires it -- a genuine bug in the source itself. Re-enabled.
+    tma_id
   ) %>%
   distinct()
 
@@ -93,7 +96,17 @@ df_metadata$pat_id <- as.character(df_metadata$pat_id)
 annotation_colors <- list()
 for (col in colnames(df_metadata)) {
   if (col %in% names(custom_annotation_colors)) {
-    annotation_colors[[col]] <- custom_annotation_colors[[col]]
+    # DISCLOSED DEVIATION: yaml::read_yaml() returns a nested list, not the
+    # named vector ComplexHeatmap requires; it also parses bareword yes/no
+    # keys as YAML 1.1 booleans, not the strings "yes"/"no" the data uses
+    # (same gotcha fixed elsewhere in this repo), and colormaps.yaml's
+    # gleason_grp keys ("1.0".."5.0") don't match the factor levels
+    # produced by factor(<numeric>, ...) ("1".."5"). unlist() + remap.
+    vals <- unlist(custom_annotation_colors[[col]])
+    names(vals)[names(vals) == "TRUE"] <- "yes"
+    names(vals)[names(vals) == "FALSE"] <- "no"
+    names(vals) <- sub("\\.0$", "", names(vals))
+    annotation_colors[[col]] <- vals
   } else if (col %in% names(hue_order_list)) {
     # Generate consistent colors based on predefined order
     unique_vals <- hue_order_list[[col]]
@@ -105,7 +118,12 @@ for (col in colnames(df_metadata)) {
 }
 
 # Create HeatmapAnnotation
-ha <- rowAnnotation(df = df_metadata, col = annotation_colors, show_legend = c(FALSE, rep(TRUE, length(df_metadata) - 2), FALSE))
+# tma_id is kept in df_metadata above only for row-indexing (matrix reorder,
+# distinct()); the published panel's legend has no tma_id track, so it's
+# excluded from the displayed annotation here.
+df_metadata_display <- df_metadata %>% select(-tma_id)
+annotation_colors_display <- annotation_colors[names(annotation_colors) != "tma_id"]
+ha <- rowAnnotation(df = df_metadata_display, col = annotation_colors_display, show_legend = c(FALSE, rep(TRUE, length(df_metadata_display) - 1)))
 
 col_fun <- colorRamp2(c(0, 1), c("white", "darkgreen"))
 
@@ -126,8 +144,20 @@ colormap_niche <- yaml::read_yaml(colormaps_path)$niche
 # ensure named character vector
 niche_colors <- unlist(colormap_niche)
 
-# reorder matrix columns (optional, consistent with YAML order)
-matrix <- matrix[, intersect(names(niche_colors), colnames(matrix))]
+# DISCLOSED DEVIATION from the verbatim source: reorder/filter columns via
+# niche_annotations_v2.csv (dropping "unassigned"), matching the pattern
+# already used in figure5_niche_correlation.R and an earlier version of
+# this same legacy script (commit a7d0b60) -- the current sync_paper
+# version regressed to sourcing niche colors from colormaps.yaml directly,
+# which still lists "unassigned" and reintroduces it as a spurious 19th
+# column not present in the published panel.
+info_niches <- read.csv(file.path(legacy_dir, "5-niches", "annotation", "niche_annotations_v2.csv"))
+info_niches <- info_niches %>%
+  select(-cluster) %>%
+  distinct() %>%
+  filter(niche != "unassigned")
+
+matrix <- matrix[, info_niches$niche]
 
 # annotation dataframe (aligned with matrix columns)
 niche_anno_df <- data.frame(

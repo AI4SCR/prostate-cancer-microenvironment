@@ -17,7 +17,7 @@ or a confirmed gap, see Issues). All `sync_paper` paths are relative to
 | 1 | a-c | — | — (BioRender + raw image crops) | — | — | — | — |
 | 2 | a | `figure2_cell_type_heatmap.R` | `000_paper/04_heatmaps/2-cell-types-heatmap.R` | intensity_normalized.parquet, metadata.parquet | `figure2/figure2a_cell_type_heatmap.pdf` | true | true |
 | 2 | b | `figure2_umap.py` | `000_paper/02_umaps/0-umaps.py` | metadata.parquet, intensity_normalized.parquet, clinical.parquet, `data/figures/figure2_umap/umap_embeddings.parquet` (ported from legacy `reducer.pkl`) | `figure2/label=*.pdf`, `figure2/value=*.pdf` (44 files) | true | false |
-| 3 | a | `figure3_caf_umap.py` | `000_paper/02_umaps/0-umaps-cafs.py` | metadata.parquet, intensity.parquet, clinical.parquet, `data/figures/figure3_caf_umap/{excl_markers,caf_markers_only}/umap_embeddings.parquet` (ported from legacy `reducer.pkl`) | `figure3/{excl_markers,caf_markers_only}/label=*.pdf`, `value=*.pdf`, `cell_type=*.pdf` | false | true |
+| 3 | a | `figure3_caf_umap.py` | `000_paper/02_umaps/0-umaps-cafs.py` (`excl_markers`/`caf_markers_only` configs, CAF-only, superseded); `000_paper/02_umaps/0-umaps-main-types.py` (`stromal` config, `main_group=stromal` reducer, now the published panel's actual source) | metadata.parquet, intensity.parquet, clinical.parquet, `data/figures/figure3_caf_umap/{excl_markers,caf_markers_only,stromal}/umap_embeddings.parquet` (ported from legacy `reducer.pkl`) | `figure3/{excl_markers,caf_markers_only,stromal}/label=*.pdf`, `value=*.pdf`, `cell_type=*.pdf` | true | true |
 | 3 | b | `figure3_caf_heatmap.R` | `000_paper/04_heatmaps/2-1-cell-types-heatmap.R` (`heatmap.caf()`) | intensity_normalized.parquet, metadata.parquet | `figure3/figure3b_caf_heatmap.pdf` | true | true |
 | 3 | c-e | — | — (representative ROIs, not code-derived) | — | — | — | — |
 | 4 | a | `figure4_patient_clustering.py` | `sync_paper/05-heterogeneity/stacked-frequencies-label.py` (`pat_id` branch) | metadata.parquet, clinical.parquet | `figure4/figure4a_stacked_barplot.pdf`, `figure4a_patient_composition.parquet` | true | false |
@@ -27,7 +27,7 @@ or a confirmed gap, see Issues). All `sync_paper` paths are relative to
 | 5 | a | `figure5_niche_heatmap.R` (+ `figure5_niche_clustering.py`, `figure5_niche_annotation.py`) | `sync_paper/06-spatial-niches/composition/z_score_composition_vis.R`; `sync_paper/.../construction/kmeans_clustering.py`; `000_paper/11_niches/110_analysis/01_annotation_v2.py` | `5-niches/annotation/clusters_annotated_v2.parquet`, `niche_annotations_v2.csv`, `visualization/composition/niche_heatmap_data.parquet` | `figure5/figure5a_niche_zscore_heatmap.pdf` | false | true |
 | 5 | b | `figure5_niche_correlation.R` | `sync_paper/06-spatial-niches/abundance/correlation_frequencies.R` | `5-niches/frequencies/stacked_barplots/props_niche_tma_id.parquet`, `annotation/niche_annotations_v2.csv`, clinical.parquet | `figure5/figure5b_niche_correlation_heatmap.pdf` | false | true |
 | 5 | c | — | — (no legacy plotting code for per-core composition bars) | — | — | — | true |
-| 6 | a | `figure6_niche_abundance_heatmap.R` | `sync_paper/06-spatial-niches/abundance/heatmap_frequencies.R` | `5-niches/frequencies/niche_frequencies_per_tma_id.parquet`, clinical.parquet | `figure6/figure6a_niche_proportion_heatmap_tma.pdf` | false | true |
+| 6 | a | `figure6_niche_abundance_heatmap.R` | `sync_paper/06-spatial-niches/abundance/heatmap_frequencies.R` | `5-niches/frequencies/niche_frequencies_per_tma_id.parquet`, `5-niches/annotation/niche_annotations_v2.csv`, clinical.parquet | `figure6/figure6a_niche_proportion_heatmap_tma.pdf` | true | true |
 | 6 | b | `figure6_km_niche6.R` | `sync_paper/03_survival/niche_km.R` | clinical.parquet, cell_annotation.parquet | `figure6/niches/km_survival__disease_progr_tumorERG+p53+_ProlifLuminalwith_table.pdf` | true | true |
 | 6 | c | `figure6c_niche_composition_filtered.py` | `sync_paper/06-spatial-niches/composition/niche_composition.py` (niches 6/16/17/18) | `5-niches/annotation/clusters_annotated_v2.parquet` | `figure6/figure6c_niche_composition_barplot.pdf` | false | true |
 | 6 | d | `figure6_inflammation_violin.R` | `sync_paper/06-spatial-niches/histology/inflammation_vis.R`; stats: `pairwise_testing_niches.R` (inflammation section) | `5-niches/annotation/clusters_annotated_v2.parquet`, clinical.parquet | `figure6/violin_boxplot_inflammation.pdf` | true | true |
@@ -61,26 +61,78 @@ and color scale all match). One minor gap: the paper's panel carries a
 doesn't render it. Flagged, not blocking — marked `Validated = true` since
 the core heatmap content matches; this is a cosmetic annotation gap only.
 
-# Issue: Figure 6a currently broken
+# Issue: Figure 6a — resolved, validated against the published panel
 
-`figure6_niche_abundance_heatmap.R` was reverted to the pure verbatim
-legacy version (to diagnose a crash from first principles) and was never
-re-fixed. As currently committed, `tma_id` is commented out of `select()`
-and the script crashes with `Error: The color mapping should be a named
-vector or a function.` (root cause: the missing `tma_id` produces a 0-row
-matrix; a separate `yaml`-list-vs-vector bug in the color mapping hits
-first). The PDF on disk is stale, left over from a working, fixed version.
-This is the single biggest open issue in the repo right now.
+Was broken for most of this project (crashed on the pure verbatim legacy
+script); now fixed with three disclosed, minimal deviations, all
+individually verified against the source or against an already-validated
+sibling script:
 
-The verified fix (not currently applied): keep `tma_id` in `df_metadata`
-for `distinct()`/row-indexing (dropping it collapses the correct 459 TMA
-rows down to 346, since several patients share identical clinical values
-across multiple cores), but build a separate `tma_id`-free data frame for
-`rowAnnotation()` — the paper's published panel shows no `tma_id`
-annotation track. With this fix, row count and dendrogram/cluster
-structure matched the paper closely (same 5 main clusters).
+1. **`tma_id` re-enabled in `select()`.** The legacy script comments
+   `tma_id` out of the `select()` call that builds `df_metadata`, but a
+   later line (`matrix[as.character(df_metadata$tma_id), ]`) requires it
+   — a genuine bug in the source itself (confirmed: this exact script is
+   unchanged between our ported commit and the current legacy
+   `origin/main`). Re-enabling it fixes the crash. It's kept in
+   `df_metadata` for row-indexing/`distinct()` only; a separate
+   `df_metadata_display` (built by dropping `tma_id`) is passed to
+   `rowAnnotation()` instead, since the published panel's legend has only
+   6 tracks (`pat_id, os_status, disease_progr, gleason_grp, inflammation,
+   stromogenic`), no `tma_id` track.
+2. **YAML color-list handling fixed.** `yaml::read_yaml()` returns a
+   nested list, not the named vector `ComplexHeatmap` requires; it also
+   parses bareword `yes`/`no` keys as YAML 1.1 booleans (same gotcha fixed
+   twice elsewhere in this repo), and `colormaps.yaml`'s `gleason_grp` keys
+   (`"1.0".."5.0"`) don't match the `"1".."5"` levels
+   `factor(<numeric>, ...)` produces. Fixed with `unlist()` + a `TRUE/FALSE
+   → yes/no` remap + a trailing-`.0` strip.
+3. **`unassigned` niche column dropped.** The current legacy script sources
+   niche colors/order straight from `colormaps.yaml` (which still lists an
+   `unassigned` color), reintroducing a 19th column the published panel
+   doesn't have. Traced via `git log` on the legacy script: an earlier
+   commit (`a7d0b60`) filtered niches via `niche_annotations_v2.csv` +
+   `filter(niche != "unassigned")` before reordering the matrix; the
+   current `sync_paper` version regressed away from this when it switched
+   to sourcing colors from `colormaps.yaml`. Reinstated the
+   `niche_annotations_v2.csv`-based filter/reorder, matching the pattern
+   already verbatim-ported in `figure5_niche_correlation.R`.
 
-# Issue: Figure 3a/3b — pericytes structurally excluded, can't be plotted from cached data
+Regenerated and confirmed against the published panel: 18 niche columns
+(was 19), 5 main row clusters, and exactly the paper's 6 row-annotation
+tracks (no `tma_id` track). Marked `Validated = true`.
+
+# Issue: Figure 3a — resolved, published panel is the stromal (not CAF-only) UMAP
+
+**Resolved.** The published Figure 3a legend text ("UMAP of all CAF cells")
+is a manuscript error, confirmed directly: the panel actually shown is the
+full stromal-compartment UMAP -- `2-umaps/2-main_groups/n_neighbors=50-
+min_dist=0.1-engine=umap-learn-main_group=stromal-
+excl_markers=dna1_dna2_fap_icsk1_icsk2_icsk3/reducer.pkl` (666,087 cells:
+all `main_group == "stromal"` labels, including `stromal-pericytes`,
+`stromal-mesenchymal-neuroendocrine`, and `stromal-(Ki67+)`, not just the
+7 CAF subtype labels). Ported this reducer as a new `stromal` config
+(`scripts/data/figure3_caf_umap_embedding.py`'s docstring/`CONFIGS`,
+`scripts/figures/figure3_caf_umap.py`'s `CONFIGS`/`POPULATIONS`) alongside
+the existing `excl_markers`/`caf_markers_only` CAF-only configs (kept,
+unmodified, for reference). Regenerated and visually confirmed: the
+`stromal` config's `label=label.pdf` matches the published panel's
+silhouette and left-to-right color-cluster layout closely (green cluster
+far left, magenta/purple central mass, lavender→teal band right, yellow
+patch bottom, small disconnected appendage bottom-right) -- the CAF-only
+configs do not reproduce this shape. Marked `Validated = true`.
+
+**Related, not yet acted on**: Figure 3b's own heatmap legend ("Cell
+Type") also lists `Pericytes`, `Mesenchymal neuroendocrine`, and
+`SMC (AR-)/SMC(AR+CES1+)/SMC(AR+EGR1+)` (apparently the published name for
+our `stromal-CAF2(AR-)` etc. clusters) alongside the CAF clusters --
+suggesting `figure3_caf_heatmap.R`'s `grepl("CAF", meta$label)` filter has
+the same CAF-only-vs-full-stromal mismatch as 3a did, and should likely be
+widened to `main_group == "stromal"` too. Not changed yet -- flagged for a
+separate decision, since it affects an already-`Validated = true` script
+with its own disclosed marker-list correction (see below) that would need
+re-checking against the paper if the population changes.
+
+# Issue: Figure 3b — marker-list correction
 
 Re-ported as a verbatim port of `2-1-cell-types-heatmap.R` (confirmed the
 correct, newer source via git history — 2026-04-11 vs. 2025-11-05 for the
@@ -100,18 +152,12 @@ marked `true`.
 Still unresolved: the source's `Heatmap()` call hardcodes `cluster_rows =
 FALSE, cluster_columns = FALSE` internally, ignoring its own `cluster_rows`
 parameter (ported verbatim, per this project's no-fixes rule) — neither
-axis is clustered. Pericytes are also structurally absent from this
-source's CAF filter (`grepl("CAF", meta$label)` excludes
-`stromal-pericytes`). **Checked empirically**: the Fig 3a UMAP embedding
-itself only contains CAF cells — joined the ported embedding
-(626,064 rows) against `metadata.parquet`, all rows resolve to the same 7
-CAF labels, zero pericytes. Also confirmed the embedding's index is
-byte-identical to what `figure3_caf_umap.py`'s own filter produces on this
-repo's data. The underlying legacy UMAP was itself **fit** only on
-CAF-labeled cells — pericytes were never part of the UMAP computation.
-There is no way to show pericytes on Fig 3a using the cached/ported
-embedding without re-fitting a UMAP on a different cell population, which
-no legacy script does.
+axis is clustered.
+
+Not a bug: unlike Fig 3a (which plots the full stromal UMAP), 3b's rows are
+intentionally CAF-only by design — the heatmap's broader "Cell Type" legend
+(Pericytes, SMC, etc.) just reflects that it's shared with other panels,
+not that this heatmap's own rows should include them.
 
 # Issue: Figure 6d/7a — significance stats are manually annotated, from a separate script
 
