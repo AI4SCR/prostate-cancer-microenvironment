@@ -332,3 +332,31 @@ pipeline genuinely computed the published results using this older
 assignment throughout, remapping only output *filenames* to `_v2` niche
 names at the very end. Substituting `_v2` into the computation itself
 would be the actual deviation from what produced the paper's results.
+
+# Reviewer-response scripts (not manuscript panels)
+
+Scripts under `scripts/revision/` answer specific reviewer comments on the
+submitted manuscript; they don't reproduce a published panel and aren't
+covered by the Figure/Panel table above. Outputs go to `output/revision/`
+(sibling to `output/figures/`), one subfolder per script group. Cohort:
+all four Cox scripts use the same 190-patient tumor-only cohort as Fig
+4d-e/6b/7b (`is_tumor == "yes"`); one further patient is dropped from the
+two Gleason-covariate scripts for missing `gs_grp` (189 patients).
+
+| Script | Addresses | Inputs | Output | Notes |
+|---|---|---|---|---|
+| `figure6_cox_niche6_gleason.R` | Issue 2: is niche 6 independently associated with outcome beyond Gleason grade? | cell_annotation.parquet, clinical.parquet (`gs_grp`) | `revision/figure6_niche6/figure6_cox_niche6_gleason_{os,progr}.{csv,png}` | Univariate `gs_grp`-only vs. multivariate `niche6_clr + gs_grp`, both outcomes. Niche 6 enters as CLR-transformed continuous abundance (not the binary median-split `risk_group` used in Fig 6b), same treatment as Fig 4d-e's cell-type covariates. |
+| `figure7_cox_niche9_gleason.R` | Issue 2, niche 9 | cell_annotation.parquet, clinical.parquet (`gs_grp`) | `revision/figure7_niche9/figure7_cox_niche9_gleason_{os,progr}.{csv,png}` | Same structure as the niche 6 script, for niche 9 (`luminal_CAF1(CD105High)`). |
+| `figure6_cox_niche6_erg_p53.R` | Issue 2, cell-type level: niche 6 + its defining ERG+p53+ epithelial population | cell_annotation.parquet, metadata.parquet, clinical.parquet | `revision/figure6_niche6/figure6_cox_niche6_erg_p53_{os,progr}.{csv,png}` | Univariate niche-only, univariate cell-type-only, and multivariate `niche6_clr + erg_p53_clr` models, both outcomes. |
+| `figure7_cox_niche9_caf1cd105.R` | Issue 2, cell-type level: niche 9 + `stromal-CAF1(CD105+)` (myCAF) | cell_annotation.parquet, metadata.parquet, clinical.parquet | `revision/figure7_niche9/figure7_cox_niche9_caf1cd105_{os,progr}.{csv,png}` | Same structure as the niche 6 + ERG+p53+ script, for niche 9 + CAF1(CD105+). |
+| `figureS5b_tb_mixed_roi_markers.py` | Issue 5: does nuclear segmentation let signal from neighboring cells leak into a cell's marker profile? | cell_annotation.parquet (ranking), raw acquisition images + masks under `BASE_DIR/02_processed/{images/filtered,masks/annotated}` (rendering) | `revision/figureS5b_tb_mixed_roi_markers/{sample_id}.png` (3 files) | Selects the 3 TMA cores with the highest proportion of the `immune-T-helper-B-cells` cell-type label (the ambiguous population a segmentation artifact would produce), renders each as a DNA1/CD3/CD20 RGB composite (B/G/R respectively) with nuclear segmentation boundaries overlaid. `02_processed/masks/annotated` confirmed (by matching per-sample object counts against `cell_annotation.parquet`'s `object_id` cardinality) to be the mask version underlying the cell table — the only mask directory that isn't a new, un-vetted choice. |
+
+**Note on reading `cell_annotation.parquet` from Python**: the file's
+embedded pandas column-index metadata is stale (predates the
+`sample_id`/`object_id` columns), so plain `pd.read_parquet(...)` silently
+drops those two columns under this repo's pinned pandas/pyarrow. All
+Python reads of this file must use
+`pyarrow.parquet.read_table(path).to_pandas(ignore_metadata=True)`
+instead (see `figureS5b_tb_mixed_roi_markers.py`). R's `arrow::read_parquet`
+is unaffected — the existing R scripts that read this file were never
+hitting this.
