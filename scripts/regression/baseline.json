@@ -1,0 +1,170 @@
+{
+  "scripts/figures/figure2_cell_type_heatmap.R": {
+    "figure2/figure2a_cell_type_heatmap.pdf": "abdcd721e92a0373c38144905639d497a5815e4b00c5de1789f42eca5b6ca3b3"
+  },
+  "scripts/figures/figure3_caf_heatmap.R": {
+    "figure3/figure3b_caf_heatmap.pdf": "87dcaf3f9dc6b5110fd7c8a366ecc2d913dbbb70a63c7703ce7168de46f79e43"
+  },
+  "scripts/figures/figure4_metagroup_barplot.py": {
+    "figure4/figure4b_metagroup_barplot.pdf": "cddb3ead64c69c836d79d835d4ece3f734ec6f9099c9fdce8ea2453def78b02f"
+  },
+  "scripts/figures/figure4_patient_clustering.py": {
+    "figure4/figure4a_patient_composition.parquet": "e20f4bdbfb6d5c5f2b122e4610720ba25c706b16924ad10bd3527f89ef24499a",
+    "figure4/figure4a_stacked_barplot.pdf": "78a62f27fb7c8c006bcffccf5c719506652a7365e8d96e23142a21d0a2d73308"
+  },
+  "scripts/figures/figure4c_patient_cluster_km.R": {
+    "figure4/figure4c_survival_by_patient_cluster.png": "57552f6de333d00301f23e3742ab866d524925baec4d58c9598bbb3a15560a90"
+  },
+  "scripts/figures/figure4de_cox_hazard_ratio.R": {
+    "figure4/figure4_cox_d.png": "91fcd8437c909579da0bd8100be5a1341892a4832d1f7abbc0aaa7c46a432584",
+    "figure4/figure4_cox_e.png": "08a38da4e7f9b7bcef34bb6b15afc0090171f9b4fe107795f1aab448f801ce46"
+  },
+  "scripts/figures/figure5_niche_correlation.R": {
+    "figure5/figure5b_niche_correlation_heatmap.pdf": "27af6b49147bb0c6e7cc38806bcf9c5fb04c88d3ef66e616401c8d78a65da5f9"
+  },
+  "scripts/figures/figure5_niche_heatmap.R": {
+    "figure5/figure5a_niche_zscore_heatmap.pdf": "6d1aca5549f2606a3d5f078d3ccbca5a206606fc7b74f6f56d3c6d49c2958de3"
+  },
+  "scripts/figures/figure6_inflammation_violin.R": {
+    "figure6/violin_boxplot_inflammation.pdf": "15e0af109df612182aac3cd9a95d7cc12fa365828d5be6e51a34c285eb247219"
+  },
+  "scripts/figures/figure6_km_niche6.R": {
+    "figure6/niches/km_survival__disease_progr_tumorERG+p53+_ProlifLuminalwith_table.pdf": "0639ef7ec1c861becb1acc4dadef78f7f32888c19ec3b9e0f6fb3bf3e77074dc"
+  },
+  "scripts/figures/figure6_niche_abundance_heatmap.R": {
+    "figure6/figure6a_niche_proportion_heatmap_tma.pdf": "3e30a4efc96214d294f1e81dd62a64501d8d9562e41198692dad40b8f6dd55f5"
+  },
+  "scripts/figures/figure6c_niche_composition_filtered.py": {
+    "figure6/figure6c_niche_composition_barplot.pdf": "732eec3064de523fb3b983b856d9fa9294fd1672a26643ff9beb4a9d7d55b437"
+  },
+  "scripts/figures/figure6e_immune_risk_score_km.R": {
+    "figure6/kaplan_meier_inflammation_os_risk_group_max.pdf": "e1312fec1b357ff28cd952c23c237bade9ba1686794bdd27023900a4d8c06bce",
+    "figure6/kaplan_meier_inflammation_progression_risk_group_max.pdf": "c331ea59e636416f4c10375bedd03ec52bae5ae91518487552e311c79bb0da1d"
+  },
+  "scripts/figures/figure7a_stromogenic_violin.R": {
+    "figure7/violin_boxplot_stromogenic.pdf": "69945eee5975dde5f7b54af3228b0e00e480268bc494fd334c54bb81bf4b129c",
+    "figure7/violin_boxplot_stromogenic_sep.pdf": "48dee85c4d69f3de086cca78901da8d8070d3e68b91264d3dded85216b44a6b0"
+  },
+  "scripts/figures/figure7b_niche9_km.R": {
+    "figure7/niches/km_survival__disease_progr_luminal_CAF1(CD105High)with_table.pdf": "12640904ca835e8333a76caf897dd775b7c7b0db3f542cdbf5379f9da4b5fcd8"
+  },
+  "scripts/figures/figure7c_myCAF_km.R": {
+    "figure7/cell_types/km_survival__disease_progr_stromal-CAF1(CD105+)with_table.pdf": "d7cca3f1c3d6f29577cbadd3ea896e2739ddd6e0cc255470fd03f3d7e79841f2",
+    "figure7/cell_types/km_survival__os_status_stromal-CAF1(CD105+)with_table.pdf": "20f2b6c2e7053643df1db3d4b465f01f42ca2f230ba015761d9f55b1cd2daacc"
+  },
+  "scripts/figures/figure7def_circos_plots.py": {
+    "figure7/figure7d_luminal_infiltrated_circos_plot.pdf": "41adba47bb0b7697939c6ff4c1fd4720bcfc88bc2b26b3d9446d9e4bb994de8b",
+    "figure7/figure7e_tumor_CAF1_lymphocytes_circos_plot.pdf": "4bf8f482305d1b741f6d9c37657c6ac0405036c85dc56108af919ac4f09d8458",
+    "figure7/figure7f_luminal_CAF1(CD105High)_circos_plot.pdf": "3971a93c7a85d731da492fd09a16e3fee1d466d00b4d65bd8366e9fbb5e8b9c6"
+  },
+  "scripts/figures/figureS1a_cohort_summary.R": {
+    "figureS1/patient-level/adj_adt.pdf": "fbe48fee42bca6a6ad6028de6e1d618ccd0621382e54f731860f5a5456ba655e",
+    "figureS1/patient-level/adj_radio.pdf": "f66af3c64d860c63c15abaff95ee9ff65d9ef68604975ff00e5bfffbe8844bd7",
+    "figureS1/patient-level/age_at_surgery.pdf": "6adf267c1a68f3699e3cf1f14a159b61479daebada30e207bf8ebd1b1f64b2ed",
+    "figureS1/patient-level/cause_of_death.pdf": "6e361044f7b61899ac8be1754e5706aa2d7df66a564024daaf10c5ac7b96d93f",
+    "figureS1/patient-level/cgrading_biopsy.pdf": "7f40fa372ccd8d24c10a7f61738f3fa8ecf319205802f9a573c89fe65220ef9f",
+    "figureS1/patient-level/cgs_score.pdf": "206d7ad300de4d1b71186da4fe831a0a1ad263452e362ab12243651a34a99392",
+    "figureS1/patient-level/clinical_progr.pdf": "7c5a8991b7d0aaa7720c642da1d5209380137564702b8a19c65e86581fb5160a",
+    "figureS1/patient-level/clinical_progr_time.pdf": "cf61af948ddf8a5bdf5bbf82f9472e0034a1163b82ca7a65ae2b16777d83cfcf",
+    "figureS1/patient-level/ct_stage.pdf": "4b00aba89a4d758c8263922928384e1647c21083b3f5909d89b172f552111845",
+    "figureS1/patient-level/d_amico_risk.pdf": "4fb76fe03d9ea1ed057c91d337c2b9beaa5b8552a0985af1ab6e52af9af075fa",
+    "figureS1/patient-level/disease_progr.pdf": "cdc99a14bbd9351b6f403d8a2acfc64cf79331117b78c053f116e782065ce97f",
+    "figureS1/patient-level/disease_progr_time.pdf": "16654a3adeb29e8b6b9b734320f735ef44c7db2d2718614d6045e242c2f899e7",
+    "figureS1/patient-level/gs_grp.pdf": "704d5e3f8e03a29875ad2d229323394a69f1c811cb8ed3db0281ba1852da11ba",
+    "figureS1/patient-level/last_fu.pdf": "cd4124be6eee3983f28675be266a614d678935ea2c476f4e6f36592719e78378",
+    "figureS1/patient-level/ln_status.pdf": "373210524ba02ab0d667bf96f9dfc3931bd9325e0e568c293c36cf56c8dd2391",
+    "figureS1/patient-level/os_status.pdf": "55d86e76ffb6173f519d2fab29789c72196dd70f4f8046c6a39dbb32406e2853",
+    "figureS1/patient-level/pgs_score.pdf": "48e5277e5356e52b52f67069e6485745f094d83be20925ae74f053dea17187c9",
+    "figureS1/patient-level/psa_at_surgery.pdf": "d527ec1263367dd32c59c5bf312c8e1d26c46d39ae54bd1afed57a846664f48e",
+    "figureS1/patient-level/psa_progr.pdf": "699100372bd6ece3fbaefa21d69dc515272cc365b75e0b6d8db770c365167d14",
+    "figureS1/patient-level/psa_progr_time.pdf": "b7913ea7758fefa6874e37e8737dd7b53c6398fc3e3d818117018b5379ee94d6",
+    "figureS1/patient-level/pt_stage.pdf": "fa2d89eda263deb692e1ed1f415cd6fbf19451fb2c7a1ecaafc366b8a4a0b1e0",
+    "figureS1/patient-level/recurrence.pdf": "b52ee8250854cf454fe8c340d28a2a792ccb0c9617065418c4da5b3bd86d9b2e",
+    "figureS1/patient-level/recurrence_loc.pdf": "f43d78a19d65e29178614f43fba06f8da970748aa8bb1d869e038e1441a62e50",
+    "figureS1/patient-level/surgical_margin_status.pdf": "2949c389d158ef6e09851288e9ec553da5f9cad413bd51ee994c18e4fdb885c0",
+    "figureS1/tma-level/cribriform.pdf": "7b43c3aa4e56e19b1b9888fdf645c2179c08c2e73555e3d2eb47266dd7f3b772",
+    "figureS1/tma-level/glandular_atrophy_pin.pdf": "d0dc5d33c003def2c028c694b0a2ac22e466513dd4f3bfce1c8279a1961ce6bd",
+    "figureS1/tma-level/gleason_grp.pdf": "ad66393606714be8ecdef215c14d5ffbba3da926ac9e1dba9209560919bccb5d",
+    "figureS1/tma-level/gleason_score.pdf": "c85d374ee05ea6460b00917e78374b0c682655bdb5af0f0f6b5fb26d2110444b",
+    "figureS1/tma-level/gleason_score_sum.pdf": "f1303653220761b8234f7a51349f20fa9ec27738643c5cd64b4700b0dcc66038",
+    "figureS1/tma-level/gs_pat_1.pdf": "f9d5aad15229d45b8a05a1cd7dedec5a7b846550999adf3d7f6d2016e3fb880b",
+    "figureS1/tma-level/gs_pat_2.pdf": "d9d870397dec4c61e5fbf961b5130e525ce882183d8ff46c4fe82d86ca0f0db1",
+    "figureS1/tma-level/inflammation.pdf": "7f2c04abd6e4cb7133c41c3356df29f408e70f552b04d6f894cd0109f3294e7d",
+    "figureS1/tma-level/is_tumor.pdf": "8d6ae7da328ca91bc1fbadc95c8fef8da53c11702dbf4a7a52e9e783898aa9f4",
+    "figureS1/tma-level/non_stromogenic_smc_abundant.pdf": "88b26c76dd64432dc56dc7764c12e3a31ea2cb34974d6741b047e5e50acc65e8",
+    "figureS1/tma-level/stromogenic_smc_loss_reactive_stroma_present.pdf": "2e22d05bb3f5c8e2fab1bb21e025738e329feb5a3ef622cd6c3ca47f45322ceb"
+  },
+  "scripts/figures/figureS1b_gleason_concordance.R": {
+    "figureS1/heatmap_gleason_grp_by_gs_grp.pdf": "f9ecc3b638bf759f88a4b1cf43c1ab3519db5ea5539b778de9485121aec3c78b"
+  },
+  "scripts/figures/figureS3a_tma_stacked_barplot.py": {
+    "figureS3/figureS3a_stacked_barplot.pdf": "dc5a1741d7855e9ea01219d7bde2f890a0bf92831f7918e0db691bbcb18c8919"
+  },
+  "scripts/figures/figureS3b_cluster_concordance.R": {
+    "figureS3/heatmap_cluster_group_tma_by_patient_cluster_group.pdf": "04b1293cba9adaf8fb1cf23803da89d157f0615ad49e388d6012e5febc7fe445"
+  },
+  "scripts/figures/figureS3c_progression_km.R": {
+    "figureS3/progr_patient_cluster_group_final_all.pdf": "6f58c3ba20fbf3164b741edb182ce96489895ba30028c00c4caaed09faa95345"
+  },
+  "scripts/figures/figureS4b_niche_mean_composition.py": {
+    "figureS4/figureS4b_niche_composition_barplot.pdf": "8a0280392c5f75a830c5cfe04008b3391868ecf54d53335db2dd80f7100ea69d"
+  },
+  "scripts/figures/figureS4b_niche_median_composition.py": {
+    "figureS4/figureS4b_niche_composition_barplot_median.pdf": "3d5bf28569ea9ab656b3e64694a948c0669e0528a32ea0e3ace91e00cd499493"
+  },
+  "scripts/figures/figureS5a_p53_niche_barplot.py": {
+    "figureS5/p53_immune_full_barplot_annotated.pdf": "a4237a68f40781a733bbf2d31f0ecdd6f8c746d54b0b5730203505c505c3509f"
+  },
+  "scripts/figures/figureS5b_inflammation_km.R": {
+    "figureS5/inflammation/progr_inflammation.pdf": "51a154a6ca2fc50fa0e4d4de63375cf1d2cd169ad4717317fa69f18f20ddd248",
+    "figureS5/inflammation/survival_inflammation_with_table.pdf": "aa87a8c979d0d48d4e9116dd7084647d21e47ef7fe5b6476f1062a97571a7739"
+  },
+  "scripts/figures/figureS6a_stromogenic_km.R": {
+    "figureS6/stromogenic/progr_stromogenic_with_table.pdf": "4d2752f4a9221f35294f02433ac04f6ad65d8cbc740bee7e833c80fe8fba3e26",
+    "figureS6/stromogenic/survival_stromogenic_with_table.pdf": "95991865d06052fd837de42a12b090bef0221716964190810b65734d81ff633a"
+  },
+  "scripts/figures/figureS6bc_niche_km.R": {
+    "figureS6/niches/km_survival__disease_progr_luminal_infiltratedwith_table.pdf": "b2e6381130dba248d53e27cbf75ccb8109df3035615b7dc19769dcec9aebcf55",
+    "figureS6/niches/km_survival__disease_progr_tumor_CAF1_lymphocyteswith_table.pdf": "1d4f1c3d15b18e5810602be7e35d00f97f55f6a45b01460f1ea79dd8a158ad07"
+  },
+  "scripts/revision/figure6_cox_niche6_erg_p53.R": {
+    "figure6_niche6/figure6_cox_niche6_erg_p53_os.csv": "ab80bf1697a5206b4535bd151f12e59d34826de8ac51e4f5e78c297855ca000b",
+    "figure6_niche6/figure6_cox_niche6_erg_p53_os.png": "05d0adec2a594201cd758a95442169bbf908dac8401163c1aa4707bd88550bef",
+    "figure6_niche6/figure6_cox_niche6_erg_p53_progr.csv": "3b97f7799f229e2c954f2040848bb95ebbd1333d07d02be1fbd41f4f239f4024",
+    "figure6_niche6/figure6_cox_niche6_erg_p53_progr.png": "b74408d6a21f3601ef6efb64ab4a0e246327d1e29c0ee28afe3c8fadfb0bf6d8",
+    "figure6_niche6/figure6_cox_niche6_gleason_os.csv": "ec6c7e5e08fd162f5c1e3b71059f874716a6533da240f6564613cfc8eddbb26b",
+    "figure6_niche6/figure6_cox_niche6_gleason_os.png": "bc0a0ff4782c8c15b0452b12944613ec13b37f4b485f08491a4b464ba01ca73d",
+    "figure6_niche6/figure6_cox_niche6_gleason_progr.csv": "4c8992578540ef29b5e6ca0a6e3fc4a30ae62a6c4ffff11b77c313ee6c55ee89",
+    "figure6_niche6/figure6_cox_niche6_gleason_progr.png": "de4a5ad5fea7f4e85940b0adc079dcdafcaf49fe26d495882f959392775c7ff8"
+  },
+  "scripts/revision/figure6_cox_niche6_gleason.R": {
+    "figure6_niche6/figure6_cox_niche6_erg_p53_os.csv": "ab80bf1697a5206b4535bd151f12e59d34826de8ac51e4f5e78c297855ca000b",
+    "figure6_niche6/figure6_cox_niche6_erg_p53_os.png": "05d0adec2a594201cd758a95442169bbf908dac8401163c1aa4707bd88550bef",
+    "figure6_niche6/figure6_cox_niche6_erg_p53_progr.csv": "3b97f7799f229e2c954f2040848bb95ebbd1333d07d02be1fbd41f4f239f4024",
+    "figure6_niche6/figure6_cox_niche6_erg_p53_progr.png": "b74408d6a21f3601ef6efb64ab4a0e246327d1e29c0ee28afe3c8fadfb0bf6d8",
+    "figure6_niche6/figure6_cox_niche6_gleason_os.csv": "ec6c7e5e08fd162f5c1e3b71059f874716a6533da240f6564613cfc8eddbb26b",
+    "figure6_niche6/figure6_cox_niche6_gleason_os.png": "bc0a0ff4782c8c15b0452b12944613ec13b37f4b485f08491a4b464ba01ca73d",
+    "figure6_niche6/figure6_cox_niche6_gleason_progr.csv": "4c8992578540ef29b5e6ca0a6e3fc4a30ae62a6c4ffff11b77c313ee6c55ee89",
+    "figure6_niche6/figure6_cox_niche6_gleason_progr.png": "de4a5ad5fea7f4e85940b0adc079dcdafcaf49fe26d495882f959392775c7ff8"
+  },
+  "scripts/revision/figure7_cox_niche9_caf1cd105.R": {
+    "figure7_niche9/figure7_cox_niche9_caf1cd105_os.csv": "347001ea701949b7767d18d722994484df334e76ddda693922c8cf4f84e31ef8",
+    "figure7_niche9/figure7_cox_niche9_caf1cd105_os.png": "8492877a86f555fd61e8ba92b06e06ff3e0e7ac9bcdf9067ab2d233dbd014fe2",
+    "figure7_niche9/figure7_cox_niche9_caf1cd105_progr.csv": "aca45aaba372143bf075c7794e0261a687d088074cb24d3ed0d801fb7ffb7510",
+    "figure7_niche9/figure7_cox_niche9_caf1cd105_progr.png": "ae264c22051b7a7b0e73da0aa986e682668ef328ebd5856e6d1e722d3d8fa5b2",
+    "figure7_niche9/figure7_cox_niche9_gleason_os.csv": "26ec71f282a4cce83cfb87200e46b95c485aa9140e6acc453db9699f79d9d4e3",
+    "figure7_niche9/figure7_cox_niche9_gleason_os.png": "b05ff5984868e9c4ee1c62d26c6da55609632abb68f520e5a96ee56185a9ea88",
+    "figure7_niche9/figure7_cox_niche9_gleason_progr.csv": "9884adde8b8714eed245191df8df48356f0ce0e5799eb06d9055379da388934c",
+    "figure7_niche9/figure7_cox_niche9_gleason_progr.png": "163070de7e55b28a044fb25f8aaf389e01c7f73b5dcebd40e131cd4a83fb0633"
+  },
+  "scripts/revision/figure7_cox_niche9_gleason.R": {
+    "figure7_niche9/figure7_cox_niche9_caf1cd105_os.csv": "347001ea701949b7767d18d722994484df334e76ddda693922c8cf4f84e31ef8",
+    "figure7_niche9/figure7_cox_niche9_caf1cd105_os.png": "8492877a86f555fd61e8ba92b06e06ff3e0e7ac9bcdf9067ab2d233dbd014fe2",
+    "figure7_niche9/figure7_cox_niche9_caf1cd105_progr.csv": "aca45aaba372143bf075c7794e0261a687d088074cb24d3ed0d801fb7ffb7510",
+    "figure7_niche9/figure7_cox_niche9_caf1cd105_progr.png": "ae264c22051b7a7b0e73da0aa986e682668ef328ebd5856e6d1e722d3d8fa5b2",
+    "figure7_niche9/figure7_cox_niche9_gleason_os.csv": "26ec71f282a4cce83cfb87200e46b95c485aa9140e6acc453db9699f79d9d4e3",
+    "figure7_niche9/figure7_cox_niche9_gleason_os.png": "b05ff5984868e9c4ee1c62d26c6da55609632abb68f520e5a96ee56185a9ea88",
+    "figure7_niche9/figure7_cox_niche9_gleason_progr.csv": "9884adde8b8714eed245191df8df48356f0ce0e5799eb06d9055379da388934c",
+    "figure7_niche9/figure7_cox_niche9_gleason_progr.png": "163070de7e55b28a044fb25f8aaf389e01c7f73b5dcebd40e131cd4a83fb0633"
+  }
+}
