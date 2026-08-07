@@ -4,6 +4,36 @@
 
 Research workspace for prostate cancer microenvironment literature curation, report generation, and project-specific draft manuscript review.
 
+## Running R in this environment
+
+This is a SLURM/Lmod HPC environment — R is not on `PATH` by default and
+must be loaded via the module system before any `Rscript` invocation:
+
+```bash
+module load r-light/4.4.1
+Rscript scripts/figures/figure2_cell_type_heatmap.R
+```
+
+`module avail r-light` lists other installed versions; `4.4.1` is the one
+this project is developed/tested against (see `REPRODUCIBILITY.md`). Loading
+the module puts `Rscript`/`R` on `PATH` for the rest of the shell session —
+re-run `module load r-light/4.4.1` in each new shell/agent turn that needs R,
+it does not persist across separate tool invocations.
+
+Required packages (`dotenv`, `arrow`, `tidyverse`, `survival`, `survminer`,
+`gtsummary`, `compositions`, `coxme`, `ComplexHeatmap`, `circlize`, `yaml`,
+`entropy`, `viridis`, `stringr`) install to the personal library at
+`~/R/x86_64-pc-linux-gnu-library/4.4`:
+
+```bash
+module load r-light/4.4.1
+Rscript -e 'install.packages(c("pkg1", "pkg2"), repos="https://cloud.r-project.org")'
+```
+
+If `survminer` fails to install, see `REPRODUCIBILITY.md`'s "survminer
+install note" — its `Deriv` dependency needs a specific older release
+pinned first on this R build.
+
 ## Project structure
 
 Current repository layout:
