@@ -22,7 +22,13 @@ CAF_MARKERS = {"smooth_muscle_actin", "vimentin", "collagen1", "cd146", "cnn1", 
 CONFIGS = {
     "excl_markers": sorted(NON_MARKER_CHANNELS),
     "caf_markers_only": sorted(set(ALL_MARKERS) - CAF_MARKERS),
+    "stromal": sorted(NON_MARKER_CHANNELS),
 }
+# published Figure 3a is the full stromal-compartment UMAP (includes
+# stromal-pericytes), not the CAF-only one -- see this script's data-port
+# sibling `scripts/data/figure3_caf_umap_embedding.py` for the legend
+# discrepancy this corrects
+POPULATIONS = {"excl_markers": "caf", "caf_markers_only": "caf", "stromal": "stromal"}
 NUM_SAMPLES_PER_PLOT = 100_000
 
 
@@ -82,11 +88,16 @@ def main(export_dir: Path | None = None):
     sid_to_pid = clinical["pat_id"].to_dict()
 
     caf_filter = metadata["label"].str.contains("CAF")
-    data = raw_intensity.loc[caf_filter, :]
-    caf_metadata = metadata.loc[caf_filter, :]
-    logger.info(f"{len(data)} CAF cells (label contains 'CAF')")
+    stromal_filter = metadata["main_group"] == "stromal"
+    populations = {
+        "caf": (raw_intensity.loc[caf_filter, :], metadata.loc[caf_filter, :]),
+        "stromal": (raw_intensity.loc[stromal_filter, :], metadata.loc[stromal_filter, :]),
+    }
+    logger.info(f"{len(populations['caf'][0])} CAF cells (label contains 'CAF')")
+    logger.info(f"{len(populations['stromal'][0])} stromal cells (main_group == 'stromal')")
 
     for config_name in CONFIGS:
+        data, caf_metadata = populations[POPULATIONS[config_name]]
         config_dir = save_dir / config_name
         config_dir.mkdir(parents=True, exist_ok=True)
 
@@ -136,9 +147,10 @@ def main(export_dir: Path | None = None):
             ax.figure.savefig(config_dir / f"value={value}.pdf", transparent=True)
             plt.close(ax.figure)
 
-        # %% per-CAF-subtype subset panels
+        # %% per-cell-type subset panels (per-CAF-subtype for the "caf" population;
+        # also includes stromal-pericytes etc. for the "stromal" population)
         colormap_dict = get_colormap_dict(name="label")
-        for cell_type in sorted(set(filter(lambda x: "CAF" in x, metadata["label"].unique()))):
+        for cell_type in sorted(caf_metadata["label"].unique()):
             md = caf_metadata.loc[index].copy()
             labels = md["label"].values
             select = md["label"] == cell_type
