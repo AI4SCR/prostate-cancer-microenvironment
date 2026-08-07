@@ -44,7 +44,7 @@ or a confirmed gap, see Issues). All `sync_paper` paths are relative to
 | S3 | b | `figureS3b_cluster_concordance.R` | `sync_paper/05-heterogeneity/patient-core-heterogeneity.R` (cluster section) | `5-niches/barplot_data/metadata_with_dendrogram_colors_label_{pat_id,tma_id}.parquet` | `figureS3/heatmap_cluster_group_tma_by_patient_cluster_group.pdf` | true | false |
 | S3 | c | `figureS3c_progression_km.R` | `sync_paper/03_survival/patient_risk_group_km.R` | `5-niches/barplot_data/metadata_with_dendrogram_colors_label_pat_id.parquet`, clinical.parquet | `figureS3/progr_patient_cluster_group_final_all.pdf` | true | false |
 | S4 | a | — | — (representative niche images, not code-derived) | — | — | — | — |
-| S4 | b | `figureS4b_niche_mean_composition.py` | `sync_paper/06-spatial-niches/composition/niche_composition.py` | `5-niches/annotation/clusters_annotated_v2.parquet` | `figureS4/figureS4b_niche_composition_barplot.pdf` | false | true |
+| S4 | b | `figureS4b_niche_median_composition.py` (mean variant: `figureS4b_niche_mean_composition.py`) | `sync_paper/06-spatial-niches/composition/niche_composition.py` (median block, legacy commit `84c1f2d`) | `5-niches/annotation/clusters_annotated_v2.parquet` | `figureS4/figureS4b_niche_composition_barplot_median.pdf` | true | true |
 | S5 | a | `figureS5a_p53_niche_barplot.py` | `sync_paper/06-spatial-niches/abundance/stacked_frequencies.py` (`tma_id` branch) | `5-niches/annotation/clusters_annotated_v2.parquet`, clinical.parquet | `figureS5/p53_immune_full_barplot_annotated.pdf` | true | true |
 | S5 | b | `figureS5b_inflammation_km.R` | `sync_paper/03_survival/clinical_risk_group_km.R` (inflammation section) | clinical.parquet | `figureS5/inflammation/progr_inflammation.pdf`, `survival_inflammation_with_table.pdf` | true | false |
 | S6 | a | `figureS6a_stromogenic_km.R` | `sync_paper/03_survival/clinical_risk_group_km.R` (stromogenic section) | clinical.parquet | `figureS6/stromogenic/progr_stromogenic_with_table.pdf`, `survival_stromogenic_with_table.pdf` | true | false |
@@ -134,17 +134,36 @@ fix in our port. `pairwise_testing_niches.R` itself has not been ported
 into this repo — citation-only for now, not run or empirically verified
 against the paper's displayed significance stars.
 
-# Issue: Supplementary Figure 4b — proportions don't exactly match the paper
+# Issue: Supplementary Figure 4b — resolved, panel uses median not mean composition
 
-Segment proportions are close but not exact when spot-checked niche by
-niche against the published panel. Our script is a faithful verbatim port
-of `niche_composition.py`'s mean-composition block; no computational
-deviation found. Also unresolved: the paper's panel is a horizontal
-stacked bar (niches as rows) while ours (and the legacy source itself —
-confirmed via `df_comp_mean.plot(kind='bar', ...)`) is vertical — likely a
-manual rotation before publication, never captured in code. Neither the
-orientation nor the proportion mismatch is fixed; both would require
-deviating from the verbatim `kind='bar'` computation.
+The panel is the **median** cell-type composition per niche (median per
+cell type across samples, then each niche's row rescaled to sum to 1) —
+not the corpus mean. `figureS4b_niche_mean_composition.py` (mean, no
+rescaling) was the initially-ported script and is why Niche 3
+(`basal_luminal_glands`) showed basal cells below 0.4 when the paper's
+panel has them above 0.4.
+
+Root cause, verified directly: the local legacy mirror was one commit
+behind `origin/main` (`84c1f2d`, "adapted niche composition figure
+construction"). That commit adds a block to
+`sync_paper/06-spatial-niches/composition/niche_composition.py`
+(starting at line 334, titled `### CORRECT VERSION WITH MEDIAN INSTEAD OF
+MEAN`) that reuses `df_comp_median` (computed in the older commit we
+originally ported from, but never plotted there — dead code), reindexes
+it to `niche_order`, rescales each row to sum to 1
+(`df_comp_median.div(row_sums, axis=0)`), and plots it with title "Median
+Cell Type Composition per Niche" / ylabel "Rescaled Median Composition".
+
+Ported as a new, separate script, `figureS4b_niche_median_composition.py`
+— verbatim port of that block. Regenerated and confirmed: Niche 3 basal
+proportion is now ~0.42, matching the paper. The original
+`figureS4b_niche_mean_composition.py` is left unmodified (it's a verbatim
+port of a real, distinct block in the source — the mean composition,
+un-rescaled) and kept alongside as the mean variant; `Validated = true`
+now applies to the median script, which is what the published panel
+actually shows. The horizontal-vs-vertical orientation difference from
+the paper's panel is unresolved either way — neither block in the source
+produces a horizontal bar; likely a manual rotation before publication.
 
 # Issue: Figure 5a/5b — verbatim port doesn't match the paper's layout
 
