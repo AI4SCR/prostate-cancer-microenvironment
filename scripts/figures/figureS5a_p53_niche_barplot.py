@@ -22,6 +22,20 @@ to `ann_rows`, matching the 4-row annotation (PatID, Disease progr,
 Gleason grp, Inflammation) visible in the published panel. Colors for both
 come from `resources/colormaps.yaml`'s existing `pat_id`/`disease_progr`
 sections (already used elsewhere in this repo) -- not invented.
+
+Second disclosed deviation, for the rebuttal letter's Issue 2 response:
+`THRESHOLD` was raised from the verbatim source's `0.05` to `0.1195737`
+so this panel selects the same 5 patients as Fig 6b's niche-6 KM plot
+(`figure6_km_niche6.R`), rather than 6. The two panels used different
+"positive for niche 6" cutoffs -- S5a's per-core frequency (with
+`pseudocount=1`) at 0.05 vs. Fig 6b's median split over nonzero cores'
+cell-level frequency (`pseudocount=0`) -- which meant S5a included one
+extra, non-progressing patient (`pat_id 96.22128`) that Fig 6b's stricter
+cutoff excludes. `0.1195737` is Fig 6b's own median threshold value,
+verified (via an ad hoc check, not part of this script) to select the
+same 8 TMA cores / 5 patients under either frequency formula at this
+cutoff. Confirmed empirically: at the new threshold, all 5 selected
+patients progressed (`95.20582, 96.7481, 97.1247, 97.5521, 98.6114`).
 """
 
 from pathlib import Path
@@ -37,7 +51,7 @@ from loguru import logger
 from prostate_cancer.utils import resolve_data_dir, resolve_output_figures_dir
 
 NICHE_OF_INTEREST = "tumorERG+p53+_ProlifLuminal"  # niche 6
-THRESHOLD = 0.05
+THRESHOLD = 0.1195737  # matches Fig 6b's median-split cutoff; was 0.05 -- see module docstring
 
 
 def compute_label_frequency(data: pd.DataFrame, level: str, pseudocount: int = 1, group_vars: list[str] = ["sample_id"]) -> pd.Series:
