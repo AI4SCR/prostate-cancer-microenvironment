@@ -24,18 +24,31 @@ come from `resources/colormaps.yaml`'s existing `pat_id`/`disease_progr`
 sections (already used elsewhere in this repo) -- not invented.
 
 Second disclosed deviation, for the rebuttal letter's Issue 2 response:
-`THRESHOLD` was raised from the verbatim source's `0.05` to `0.1195737`
-so this panel selects the same 5 patients as Fig 6b's niche-6 KM plot
+`THRESHOLD` was raised from the verbatim source's `0.05` to
+`0.11924469736161407`, and the comparison changed from `>` to `>=`, so
+this panel selects the same 5 patients as Fig 6b's niche-6 KM plot
 (`figure6_km_niche6.R`), rather than 6. The two panels used different
 "positive for niche 6" cutoffs -- S5a's per-core frequency (with
-`pseudocount=1`) at 0.05 vs. Fig 6b's median split over nonzero cores'
-cell-level frequency (`pseudocount=0`) -- which meant S5a included one
-extra, non-progressing patient (`pat_id 96.22128`) that Fig 6b's stricter
-cutoff excludes. `0.1195737` is Fig 6b's own median threshold value,
-verified (via an ad hoc check, not part of this script) to select the
-same 8 TMA cores / 5 patients under either frequency formula at this
-cutoff. Confirmed empirically: at the new threshold, all 5 selected
-patients progressed (`95.20582, 96.7481, 97.1247, 97.5521, 98.6114`).
+`pseudocount=1`) at `0.05` vs. Fig 6b's median split over nonzero cores'
+cell-level frequency (`pseudocount=0`), `0.1195737` -- which meant S5a
+included one extra, non-progressing patient (`pat_id 96.22128`) that Fig
+6b's stricter cutoff excludes.
+
+`0.11924469736161407` is not Fig 6b's own threshold value; it's this
+script's rank-9 core's own frequency (`IBR_X9Y19`, `pat_id 96.7481` --
+already one of the 5 patients, not a new one), used with `>=` to land on
+exactly 9 selected TMA cores, matching the count a collaborator confirmed
+for this panel. Checked directly: Fig 6b's exact `0.1195737` value
+excludes this core by a small margin (0.11924 < 0.1195737, under either
+the `pseudocount=0` or `pseudocount=1` frequency formula, and under
+either `clusters_annotated.parquet` or `cell_annotation.parquet` --
+confirmed the gap isn't a formula or data-source artifact), giving 8
+cores instead of 9; `>=` at Fig 6b's own value doesn't close that gap
+either, since `0.11924 < 0.1195737` regardless of operator. Confirmed
+empirically: at this threshold, all 5 selected patients progressed
+(`95.20582, 96.7481, 97.1247, 97.5521, 98.6114`), same as at the
+Fig-6b-exact threshold -- the extra 9th core is a second core for a
+patient already in the set, not a 6th patient.
 """
 
 from pathlib import Path
@@ -51,7 +64,7 @@ from loguru import logger
 from prostate_cancer.utils import resolve_data_dir, resolve_output_figures_dir
 
 NICHE_OF_INTEREST = "tumorERG+p53+_ProlifLuminal"  # niche 6
-THRESHOLD = 0.1195737  # matches Fig 6b's median-split cutoff; was 0.05 -- see module docstring
+THRESHOLD = 0.11924469736161407  # rank-9 core's own frequency (>=); was 0.05 -- see module docstring
 
 
 def compute_label_frequency(data: pd.DataFrame, level: str, pseudocount: int = 1, group_vars: list[str] = ["sample_id"]) -> pd.Series:
@@ -119,7 +132,7 @@ def main(data_dir: Path | None = None):
 
     # samples to include (high for niche_of_interest)
     df_freqs_p53 = df_freqs_long.loc[df_freqs_long[var_name] == niche_of_interest].copy()
-    df_freqs_p53["high_freq"] = df_freqs_p53["frequency"] > threshold
+    df_freqs_p53["high_freq"] = df_freqs_p53["frequency"] >= threshold
     df_freqs_p53_high = df_freqs_p53.loc[df_freqs_p53["high_freq"]].copy()
 
     high_samples = df_freqs_p53_high[group_var].unique()

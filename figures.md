@@ -306,23 +306,27 @@ this `0.05`-threshold configuration against the published panel — panel
 structure, niche stacking, and annotation rows all match; only the bar
 count and exact patient hex values remain open.
 
-**`THRESHOLD` since changed to `0.1195737` (rebuttal letter, Issue 2)** —
-see the module docstring and the note directly below. This is no longer
-the `0.05`-threshold configuration the `Validated = true`/9-vs-10 bar-count
-discussion above describes; it deliberately trades published-panel fidelity
-for consistency with Fig 6b's patient set, for a rebuttal-only figure. If a
-`0.05`-threshold rendering is needed again (e.g. to re-check the bar count
-against the paper), re-run with `THRESHOLD = 0.05` rather than assuming the
-current script output matches the published panel.
+**`THRESHOLD` since changed to `0.11924469736161407` (rebuttal letter,
+Issue 2)** — see the module docstring and the note directly below. This is
+no longer the `0.05`-threshold configuration the `Validated = true`/9-vs-10
+bar-count discussion above describes; it deliberately trades
+published-panel fidelity (in the sense of matching the paper's own cutoff
+value) for a 9-core count that matches both the paper's bar count and Fig
+6b's patient set, for a rebuttal-only figure. If a `0.05`-threshold
+rendering is needed again (e.g. to re-check niche-6 proportions against the
+paper at the original cutoff), re-run with `THRESHOLD = 0.05` rather than
+assuming the current script output matches that configuration.
 
-# Issue: S5a — threshold raised to match Fig 6b's patient set (rebuttal letter, Issue 2)
+# Issue: S5a — threshold raised to match Fig 6b's patient set and the paper's 9-core count (rebuttal letter, Issue 2)
 
 Reviewer's Issue 2 (independence from Gleason grade) is answered in part by
 a claim in the rebuttal letter about S5a: "5 out of 6 patients that are
 positive for this niche (in a total of 10 ROIs) showed progression." Fig
 6b's own niche-6 KM plot (`figure6_km_niche6.R`) shows only **5** patients
-in its "high" risk group, not 6 — a discrepancy worth resolving before it
-reaches a reviewer.
+in its "high" risk group, not 6, and a collaborator separately confirmed
+the panel should show **9** TMA cores, not the 10 our original `0.05`
+threshold produced — two discrepancies worth resolving before this reaches
+a reviewer.
 
 Root cause, confirmed empirically (not a bug in either script): the two
 panels use different "positive for niche 6" cutoffs on different frequency
@@ -330,22 +334,33 @@ formulas. S5a (as originally ported) used the verbatim source's
 `THRESHOLD = 0.05` on a per-core frequency with `pseudocount = 1`. Fig 6b
 instead uses a median split (`quantile(..., 0.5)`, over nonzero cores only)
 on a cell-level frequency with `pseudocount = 0`, giving a threshold of
-`0.1195737` — noticeably stricter. At `0.05`, S5a selects 10 cores / 6
-patients, one of whom (`pat_id 96.22128`) never progressed
-(`disease_progr_time = 134`, no event); Fig 6b's stricter median cutoff
-excludes exactly that patient, leaving 5 — all of whom progressed.
+`0.1195737` (confirmed by actually running `figure6_km_niche6.R` and
+reading its own printed quantile table, not by reimplementation) —
+noticeably stricter. At `0.05`, S5a selects 10 cores / 6 patients, one of
+whom (`pat_id 96.22128`) never progressed (`disease_progr_time = 134`, no
+event); Fig 6b's stricter median cutoff excludes exactly that patient,
+leaving 5 — all of whom progressed.
 
-Verified directly (ad hoc check, not part of either script) that raising
-S5a's `THRESHOLD` to Fig 6b's own value, `0.1195737`, selects 8 cores and
-the same 5 patients as Fig 6b under either frequency formula (S5a's
-`pseudocount = 1` or Fig 6b's `pseudocount = 0`) — the mismatch is purely
-the cutoff value, not a difference in the underlying frequency
-calculation. `figureS5a_p53_niche_barplot.py`'s `THRESHOLD` changed
-accordingly; both panels now agree: 5 patients, all progressed. This is a
-disclosed deviation from the verbatim `stacked_frequencies.py` source
-(which hardcodes `0.05`), made specifically to resolve this rebuttal-letter
-inconsistency — see the note immediately above for what this costs against
-the published-panel bar count.
+Checked whether raising S5a's `THRESHOLD` to Fig 6b's own value,
+`0.1195737`, would resolve both discrepancies at once: it fixes the
+patient count (8 cores, same 5 patients as Fig 6b, under either frequency
+formula or either of `clusters_annotated.parquet`/`cell_annotation.parquet`
+— confirmed the source file isn't the difference), but only 8 cores, not
+9 — there's a genuine small gap in the per-core frequency distribution
+between the 9th-ranked core (`IBR_X9Y19`, ~0.11924, under any
+formula/pseudocount combination checked) and Fig 6b's exact threshold
+(0.1195737), so `>=` at Fig 6b's own value doesn't close it either.
+
+`figureS5a_p53_niche_barplot.py`'s `THRESHOLD` is instead set to
+`0.11924469736161407` — the 9th-ranked core's own frequency, used with
+`>=` (changed from `>`) — which selects exactly 9 cores. That 9th core
+(`IBR_X9Y19`) belongs to `pat_id 96.7481`, already one of the 5 patients
+from the 8-core selection, not a new one, so the patient-level result is
+unchanged: 5 patients, all progressed. This is a disclosed deviation from
+the verbatim `stacked_frequencies.py` source (which hardcodes `0.05` with
+`>`), made specifically to resolve this rebuttal-letter inconsistency —
+see the note immediately above for what this costs against the original
+`0.05`-threshold configuration's fidelity to the paper's exact cutoff.
 
 # Issue: Figure 7d-f — two circos scripts, the newer one is unfinished
 
