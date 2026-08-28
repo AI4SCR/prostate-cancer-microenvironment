@@ -25,6 +25,31 @@ EXPECTED_TUMOR_PATIENT_COUNT = 190  # final analytical cohort (is_tumor == "yes"
 EXPECTED_ROI_COUNT = 515  # unique physical cores (tma_id), clinical restricted to sample_ids present in both metadata and clinical
 EXPECTED_TUMOR_ROI_COUNT = 459  # unique tma_id, restricted to labeled cells + is_tumor == "yes"
 
+# ds.clinical carries 57 columns; only these are ever read by a script in
+# this repo (grepped across scripts/ + src/, one pass per column name).
+# Everything else -- block/slide identifiers (original_block_number,
+# donor_block_id, unique_tma_sample_id_1..4, slide_code, tma_sample_id,
+# tma_coordinates), napari/annotation bookkeeping (napari_sample_id,
+# file_name_napari, annotation_roi_he), free text (description, notes),
+# an unused duplicate id (patient_id, vs. the actually-used pat_id), a
+# duplicate never referenced (gleason_pattern_tma_core, vs. gleason_grp),
+# and two never-referenced fields (cgs_pat_1, cgs_pat_2) -- is dropped so
+# clinical.parquet only carries what's actually consumed downstream.
+CLINICAL_COLUMNS = [
+    "pat_id", "tma_id",
+    "age_at_surgery", "psa_at_surgery",
+    "last_fu", "cause_of_death", "os_status",
+    "psa_progr", "psa_progr_time",
+    "clinical_progr", "clinical_progr_time",
+    "disease_progr", "disease_progr_time", "recurrence_loc", "recurrence",
+    "cgrading_biopsy", "cgs_score", "gs_pat_1", "gs_pat_2",
+    "gs_grp", "gleason_score", "gleason_score_sum", "gleason_grp",
+    "ct_stage", "pt_stage", "pgs_score", "ln_status",
+    "surgical_margin_status", "adj_adt", "adj_radio", "d_amico_risk",
+    "stromogenic_smc_loss_reactive_stroma_present", "non_stromogenic_smc_abundant",
+    "inflammation", "glandular_atrophy_pin", "cribriform", "is_tumor",
+]
+
 
 def main(base_dir: Path | None = None, data_dir: Path | None = None):
     from ai4bmr_datasets import PCa
@@ -53,6 +78,7 @@ def main(base_dir: Path | None = None, data_dir: Path | None = None):
     # restrict to ROIs present in both tables, exactly as the original script did
     sample_ids = sorted(set(metadata.index.get_level_values("sample_id")) & set(clinical.index))
     clinical = clinical.loc[sample_ids]
+    clinical = clinical[CLINICAL_COLUMNS]
     metadata = metadata.loc[sample_ids]
     intensity = intensity.loc[sample_ids]
     assert len(metadata) == len(intensity)
