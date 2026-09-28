@@ -8,6 +8,11 @@ figures/*
 !results/.gitkeep
 !figures/.gitkeep
 
+# Internal analysis notes -- contain real pat_id values in prose; not for the
+# public repo. Kept locally, untracked.
+REPRODUCIBILITY.md
+figures.md
+
 # Data files
 *.parquet
 *.pdf
