@@ -164,3 +164,22 @@ checkpoints/
 # Kaiko
 kaiko-ca-bundle.pem
 ray/runtime_envs/runtime_env.yml
+
+# Internal notes, drafts and analysis docs -- keep out of the public repo.
+open-questions.md
+bugs.md
+discrepancies.md
+figure_script_mapping.md
+assets_table.md
+table.md
+missing_files.md
+instructions.md
+objectives.md
+CLAUD.md
+CLAUDE.md
+AGENTS.md
+.claude/
+data/assets.md
+**/notes.md
+output/**/*.md
+pat_id_mapping*.csv
